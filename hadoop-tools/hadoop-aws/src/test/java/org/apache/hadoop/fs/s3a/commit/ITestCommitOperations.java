@@ -26,6 +26,7 @@ import java.util.List;
 
 import com.amazonaws.services.s3.model.PartETag;
 import com.google.common.collect.Lists;
+import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.s3a.S3AFileSystem;
 import org.apache.hadoop.fs.s3a.Statistic;
-import org.apache.hadoop.fs.s3a.auth.ProgressCounter;
 import org.apache.hadoop.fs.s3a.commit.files.SinglePendingCommit;
 import org.apache.hadoop.fs.s3a.commit.magic.MagicCommitTracker;
 import org.apache.hadoop.fs.s3a.commit.magic.MagicS3GuardCommitter;
@@ -69,7 +69,6 @@ public class ITestCommitOperations extends AbstractCommitITest {
   private static final byte[] DATASET = dataset(1000, 'a', 32);
   private static final String S3A_FACTORY_KEY = String.format(
       COMMITTER_FACTORY_SCHEME_PATTERN, "s3a");
-  private ProgressCounter progress;
 
   /**
    * A compile time flag which allows you to disable failure reset before
@@ -106,8 +105,6 @@ public class ITestCommitOperations extends AbstractCommitITest {
     verifyIsMagicCommitFS(getFileSystem());
     // abort,; rethrow on failure
     setThrottling(HIGH_THROTTLE, STANDARD_FAILURE_LIMIT);
-    progress = new ProgressCounter();
-    progress.assertCount("progress", 0);
   }
 
   @Test
@@ -369,7 +366,7 @@ public class ITestCommitOperations extends AbstractCommitITest {
   private void validateIntermediateAndFinalPaths(Path magicFilePath,
       Path destFile)
       throws IOException {
-    assertPathDoesNotExist("dest file was created", destFile);
+    assertPathDoesNotExist("dest file was found", destFile);
   }
 
   /**
@@ -455,10 +452,8 @@ public class ITestCommitOperations extends AbstractCommitITest {
 
     SinglePendingCommit pendingCommit =
         actions.uploadFileToPendingCommit(tempFile,
-            dest,
-            null,
-            DEFAULT_MULTIPART_SIZE,
-            progress);
+            dest, null,
+            DEFAULT_MULTIPART_SIZE);
     resetFailures();
     assertPathDoesNotExist("pending commit", dest);
     fullThrottle();
@@ -466,8 +461,6 @@ public class ITestCommitOperations extends AbstractCommitITest {
     resetFailures();
     FileStatus status = verifyPathExists(fs,
         "uploaded file commit", dest);
-    progress.assertCount("Progress counter should be 1.",
-        1);
     assertEquals("File length in " + status, 0, status.getLen());
   }
 
@@ -484,11 +477,10 @@ public class ITestCommitOperations extends AbstractCommitITest {
     assertPathDoesNotExist("test setup", dest);
     SinglePendingCommit pendingCommit =
         actions.uploadFileToPendingCommit(tempFile,
-            dest,
-            null,
-            DEFAULT_MULTIPART_SIZE,
-            progress);
+            dest, null,
+            DEFAULT_MULTIPART_SIZE);
     resetFailures();
+    LOG.debug("Precommit validation");
     assertPathDoesNotExist("pending commit", dest);
     fullThrottle();
     LOG.debug("Postcommit validation");
@@ -496,8 +488,6 @@ public class ITestCommitOperations extends AbstractCommitITest {
     resetFailures();
     String s = readUTF8(fs, dest, -1);
     assertEquals(text, s);
-    progress.assertCount("Progress counter should be 1.",
-        1);
   }
 
   @Test(expected = FileNotFoundException.class)
@@ -508,9 +498,7 @@ public class ITestCommitOperations extends AbstractCommitITest {
     Path dest = methodPath("testUploadMissingile");
     fullThrottle();
     actions.uploadFileToPendingCommit(tempFile, dest, null,
-        DEFAULT_MULTIPART_SIZE, progress);
-    progress.assertCount("Progress counter should be 1.",
-        1);
+        DEFAULT_MULTIPART_SIZE);
   }
 
   @Test
@@ -522,7 +510,7 @@ public class ITestCommitOperations extends AbstractCommitITest {
     SinglePendingCommit commit = new SinglePendingCommit();
     commit.setDestinationKey(fs.pathToKey(destFile));
     fullThrottle();
-    actions.revertCommit(commit, null);
+    actions.revertCommit(commit);
     resetFailures();
     assertPathExists("parent of reverted commit", destFile.getParent());
   }
@@ -536,8 +524,7 @@ public class ITestCommitOperations extends AbstractCommitITest {
     SinglePendingCommit commit = new SinglePendingCommit();
     commit.setDestinationKey(fs.pathToKey(destFile));
     fullThrottle();
-    actions.revertCommit(commit, null);
-    resetFailures();
+    actions.revertCommit(commit);
     assertPathExists("parent of reverted (nonexistent) commit",
         destFile.getParent());
   }
@@ -563,7 +550,10 @@ public class ITestCommitOperations extends AbstractCommitITest {
   @Test
   public void testWriteNormalStream() throws Throwable {
     S3AFileSystem fs = getFileSystem();
-    assumeMagicCommitEnabled(fs);
+    Assume.assumeTrue(
+        "Filesystem does not have magic support enabled: " + fs,
+        fs.hasCapability(STORE_CAPABILITY_MAGIC_COMMITTER));
+
     Path destFile = path("normal");
     try (FSDataOutputStream out = fs.create(destFile, true)) {
       out.writeChars("data");
@@ -610,8 +600,7 @@ public class ITestCommitOperations extends AbstractCommitITest {
       SinglePendingCommit commit1 =
           actions.uploadFileToPendingCommit(localFile,
               destination, null,
-              DEFAULT_MULTIPART_SIZE,
-              progress);
+              DEFAULT_MULTIPART_SIZE);
       commits.add(commit1);
     }
     resetFailures();

@@ -33,7 +33,7 @@ import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.JvmPauseMonitor;
-import org.apache.hadoop.yarn.server.nodemanager.health.NodeHealthCheckerService;
+import org.apache.hadoop.util.NodeHealthScriptRunner;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -77,7 +77,6 @@ import org.apache.hadoop.yarn.server.nodemanager.security.NMContainerTokenSecret
 import org.apache.hadoop.yarn.server.nodemanager.security.NMTokenSecretManagerInNM;
 import org.apache.hadoop.yarn.server.nodemanager.timelineservice.NMTimelinePublisher;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.WebServer;
-import org.apache.hadoop.yarn.server.scheduler.DistributedOpportunisticContainerAllocator;
 import org.apache.hadoop.yarn.server.scheduler.OpportunisticContainerAllocator;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.state.MultiStateTransitionListener;
@@ -347,6 +346,27 @@ public class NodeManager extends CompositeService
     }
   }
 
+  public static NodeHealthScriptRunner getNodeHealthScriptRunner(Configuration conf) {
+    String nodeHealthScript = 
+        conf.get(YarnConfiguration.NM_HEALTH_CHECK_SCRIPT_PATH);
+    if(!NodeHealthScriptRunner.shouldRun(nodeHealthScript)) {
+      LOG.info("Node Manager health check script is not available "
+          + "or doesn't have execute permission, so not "
+          + "starting the node health script runner.");
+      return null;
+    }
+    long nmCheckintervalTime = conf.getLong(
+        YarnConfiguration.NM_HEALTH_CHECK_INTERVAL_MS,
+        YarnConfiguration.DEFAULT_NM_HEALTH_CHECK_INTERVAL_MS);
+    long scriptTimeout = conf.getLong(
+        YarnConfiguration.NM_HEALTH_CHECK_SCRIPT_TIMEOUT_MS,
+        YarnConfiguration.DEFAULT_NM_HEALTH_CHECK_SCRIPT_TIMEOUT_MS);
+    String[] scriptArgs = conf.getStrings(
+        YarnConfiguration.NM_HEALTH_CHECK_SCRIPT_OPTS, new String[] {});
+    return new NodeHealthScriptRunner(nodeHealthScript,
+        nmCheckintervalTime, scriptTimeout, scriptArgs);
+  }
+
   @VisibleForTesting
   protected ResourcePluginManager createResourcePluginManager() {
     return new ResourcePluginManager();
@@ -403,15 +423,18 @@ public class NodeManager extends CompositeService
       exec.init(context);
     } catch (IOException e) {
       throw new YarnRuntimeException("Failed to initialize container executor", e);
-    }
+    }    
     DeletionService del = createDeletionService(exec);
     addService(del);
 
     // NodeManager level dispatcher
     this.dispatcher = createNMDispatcher();
 
-    this.nodeHealthChecker = new NodeHealthCheckerService(dirsHandler);
+    nodeHealthChecker =
+        new NodeHealthCheckerService(
+            getNodeHealthScriptRunner(conf), dirsHandler);
     addService(nodeHealthChecker);
+
 
     ((NMContext)context).setContainerExecutor(exec);
     ((NMContext)context).setDeletionService(del);
@@ -456,7 +479,7 @@ public class NodeManager extends CompositeService
         YarnConfiguration.
             DEFAULT_OPP_CONTAINER_MAX_ALLOCATIONS_PER_AM_HEARTBEAT);
     ((NMContext) context).setQueueableContainerAllocator(
-        new DistributedOpportunisticContainerAllocator(
+        new OpportunisticContainerAllocator(
             context.getContainerTokenSecretManager(),
             maxAllocationsPerAMHeartbeat));
 
@@ -490,7 +513,6 @@ public class NodeManager extends CompositeService
 
     registerMXBean();
 
-    context.getContainerExecutor().start();
     super.serviceInit(conf);
     // TODO add local dirs to del
   }
@@ -504,10 +526,8 @@ public class NodeManager extends CompositeService
       super.serviceStop();
       DefaultMetricsSystem.shutdown();
 
+      // Cleanup ResourcePluginManager
       if (null != context) {
-        context.getContainerExecutor().stop();
-
-        // Cleanup ResourcePluginManager
         ResourcePluginManager rpm = context.getResourcePluginManager();
         if (rpm != null) {
           rpm.cleanup();

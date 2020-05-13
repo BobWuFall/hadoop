@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -33,6 +32,7 @@ import org.apache.hadoop.fs.FilterFileSystem;
 import org.apache.hadoop.fs.FsConstants;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.viewfs.ChRootedFileSystem;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -396,7 +396,7 @@ public class TestChRootedFileSystem {
   }
 
   @Test
-  public void testListLocatedFileStatus() throws Exception {
+  public void testListLocatedFileStatus() throws IOException {
     final Path mockMount = new Path("mockfs://foo/user");
     final Path mockPath = new Path("/usermock");
     final Configuration conf = new Configuration();
@@ -404,35 +404,17 @@ public class TestChRootedFileSystem {
     ConfigUtil.addLink(conf, mockPath.toString(), mockMount.toUri());
     FileSystem vfs = FileSystem.get(URI.create("viewfs:///"), conf);
     vfs.listLocatedStatus(mockPath);
-    final FileSystem mockFs =
-        ((MockFileSystem) getChildFileSystem((ViewFileSystem) vfs,
-            new URI("mockfs://foo/"))).getRawFileSystem();
+    final FileSystem mockFs = ((MockFileSystem)mockMount.getFileSystem(conf))
+        .getRawFileSystem();
     verify(mockFs).listLocatedStatus(new Path(mockMount.toUri().getPath()));
   }
 
-  static FileSystem getChildFileSystem(ViewFileSystem viewFs, URI uri) {
-    for (FileSystem fs : viewFs.getChildFileSystems()) {
-      if (Objects.equals(fs.getUri().getScheme(), uri.getScheme()) && Objects
-          .equals(fs.getUri().getAuthority(), uri.getAuthority())) {
-        return fs;
-      }
-    }
-    return null;
-  }
-
   static class MockFileSystem extends FilterFileSystem {
-    private URI uri;
     MockFileSystem() {
       super(mock(FileSystem.class));
     }
     @Override
-    public URI getUri() {
-      return uri;
-    }
-    @Override
-    public void initialize(URI name, Configuration conf) throws IOException {
-      uri = name;
-    }
+    public void initialize(URI name, Configuration conf) throws IOException {}
   }
 
   @Test(timeout = 30000)

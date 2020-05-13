@@ -66,7 +66,7 @@ public class RouterPermissionChecker extends FSPermissionChecker {
    * @param mountTable
    *          MountTable being accessed
    * @param access
-   *          type of action being performed on the mount table entry
+   *          type of action being performed on the cache pool
    * @throws AccessControlException
    *           if mount table cannot be accessed
    */
@@ -126,7 +126,7 @@ public class RouterPermissionChecker extends FSPermissionChecker {
     }
 
     // Is the user a member of the super group?
-    List<String> groups = ugi.getGroups();
+    List<String> groups = Arrays.asList(ugi.getGroupNames());
     if (groups.contains(superGroup)) {
       return;
     }

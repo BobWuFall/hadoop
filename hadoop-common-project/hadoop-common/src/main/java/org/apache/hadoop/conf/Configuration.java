@@ -51,6 +51,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -1690,11 +1691,7 @@ public class Configuration implements Iterable<Map.Entry<String,String>>,
       return true;
     else if (StringUtils.equalsIgnoreCase("false", valueString))
       return false;
-    else {
-      LOG.warn("Invalid value for boolean: " + valueString +
-               ", choose default value: " + defaultValue + " for " + name);
-      return defaultValue;
-    }
+    else return defaultValue;
   }
 
   /** 
@@ -1888,6 +1885,8 @@ public class Configuration implements Iterable<Map.Entry<String,String>>,
     vStr = StringUtils.toLowerCase(vStr);
     ParsedTimeDuration vUnit = ParsedTimeDuration.unitFor(vStr);
     if (null == vUnit) {
+      logDeprecation("No unit for " + name + "(" + vStr + ") assuming " +
+          defaultUnit);
       vUnit = ParsedTimeDuration.unitFor(defaultUnit);
     } else {
       vStr = vStr.substring(0, vStr.lastIndexOf(vUnit.suffix()));
@@ -3353,7 +3352,6 @@ public class Configuration implements Iterable<Map.Entry<String,String>>,
         handleStartElement();
         break;
       case XMLStreamConstants.CHARACTERS:
-      case XMLStreamConstants.CDATA:
         if (parseToken) {
           char[] text = reader.getTextCharacters();
           token.append(text, reader.getTextStart(), reader.getTextLength());
@@ -3438,10 +3436,8 @@ public class Configuration implements Iterable<Map.Entry<String,String>>,
   }
 
   private void overlay(Properties to, Properties from) {
-    synchronized (from) {
-      for (Entry<Object, Object> entry : from.entrySet()) {
-        to.put(entry.getKey(), entry.getValue());
-      }
+    for (Entry<Object, Object> entry: from.entrySet()) {
+      to.put(entry.getKey(), entry.getValue());
     }
   }
 

@@ -68,7 +68,7 @@ final class FSDirErasureCodingOp {
    * @return an erasure coding policy if ecPolicyName is valid and enabled
    * @throws IOException
    */
-  static ErasureCodingPolicy getEnabledErasureCodingPolicyByName(
+  static ErasureCodingPolicy getErasureCodingPolicyByName(
       final FSNamesystem fsn, final String ecPolicyName) throws IOException {
     assert fsn.hasReadLock();
     ErasureCodingPolicy ecPolicy = fsn.getErasureCodingPolicyManager()
@@ -88,27 +88,6 @@ final class FSDirErasureCodingOp {
           sysPolicies
       );
       throw new HadoopIllegalArgumentException(message);
-    }
-    return ecPolicy;
-  }
-
-  /**
-   * Check if the ecPolicyName is valid, return the corresponding
-   * EC policy if is, including the REPLICATION EC policy.
-   * @param fsn namespace
-   * @param ecPolicyName name of EC policy to be checked
-   * @return an erasure coding policy if ecPolicyName is valid
-   * @throws IOException
-   */
-  static ErasureCodingPolicy getErasureCodingPolicyByName(
-      final FSNamesystem fsn, final String ecPolicyName) throws IOException {
-    assert fsn.hasReadLock();
-    ErasureCodingPolicy ecPolicy = fsn.getErasureCodingPolicyManager()
-        .getErasureCodingPolicyByName(ecPolicyName);
-    if (ecPolicy == null) {
-      throw new HadoopIllegalArgumentException(
-          "The given erasure coding " + "policy " + ecPolicyName
-              + " does not exist.");
     }
     return ecPolicy;
   }
@@ -139,7 +118,7 @@ final class FSDirErasureCodingOp {
     List<XAttr> xAttrs;
     fsd.writeLock();
     try {
-      ErasureCodingPolicy ecPolicy = getEnabledErasureCodingPolicyByName(fsn,
+      ErasureCodingPolicy ecPolicy = getErasureCodingPolicyByName(fsn,
           ecPolicyName);
       iip = fsd.resolvePath(pc, src, DirOp.WRITE_LINK);
       // Write access is required to set erasure coding policy
@@ -395,7 +374,7 @@ final class FSDirErasureCodingOp {
       String ecPolicyName, INodesInPath iip) throws IOException {
     ErasureCodingPolicy ecPolicy;
     if (!StringUtils.isEmpty(ecPolicyName)) {
-      ecPolicy = FSDirErasureCodingOp.getEnabledErasureCodingPolicyByName(
+      ecPolicy = FSDirErasureCodingOp.getErasureCodingPolicyByName(
           fsn, ecPolicyName);
     } else {
       ecPolicy = FSDirErasureCodingOp.unprotectedGetErasureCodingPolicy(

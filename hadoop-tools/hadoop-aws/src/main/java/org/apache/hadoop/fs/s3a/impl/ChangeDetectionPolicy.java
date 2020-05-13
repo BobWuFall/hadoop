@@ -51,7 +51,7 @@ public abstract class ChangeDetectionPolicy {
       LoggerFactory.getLogger(ChangeDetectionPolicy.class);
 
   @VisibleForTesting
-  public static final String CHANGE_DETECTED = "change detected on client";
+  public static final String CHANGE_DETECTED = "change detected  on client";
 
   private final Mode mode;
   private final boolean requireVersion;
@@ -188,15 +188,6 @@ public abstract class ChangeDetectionPolicy {
     default:
       return new NoChangeDetection();
     }
-  }
-
-  /**
-   * String value for logging.
-   * @return source and mode.
-   */
-  @Override
-  public String toString() {
-    return "Policy " + getSource() + "/" + getMode();
   }
 
   /**
@@ -351,8 +342,6 @@ public abstract class ChangeDetectionPolicy {
       if (revisionId != null) {
         LOG.debug("Restricting get request to etag {}", revisionId);
         request.withMatchingETagConstraint(revisionId);
-      } else {
-        LOG.debug("No etag revision ID to use as a constraint");
       }
     }
 
@@ -362,15 +351,13 @@ public abstract class ChangeDetectionPolicy {
       if (revisionId != null) {
         LOG.debug("Restricting copy request to etag {}", revisionId);
         request.withMatchingETagConstraint(revisionId);
-      } else {
-        LOG.debug("No etag revision ID to use as a constraint");
       }
     }
 
     @Override
     public void applyRevisionConstraint(GetObjectMetadataRequest request,
         String revisionId) {
-      LOG.debug("Unable to restrict HEAD request to etag; will check later");
+      // GetObjectMetadataRequest doesn't support eTag qualification
     }
 
     @Override
@@ -428,8 +415,6 @@ public abstract class ChangeDetectionPolicy {
       if (revisionId != null) {
         LOG.debug("Restricting get request to version {}", revisionId);
         request.withVersionId(revisionId);
-      } else {
-        LOG.debug("No version ID to use as a constraint");
       }
     }
 
@@ -439,8 +424,6 @@ public abstract class ChangeDetectionPolicy {
       if (revisionId != null) {
         LOG.debug("Restricting copy request to version {}", revisionId);
         request.withSourceVersionId(revisionId);
-      } else {
-        LOG.debug("No version ID to use as a constraint");
       }
     }
 
@@ -450,8 +433,6 @@ public abstract class ChangeDetectionPolicy {
       if (revisionId != null) {
         LOG.debug("Restricting metadata request to version {}", revisionId);
         request.withVersionId(revisionId);
-      } else {
-        LOG.debug("No version ID to use as a constraint");
       }
     }
 

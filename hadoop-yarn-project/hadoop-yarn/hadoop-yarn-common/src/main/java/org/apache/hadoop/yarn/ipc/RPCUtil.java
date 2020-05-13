@@ -26,7 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.ServiceException;
 
 @InterfaceAudience.LimitedPrivate({ "MapReduce", "YARN" })
 public class RPCUtil {

@@ -46,10 +46,10 @@ static void detachCurrentThreadFromJvm()
   if (threadLocalStorageGet(&state) || !state) {
     return;
   }
-  env = state->env;
-  if ((env == NULL) || (*env == NULL)) {
+  if (!state->env) {
     return;
   }
+  env = state->env;
   ret = (*env)->GetJavaVM(env, &vm);
   if (ret) {
     fprintf(stderr,

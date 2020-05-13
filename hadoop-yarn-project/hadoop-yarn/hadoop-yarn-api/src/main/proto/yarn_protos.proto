@@ -22,7 +22,6 @@
  * for what changes are allowed for a *stable* .proto interface.
  */
 
-syntax = "proto2";
 option java_package = "org.apache.hadoop.yarn.proto";
 option java_outer_classname = "YarnProtos";
 option java_generic_services = true;
@@ -288,7 +287,6 @@ message ApplicationReportProto {
   repeated AppTimeoutsMapProto appTimeouts = 26;
   optional int64 launchTime = 27;
   optional int64 submitTime = 28;
-  optional string rmClusterId = 29;
 }
 
 message AppTimeoutsMapProto {

@@ -19,13 +19,16 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.fpga;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator.FpgaDevice;
+
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * FPGA plugin interface for vendor to implement. Used by {@link FpgaDiscoverer} and
@@ -57,7 +60,7 @@ public interface AbstractFpgaVendorPlugin {
    * @param timeout The vendor plugin should return result during this time
    * @return The result will be added to FPGAResourceAllocator for later scheduling
    * */
-  List<FpgaDevice> discover(int timeout);
+  List<FpgaResourceAllocator.FpgaDevice> discover(int timeout);
 
   /**
    * Since all vendor plugins share a {@link org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.fpga.FpgaResourceAllocator}

@@ -150,10 +150,10 @@ public class TestActivitiesManager {
             .recordAppActivityWithoutAllocation(activitiesManager, node,
                 randomApp,
                 new SchedulerRequestKey(Priority.newInstance(0), 0, null),
-                ActivityDiagnosticConstant.NODE_IS_BLACKLISTED,
-                ActivityState.REJECTED, ActivityLevel.NODE);
+                ActivityDiagnosticConstant.FAIL_TO_ALLOCATE,
+                ActivityState.REJECTED);
         ActivitiesLogger.NODE
-            .finishNodeUpdateRecording(activitiesManager, node.getNodeID(), "");
+            .finishNodeUpdateRecording(activitiesManager, node.getNodeID());
         return null;
       };
       futures.add(threadPoolExecutor.submit(task));
@@ -195,10 +195,10 @@ public class TestActivitiesManager {
             .recordAppActivityWithoutAllocation(activitiesManager, node,
                 randomApp,
                 new SchedulerRequestKey(Priority.newInstance(0), 0, null),
-                ActivityDiagnosticConstant.NODE_IS_BLACKLISTED,
-                ActivityState.REJECTED, ActivityLevel.NODE);
+                ActivityDiagnosticConstant.FAIL_TO_ALLOCATE,
+                ActivityState.REJECTED);
         ActivitiesLogger.NODE.finishNodeUpdateRecording(activitiesManager,
-            ActivitiesManager.EMPTY_NODE_ID, "");
+            ActivitiesManager.EMPTY_NODE_ID);
         return null;
       };
       futures.add(threadPoolExecutor.submit(task));
@@ -236,13 +236,13 @@ public class TestActivitiesManager {
               .recordAppActivityWithoutAllocation(activitiesManager, node,
                   randomApp,
                   new SchedulerRequestKey(Priority.newInstance(0), 0, null),
-                  ActivityDiagnosticConstant.NODE_IS_BLACKLISTED,
-                  ActivityState.REJECTED, ActivityLevel.NODE);
+                  ActivityDiagnosticConstant.FAIL_TO_ALLOCATE,
+                  ActivityState.REJECTED);
         }
         ActivitiesLogger.APP
-            .finishSkippedAppAllocationRecording(activitiesManager,
-                randomApp.getApplicationId(), ActivityState.SKIPPED,
-                ActivityDiagnosticConstant.EMPTY);
+            .finishAllocatedAppAllocationRecording(activitiesManager,
+                randomApp.getApplicationId(), null, ActivityState.SKIPPED,
+                ActivityDiagnosticConstant.SKIPPED_ALL_PRIORITIES);
         return null;
       };
       futures.add(threadPoolExecutor.submit(task));
@@ -285,12 +285,12 @@ public class TestActivitiesManager {
       ActivitiesLogger.APP
           .recordAppActivityWithoutAllocation(newActivitiesManager, node, app,
               new SchedulerRequestKey(Priority.newInstance(0), 0, null),
-              ActivityDiagnosticConstant.NODE_IS_BLACKLISTED,
-              ActivityState.REJECTED, ActivityLevel.NODE);
+              ActivityDiagnosticConstant.FAIL_TO_ALLOCATE,
+              ActivityState.REJECTED);
       ActivitiesLogger.APP
-          .finishSkippedAppAllocationRecording(newActivitiesManager,
-              app.getApplicationId(), ActivityState.SKIPPED,
-              ActivityDiagnosticConstant.EMPTY);
+          .finishAllocatedAppAllocationRecording(newActivitiesManager,
+              app.getApplicationId(), null, ActivityState.SKIPPED,
+              ActivityDiagnosticConstant.SKIPPED_ALL_PRIORITIES);
     }
     AppActivitiesInfo appActivitiesInfo = newActivitiesManager
         .getAppActivitiesInfo(app.getApplicationId(), null, null, null, -1,
@@ -322,15 +322,15 @@ public class TestActivitiesManager {
       for (int i = 0; i < numNodes; i++) {
         NodeId nodeId = NodeId.newInstance("host" + i, 0);
         activitiesManager
-            .addSchedulingActivityForApp(app.getApplicationId(), null, 0,
+            .addSchedulingActivityForApp(app.getApplicationId(), null, "0",
                 ActivityState.SKIPPED,
-                ActivityDiagnosticConstant.NODE_IS_BLACKLISTED,
-                ActivityLevel.NODE, nodeId, 0L);
+                ActivityDiagnosticConstant.FAIL_TO_ALLOCATE, "container",
+                nodeId, "0");
       }
       ActivitiesLogger.APP
-          .finishSkippedAppAllocationRecording(activitiesManager,
-              app.getApplicationId(), ActivityState.SKIPPED,
-              ActivityDiagnosticConstant.EMPTY);
+          .finishAllocatedAppAllocationRecording(activitiesManager,
+              app.getApplicationId(), null, ActivityState.SKIPPED,
+              ActivityDiagnosticConstant.SKIPPED_ALL_PRIORITIES);
     }
 
     // It often take a longer time for the first query, ignore this distraction
@@ -346,11 +346,11 @@ public class TestActivitiesManager {
       Assert.assertEquals(numActivities,
           appActivitiesInfo.getAllocations().size());
       Assert.assertEquals(1,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
               .size());
       Assert.assertEquals(numNodes,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
-              .get(0).getChildren().size());
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
+              .get(0).getAllocationAttempt().size());
       return null;
     };
     testManyTimes("Getting normal app activities", normalSupplier,
@@ -364,14 +364,14 @@ public class TestActivitiesManager {
       Assert.assertEquals(numActivities,
           appActivitiesInfo.getAllocations().size());
       Assert.assertEquals(1,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
               .size());
       Assert.assertEquals(1,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
-              .get(0).getChildren().size());
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
+              .get(0).getAllocationAttempt().size());
       Assert.assertEquals(numNodes,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
-              .get(0).getChildren().get(0).getNodeIds().size());
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
+              .get(0).getAllocationAttempt().get(0).getNodeIds().size());
       return null;
     };
     testManyTimes("Getting aggregated app activities", aggregatedSupplier,
@@ -384,14 +384,14 @@ public class TestActivitiesManager {
               RMWSConsts.ActivitiesGroupBy.DIAGNOSTIC, -1, true, 100);
       Assert.assertEquals(1, appActivitiesInfo.getAllocations().size());
       Assert.assertEquals(1,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
               .size());
       Assert.assertEquals(1,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
-              .get(0).getChildren().size());
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
+              .get(0).getAllocationAttempt().size());
       Assert.assertEquals(numNodes,
-          appActivitiesInfo.getAllocations().get(0).getChildren()
-              .get(0).getChildren().get(0).getNodeIds().size());
+          appActivitiesInfo.getAllocations().get(0).getRequestAllocation()
+              .get(0).getAllocationAttempt().get(0).getNodeIds().size());
       return null;
     };
     testManyTimes("Getting summarized app activities", summarizedSupplier,

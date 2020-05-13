@@ -19,7 +19,7 @@ package org.apache.hadoop.hdfs.server.federation.store.records.impl.pb;
 
 import java.io.IOException;
 
-import org.apache.hadoop.thirdparty.protobuf.Message;
+import com.google.protobuf.Message;
 
 /**
  * A record implementation using Protobuf.

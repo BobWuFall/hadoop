@@ -36,8 +36,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CSQueue;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -86,7 +84,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.policy.Schedulabl
 import org.apache.hadoop.yarn.server.scheduler.OpportunisticContainerContext;
 import org.apache.hadoop.yarn.server.scheduler.SchedulerRequestKey;
 import org.apache.hadoop.yarn.state.InvalidStateTransitionException;
-import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 import org.apache.hadoop.yarn.util.resource.Resources;
 
@@ -208,10 +205,6 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
   private AtomicLong unconfirmedAllocatedMem = new AtomicLong();
   private AtomicInteger unconfirmedAllocatedVcores = new AtomicInteger();
 
-  private String nodeLabelExpression;
-
-  private final long startTime;
-
   public SchedulerApplicationAttempt(ApplicationAttemptId applicationAttemptId, 
       String user, Queue queue, AbstractUsersManager abstractUsersManager,
       RMContext rmContext) {
@@ -233,8 +226,6 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
         unmanagedAM = appSubmissionContext.getUnmanagedAM();
         this.logAggregationContext =
             appSubmissionContext.getLogAggregationContext();
-        this.nodeLabelExpression =
-            appSubmissionContext.getNodeLabelExpression();
       }
       applicationSchedulingEnvs = rmApp.getApplicationSchedulingEnvs();
     }
@@ -245,7 +236,6 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
     ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     readLock = lock.readLock();
     writeLock = lock.writeLock();
-    startTime = SystemClock.getInstance().getTime();
   }
 
   public void setOpportunisticContainerContext(
@@ -594,13 +584,7 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
       if (rmContainer.getState() == RMContainerState.NEW) {
         attemptResourceUsage.incReserved(node.getPartition(),
             container.getResource());
-
-        ResourceScheduler scheduler = this.rmContext.getScheduler();
-        String qn = this.getQueueName();
-        if (scheduler instanceof CapacityScheduler) {
-          qn = ((CapacityScheduler)scheduler).normalizeQueueName(qn);
-        }
-        ((RMContainerImpl) rmContainer).setQueueName(qn);
+        ((RMContainerImpl) rmContainer).setQueueName(this.getQueueName());
 
         // Reset the re-reservation count
         resetReReservations(schedulerKey);
@@ -1194,8 +1178,7 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
     try {
       QueueMetrics oldMetrics = queue.getMetrics();
       QueueMetrics newMetrics = newQueue.getMetrics();
-      String newQueueName = newQueue instanceof CSQueue ?
-              ((CSQueue) newQueue).getQueuePath() : newQueue.getQueueName();
+      String newQueueName = newQueue.getQueueName();
       String user = getUser();
 
       for (RMContainer liveContainer : liveContainers.values()) {
@@ -1485,16 +1468,5 @@ public class SchedulerApplicationAttempt implements SchedulableEntity {
 
   public Map<String, String> getApplicationSchedulingEnvs() {
     return this.applicationSchedulingEnvs;
-  }
-
-  @Override
-  public String getPartition() {
-    return nodeLabelExpression == null ? "" : nodeLabelExpression;
-  }
-
-
-  @Override
-  public long getStartTime() {
-    return startTime;
   }
 }

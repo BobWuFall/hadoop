@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity;
 
-import java.util.Map;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.annotation.Metric;
@@ -30,10 +28,8 @@ import org.apache.hadoop.metrics2.lib.MutableGaugeInt;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.CSQueueMetricsForCustomResources;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.Queue;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.QueueMetrics;
-import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 @Metrics(context = "yarn")
 public class CSQueueMetrics extends QueueMetrics {
@@ -59,43 +55,10 @@ public class CSQueueMetrics extends QueueMetrics {
   MutableGaugeLong maxCapacityMB;
   @Metric("Maximum CPU in virtual cores")
   MutableGaugeInt maxCapacityVCores;
-  @Metric("Guaranteed capacity in percentage relative to parent")
-  private MutableGaugeFloat guaranteedCapacity;
-  @Metric("Guaranteed capacity in percentage relative to total partition")
-  private MutableGaugeFloat guaranteedAbsoluteCapacity;
-  @Metric("Maximum capacity in percentage relative to parent")
-  private MutableGaugeFloat maxCapacity;
-  @Metric("Maximum capacity in percentage relative to total partition")
-  private MutableGaugeFloat maxAbsoluteCapacity;
-
-  private static final String GUARANTEED_CAPACITY_METRIC_PREFIX =
-      "GuaranteedCapacity.";
-  private static final String GUARANTEED_CAPACITY_METRIC_DESC =
-      "GuaranteedCapacity of NAME";
-
-  private static final String MAX_CAPACITY_METRIC_PREFIX =
-      "MaxCapacity.";
-  private static final String MAX_CAPACITY_METRIC_DESC =
-      "MaxCapacity of NAME";
 
   CSQueueMetrics(MetricsSystem ms, String queueName, Queue parent,
       boolean enableUserMetrics, Configuration conf) {
     super(ms, queueName, parent, enableUserMetrics, conf);
-  }
-
-  /**
-   * Register all custom resources metrics as part of initialization. As and
-   * when this metric object construction happens for any queue, all custom
-   * resource metrics value would be initialized with '0' like any other
-   * mandatory resources metrics
-   */
-  protected void registerCustomResources() {
-    Map<String, Long> customResources = initAndGetCustomResources();
-    registerCustomResources(customResources, GUARANTEED_CAPACITY_METRIC_PREFIX,
-        GUARANTEED_CAPACITY_METRIC_DESC);
-    registerCustomResources(customResources, MAX_CAPACITY_METRIC_PREFIX,
-        MAX_CAPACITY_METRIC_DESC);
-    super.registerCustomResources();
   }
 
   public long getAMResourceLimitMB() {
@@ -184,14 +147,6 @@ public class CSQueueMetrics extends QueueMetrics {
     if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
       guaranteedMB.set(res.getMemorySize());
       guaranteedVCores.set(res.getVirtualCores());
-      if (getQueueMetricsForCustomResources() != null) {
-        ((CSQueueMetricsForCustomResources) getQueueMetricsForCustomResources())
-            .setGuaranteedCapacity(res);
-        registerCustomResources(
-            ((CSQueueMetricsForCustomResources)
-                getQueueMetricsForCustomResources()).getGuaranteedCapacity(),
-            GUARANTEED_CAPACITY_METRIC_PREFIX, GUARANTEED_CAPACITY_METRIC_DESC);
-      }
     }
   }
 
@@ -207,22 +162,6 @@ public class CSQueueMetrics extends QueueMetrics {
     if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
       maxCapacityMB.set(res.getMemorySize());
       maxCapacityVCores.set(res.getVirtualCores());
-      if (getQueueMetricsForCustomResources() != null) {
-        ((CSQueueMetricsForCustomResources) getQueueMetricsForCustomResources())
-            .setMaxCapacity(res);
-        registerCustomResources(
-            ((CSQueueMetricsForCustomResources)
-                getQueueMetricsForCustomResources()).getMaxCapacity(),
-            MAX_CAPACITY_METRIC_PREFIX, MAX_CAPACITY_METRIC_DESC);
-      }
-    }
-  }
-
-  @Override
-  protected void createQueueMetricsForCustomResources() {
-    if (ResourceUtils.getNumberOfKnownResourceTypes() > 2) {
-      setQueueMetricsForCustomResources(new CSQueueMetricsForCustomResources());
-      registerCustomResources();
     }
   }
 
@@ -265,35 +204,4 @@ public class CSQueueMetrics extends QueueMetrics {
     return metrics;
   }
 
-  public float getGuaranteedCapacity() {
-    return guaranteedCapacity.value();
-  }
-
-  public float getGuaranteedAbsoluteCapacity() {
-    return guaranteedAbsoluteCapacity.value();
-  }
-
-  public void setGuaranteedCapacities(String partition, float capacity,
-      float absoluteCapacity) {
-    if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
-      guaranteedCapacity.set(capacity);
-      guaranteedAbsoluteCapacity.set(absoluteCapacity);
-    }
-  }
-
-  public float getMaxCapacity() {
-    return maxCapacity.value();
-  }
-
-  public float getMaxAbsoluteCapacity() {
-    return maxAbsoluteCapacity.value();
-  }
-
-  public void setMaxCapacities(String partition, float capacity,
-      float absoluteCapacity) {
-    if (partition == null || partition.equals(RMNodeLabelsManager.NO_LABEL)) {
-      maxCapacity.set(capacity);
-      maxAbsoluteCapacity.set(absoluteCapacity);
-    }
-  }
 }

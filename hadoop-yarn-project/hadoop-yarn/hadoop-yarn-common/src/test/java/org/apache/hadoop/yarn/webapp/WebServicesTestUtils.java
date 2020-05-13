@@ -31,6 +31,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class WebServicesTestUtils {
+
   public static long getXmlLong(Element element, String name) {
     String val = getXmlString(element, name);
     return Long.parseLong(val);
@@ -93,24 +94,6 @@ public class WebServicesTestUtils {
     }
     return val;
   }
-
-  public static String getPropertyValue(Element element, String elementName,
-      String propertyName) {
-    NodeList id = element.getElementsByTagName(elementName);
-    Element line = (Element) id.item(0);
-    if (line == null) {
-      return null;
-    }
-    NodeList properties = line.getChildNodes();
-    for (int i = 0; i < properties.getLength(); i++) {
-      Element property = (Element) properties.item(i);
-      if (getXmlString(property, "name").equals(propertyName)) {
-        return getXmlString(property, "value");
-      }
-    }
-    return null;
-  }
-
 
   public static String getXmlAttrString(Element element, String name) {
     Attr at = element.getAttributeNode(name);

@@ -18,10 +18,9 @@
 package org.apache.hadoop.mapred.nativetask.utils;
 
 import org.junit.Test;
+import org.junit.Assert;
 
 import org.apache.hadoop.mapred.nativetask.util.ReadWriteBuffer;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestReadWriteBuffer {
 
@@ -32,10 +31,10 @@ public class TestReadWriteBuffer {
 
     final ReadWriteBuffer buffer = new ReadWriteBuffer();
 
-    assertThat(buffer.getBuff()).isNotNull();
+    Assert.assertFalse(buffer.getBuff() == null);
 
-    assertThat(buffer.getWritePoint()).isZero();
-    assertThat(buffer.getReadPoint()).isZero();
+    Assert.assertEquals(buffer.getWritePoint(), 0);
+    Assert.assertEquals(buffer.getReadPoint(), 0);
 
     buffer.writeInt(3);
 
@@ -45,20 +44,20 @@ public class TestReadWriteBuffer {
     buffer.writeBytes(bytes, 0, bytes.length);
     buffer.writeLong(100L);
 
-    assertThat(buffer.getWritePoint()).isEqualTo(41);
-    assertThat(buffer.getReadPoint()).isZero();
-    assertThat(buffer.getBuff().length).isEqualTo(41);
+    Assert.assertEquals(buffer.getWritePoint(), 41);
+    Assert.assertEquals(buffer.getReadPoint(), 0);
+    Assert.assertTrue(buffer.getBuff().length >= 41);
 
-    assertThat(buffer.readInt()).isEqualTo(3);
-    assertThat(buffer.readString()).isEqualTo("goodboy");
-    assertThat(buffer.readLong()).isEqualTo(10L);
+    Assert.assertEquals(buffer.readInt(), 3);
+    Assert.assertEquals(buffer.readString(), "goodboy");
+    Assert.assertEquals(buffer.readLong(), 10L);
 
     final byte[] read = buffer.readBytes();
     for (int i = 0; i < bytes.length; i++) {
-      assertThat(read[i]).isEqualTo(bytes[i]);
+      Assert.assertEquals(bytes[i], read[i]);
     }
 
-    assertThat(buffer.readLong()).isEqualTo(100L);
-    assertThat(buffer.getReadPoint()).isEqualTo(41);
+    Assert.assertEquals(100L, buffer.readLong());
+    Assert.assertEquals(41, buffer.getReadPoint());
   }
 }

@@ -18,9 +18,9 @@
 
 package org.apache.hadoop.yarn.server.resourcemanager.security;
 
-import org.apache.hadoop.thirdparty.protobuf.BlockingService;
-import org.apache.hadoop.thirdparty.protobuf.RpcController;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.BlockingService;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -58,7 +58,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.ClientRMService;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRMWithCustomAMLauncher;
 import org.apache.hadoop.yarn.server.resourcemanager.ParameterizedSchedulerTestBase;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
@@ -217,7 +216,7 @@ public class TestClientToAMTokens extends ParameterizedSchedulerTestBase {
     rm.start();
 
     // Submit an app
-    RMApp app = MockRMAppSubmitter.submitWithMemory(1024, rm);
+    RMApp app = rm.submitApp(1024);
 
     // Set up a node.
     MockNM nm1 = rm.registerNode("localhost:1234", 3072);
@@ -447,7 +446,7 @@ public class TestClientToAMTokens extends ParameterizedSchedulerTestBase {
     rm.start();
 
     // Submit an app
-    RMApp app = MockRMAppSubmitter.submitWithMemory(1024, rm);
+    RMApp app = rm.submitApp(1024);
 
     // Set up a node.
     MockNM nm1 = rm.registerNode("localhost:1234", 3072);

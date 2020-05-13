@@ -29,7 +29,7 @@ import org.apache.hadoop.util.Time;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.apache.hadoop.thirdparty.protobuf.Message;
+import com.google.protobuf.Message;
 
 public class TestRpcWritable {//extends TestRpcBase {
 

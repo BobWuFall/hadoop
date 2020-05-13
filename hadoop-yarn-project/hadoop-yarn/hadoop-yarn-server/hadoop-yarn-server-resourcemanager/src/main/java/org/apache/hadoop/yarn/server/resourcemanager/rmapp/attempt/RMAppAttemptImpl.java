@@ -177,8 +177,6 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
   private long finishTime = 0;
   private long launchAMStartTime = 0;
   private long launchAMEndTime = 0;
-  private long scheduledTime = 0;
-  private long containerAllocatedTime = 0;
 
   // Set to null initially. Will eventually get set
   // if an RMAppAttemptUnregistrationEvent occurs
@@ -990,8 +988,6 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
         .updateAggregateAppResourceUsage(attemptState.getResourceSecondsMap());
     this.attemptMetrics.updateAggregatePreemptedAppResourceUsage(
         attemptState.getPreemptedResourceSecondsMap());
-    this.attemptMetrics.setTotalAllocatedContainers(
-        attemptState.getTotalAllocatedContainers());
   }
 
   public void transferStateFromAttempt(RMAppAttempt attempt) {
@@ -1168,7 +1164,6 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
             && amContainerAllocation.getContainers() != null) {
           assert (amContainerAllocation.getContainers().size() == 0);
         }
-        appAttempt.scheduledTime = System.currentTimeMillis();
         return RMAppAttemptState.SCHEDULED;
       } else {
         // save state and then go to LAUNCHED state
@@ -1225,11 +1220,6 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
         .clearNodeSetForAttempt(appAttempt.applicationAttemptId);
       appAttempt.getSubmissionContext().setResource(
         appAttempt.getMasterContainer().getResource());
-      appAttempt.containerAllocatedTime = System.currentTimeMillis();
-      long allocationDelay =
-          appAttempt.containerAllocatedTime - appAttempt.scheduledTime;
-      ClusterMetrics.getMetrics().addAMContainerAllocationDelay(
-          allocationDelay);
       appAttempt.storeAttempt();
       return RMAppAttemptState.ALLOCATED_SAVING;
     }
@@ -1420,8 +1410,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
             rmStore.getCredentialsFromAppAttempt(this), startTime,
             stateToBeStored, finalTrackingUrl, diags.toString(), finalStatus, exitStatus,
             getFinishTime(), resUsage.getResourceUsageSecondsMap(),
-            this.attemptMetrics.getPreemptedResourceSecondsMap(),
-            this.attemptMetrics.getTotalAllocatedContainers());
+            this.attemptMetrics.getPreemptedResourceSecondsMap());
     LOG.info("Updating application attempt " + applicationAttemptId
         + " with final state: " + targetedFinalState + ", and exit status: "
         + exitStatus);
@@ -1852,8 +1841,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
                 ContainerExitStatus.INVALID, appAttempt.getFinishTime(),
                 appAttempt.attemptMetrics.getAggregateAppResourceUsage()
                     .getResourceUsageSecondsMap(),
-                appAttempt.attemptMetrics.getPreemptedResourceSecondsMap(),
-                appAttempt.attemptMetrics.getTotalAllocatedContainers());
+                appAttempt.attemptMetrics.getPreemptedResourceSecondsMap());
         appAttempt.rmContext.getStateStore()
             .updateApplicationAttemptState(attemptState);
       }

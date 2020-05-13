@@ -384,19 +384,13 @@ public class CoreFileSystem {
    * @param resourceType resource type
    * @return the local resource for AM
    */
-  public LocalResource createAmResource(Path destPath,
-      LocalResourceType resourceType,
-      LocalResourceVisibility visibility) throws IOException {
-
+  public LocalResource createAmResource(Path destPath, LocalResourceType resourceType) throws IOException {
     FileStatus destStatus = fileSystem.getFileStatus(destPath);
     LocalResource amResource = Records.newRecord(LocalResource.class);
     amResource.setType(resourceType);
     // Set visibility of the resource
     // Setting to most private option
-    if (visibility == null) {
-      visibility = LocalResourceVisibility.APPLICATION;
-    }
-    amResource.setVisibility(visibility);
+    amResource.setVisibility(LocalResourceVisibility.APPLICATION);
     // Set the resource to be copied over
     amResource.setResource(
         URL.fromPath(fileSystem.resolvePath(destStatus.getPath())));
@@ -425,7 +419,7 @@ public class CoreFileSystem {
     for (FileStatus entry : fileset) {
 
       LocalResource resource = createAmResource(entry.getPath(),
-              LocalResourceType.FILE, LocalResourceVisibility.APPLICATION);
+              LocalResourceType.FILE);
       String relativePath = destRelativeDir + "/" + entry.getPath().getName();
       localResources.put(relativePath, resource);
     }
@@ -471,8 +465,7 @@ public class CoreFileSystem {
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    return createAmResource(destPath, LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
+    return createAmResource(destPath, LocalResourceType.FILE);
   }
 
   /**
@@ -490,7 +483,7 @@ public class CoreFileSystem {
       BadClusterStateException {
     Path dependencyLibTarGzip = getDependencyTarGzip();
     LocalResource lc = createAmResource(dependencyLibTarGzip,
-        LocalResourceType.ARCHIVE, LocalResourceVisibility.APPLICATION);
+        LocalResourceType.ARCHIVE);
     providerResources.put(YarnServiceConstants.DEPENDENCY_LOCALIZED_DIR_LINK, lc);
   }
 

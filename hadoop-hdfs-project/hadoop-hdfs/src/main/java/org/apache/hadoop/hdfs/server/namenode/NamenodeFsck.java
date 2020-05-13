@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hdfs.server.blockmanagement.BlockUnderConstructionFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -95,8 +94,7 @@ import com.google.common.annotations.VisibleForTesting;
  * This class provides rudimentary checking of DFS volumes for errors and
  * sub-optimal conditions.
  * <p>The tool scans all files and directories, starting from an indicated
- *  root path and its descendants. The following abnormal conditions are
- *  detected and handled:</p>
+ *  root path. The following abnormal conditions are detected and handled:</p>
  * <ul>
  * <li>files with blocks that are completely missing from all datanodes.<br>
  * In this case the tool can perform one of the following actions:
@@ -148,6 +146,7 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
   private boolean showLocations = false;
   private boolean showRacks = false;
   private boolean showStoragePolcies = false;
+  private boolean showprogress = false;
   private boolean showCorruptFileBlocks = false;
 
   private boolean showReplicaDetails = false;
@@ -249,10 +248,7 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
       } else if (key.equals("storagepolicies")) {
         this.showStoragePolcies = true;
       } else if (key.equals("showprogress")) {
-        out.println("The fsck switch -showprogress is deprecated and no " +
-                "longer has any effect. Progress is now shown by default.");
-        LOG.warn("The fsck switch -showprogress is deprecated and no longer " +
-            "has any effect. Progress is now shown by default.");
+        this.showprogress = true;
       } else if (key.equals("openforwrite")) {
         this.showOpenFiles = true;
       } else if (key.equals("listcorruptfileblocks")) {
@@ -504,8 +500,9 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
   void check(String parent, HdfsFileStatus file, Result replRes, Result ecRes)
       throws IOException {
     String path = file.getFullName(parent);
-    if ((totalDirs + totalSymlinks + replRes.totalFiles + ecRes.totalFiles)
-            % 1000 == 0) {
+    if (showprogress &&
+        (totalDirs + totalSymlinks + replRes.totalFiles + ecRes.totalFiles)
+            % 100 == 0) {
       out.println();
       out.flush();
     }
@@ -566,8 +563,6 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
     long fileLen = file.getLen();
     LocatedBlocks blocks = null;
     final FSNamesystem fsn = namenode.getNamesystem();
-    final String operationName = "fsckGetBlockLocations";
-    FSPermissionChecker.setOperationType(operationName);
     fsn.readLock();
     try {
       blocks = FSDirStatAndListingOp.getBlockLocations(
@@ -577,7 +572,7 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
     } catch (FileNotFoundException fnfe) {
       blocks = null;
     } finally {
-      fsn.readUnlock(operationName);
+      fsn.readUnlock("fsckGetBlockLocations");
     }
     return blocks;
   }
@@ -611,7 +606,7 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
     } else if (showFiles) {
       out.print(path + " " + fileLen + " bytes, " + redundancyPolicy + " " +
         blocks.locatedBlockCount() + " block(s): ");
-    } else if (res.totalFiles % 100 == 0) {
+    } else if (showprogress) {
       out.print('.');
     }
   }
@@ -872,20 +867,16 @@ public class NamenodeFsck implements DataEncryptionKeyFactory {
       String blkName = block.toString();
       BlockInfo storedBlock = blockManager.getStoredBlock(
           block.getLocalBlock());
-      BlockUnderConstructionFeature uc =
-          storedBlock.getUnderConstructionFeature();
-      if (uc != null) {
-        // BlockUnderConstructionFeature can be null, in case the block was
-        // in committed state, and the IBR came just after the check.
-        DatanodeStorageInfo[] storages = uc.getExpectedStorageLocations();
-        report.append('\n').append("Under Construction Block:\n")
-            .append(blockNumber).append(". ").append(blkName).append(" len=")
-            .append(block.getNumBytes())
-            .append(" Expected_repl=" + storages.length);
-        String info = getReplicaInfo(storedBlock);
-        if (!info.isEmpty()) {
-          report.append(" ").append(info);
-        }
+      DatanodeStorageInfo[] storages = storedBlock
+          .getUnderConstructionFeature().getExpectedStorageLocations();
+      report.append('\n')
+          .append("Under Construction Block:\n")
+          .append(blockNumber).append(". ").append(blkName)
+          .append(" len=").append(block.getNumBytes())
+          .append(" Expected_repl=" + storages.length);
+      String info=getReplicaInfo(storedBlock);
+      if (!info.isEmpty()){
+        report.append(" ").append(info);
       }
     }
 

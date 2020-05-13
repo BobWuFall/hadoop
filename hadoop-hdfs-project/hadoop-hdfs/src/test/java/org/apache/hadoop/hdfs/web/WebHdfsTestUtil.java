@@ -25,8 +25,6 @@ import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 
-import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
-import org.apache.hadoop.security.token.Token;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +34,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.web.resources.HttpOpParam;
 import org.apache.hadoop.hdfs.web.resources.Param;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.junit.Assert;
 
 public class WebHdfsTestUtil {
   public static final Logger LOG =
@@ -88,26 +87,10 @@ public class WebHdfsTestUtil {
     return url;
   }
 
-  public static HttpURLConnection openConnection(URL url, Configuration conf)
-      throws IOException {
-    URLConnectionFactory connectionFactory =
-        URLConnectionFactory.newDefaultURLConnectionFactory(60000, 60000, conf);
-    return (HttpURLConnection) connectionFactory.openConnection(url);
-  }
-
-  public static int sendRequest(final HttpURLConnection conn)
-      throws IOException {
+  public static Map<?, ?> connectAndGetJson(final HttpURLConnection conn,
+      final int expectedResponseCode) throws IOException {
     conn.connect();
-    return conn.getResponseCode();
-  }
-
-  public static Map<?, ?> getAndParseResponse(final HttpURLConnection conn)
-      throws IOException {
+    Assert.assertEquals(expectedResponseCode, conn.getResponseCode());
     return WebHdfsFileSystem.jsonParse(conn, false);
-  }
-
-  public static Token<DelegationTokenIdentifier> convertJsonToDelegationToken(
-      Map<?, ?> json) throws IOException {
-    return JsonUtilClient.toDelegationToken(json);
   }
 }

@@ -136,7 +136,6 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
   private Collection<String> nameNodeWhitelist;
 
   Configuration serviceHadoopConf;
-  private Configuration fileSystemConf;
 
   private AtomicInteger unmanagedFileSystems = new AtomicInteger();
 
@@ -189,7 +188,6 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
     }
     try {
       serviceHadoopConf = loadHadoopConf(hadoopConfDir);
-      fileSystemConf = getNewFileSystemConfiguration();
     } catch (IOException ex) {
       throw new ServiceException(FileSystemAccessException.ERROR.H11, ex.toString(), ex);
     }
@@ -212,16 +210,6 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
       }
     }
     return hadoopConf;
-  }
-
-  private Configuration getNewFileSystemConfiguration() {
-    Configuration conf = new Configuration(true);
-    ConfigurationUtils.copy(serviceHadoopConf, conf);
-    conf.setBoolean(FILE_SYSTEM_SERVICE_CREATED, true);
-
-    // Force-clear server-side umask to make HttpFS match WebHDFS behavior
-    conf.set(FsPermission.UMASK_LABEL, "000");
-    return conf;
   }
 
   @Override
@@ -341,9 +329,8 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
     }
     try {
       validateNamenode(
-          new URI(conf.getTrimmed(
-              CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY)).
-                  getAuthority());
+        new URI(conf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY)).
+          getAuthority());
       UserGroupInformation ugi = getUGI(user);
       return ugi.doAs(new PrivilegedExceptionAction<T>() {
         @Override
@@ -378,9 +365,7 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
     }
     try {
       validateNamenode(
-          new URI(conf.getTrimmed(
-              CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY)).
-                  getAuthority());
+        new URI(conf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY)).getAuthority());
       UserGroupInformation ugi = getUGI(user);
       return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
         @Override
@@ -412,7 +397,14 @@ public class FileSystemAccessService extends BaseService implements FileSystemAc
 
   @Override
   public Configuration getFileSystemConfiguration() {
-    return fileSystemConf;
+    Configuration conf = new Configuration(true);
+    ConfigurationUtils.copy(serviceHadoopConf, conf);
+    conf.setBoolean(FILE_SYSTEM_SERVICE_CREATED, true);
+
+    // Force-clear server-side umask to make HttpFS match WebHDFS behavior
+    conf.set(FsPermission.UMASK_LABEL, "000");
+
+    return conf;
   }
 
 }

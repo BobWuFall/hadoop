@@ -25,17 +25,14 @@ import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Consumer;
 
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.records.Version;
-import org.apache.hadoop.yarn.server.resourcemanager.DBManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -134,23 +131,19 @@ public class TestLeveldbRMStateStore extends RMStateStoreTestBase {
   }
 
   @Test(timeout = 60000)
-  public void testCompactionCycle() {
+  public void testCompactionCycle() throws Exception {
     final DB mockdb = mock(DB.class);
     conf.setLong(YarnConfiguration.RM_LEVELDB_COMPACTION_INTERVAL_SECS, 1);
-    stateStore = new LeveldbRMStateStore();
-    DBManager dbManager = new DBManager() {
+    stateStore = new LeveldbRMStateStore() {
       @Override
-      public DB initDatabase(File configurationFile, Options options,
-                             Consumer<DB> initMethod) {
+      protected DB openDatabase() throws Exception {
         return mockdb;
       }
     };
-    dbManager.setDb(mockdb);
-    stateStore.setDbManager(dbManager);
     stateStore.init(conf);
     stateStore.start();
     verify(mockdb, timeout(10000)).compactRange(
-        isNull(), isNull());
+        (byte[]) isNull(), (byte[]) isNull());
   }
 
   @Test
@@ -188,12 +181,12 @@ public class TestLeveldbRMStateStore extends RMStateStoreTestBase {
     }
 
     @Override
-    public void writeVersion(Version version) {
-      stateStore.storeVersion(version);
+    public void writeVersion(Version version) throws Exception {
+      stateStore.dbStoreVersion(version);
     }
 
     @Override
-    public Version getCurrentVersion() {
+    public Version getCurrentVersion() throws Exception {
       return stateStore.getCurrentVersion();
     }
 

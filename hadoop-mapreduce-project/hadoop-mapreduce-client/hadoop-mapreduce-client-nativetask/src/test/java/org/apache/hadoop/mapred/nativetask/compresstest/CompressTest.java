@@ -17,7 +17,8 @@
  */
 package org.apache.hadoop.mapred.nativetask.compresstest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,20 +58,17 @@ public class CompressTest {
       TestConstants.NATIVETASK_COMPRESS_TEST_NATIVE_OUTPUTDIR + "/snappy";
     final Job job = CompressMapper.getCompressJob("nativesnappy", nativeConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, nativeOutputPath);
-    assertThat(job.waitForCompletion(true)).isTrue();
+    assertTrue(job.waitForCompletion(true));
 
     hadoopConf.set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, snappyCodec);
     final String hadoopOutputPath =
       TestConstants.NATIVETASK_COMPRESS_TEST_NORMAL_OUTPUTDIR + "/snappy";
     final Job hadoopjob = CompressMapper.getCompressJob("hadoopsnappy", hadoopConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, hadoopOutputPath);
-    assertThat(hadoopjob.waitForCompletion(true)).isTrue();
+    assertTrue(hadoopjob.waitForCompletion(true));
 
     final boolean compareRet = ResultVerifier.verify(nativeOutputPath, hadoopOutputPath);
-    assertThat(compareRet)
-        .withFailMessage(
-            "file compare result: if they are the same ,then return true")
-        .isTrue();
+    assertEquals("file compare result: if they are the same ,then return true", true, compareRet);
     ResultVerifier.verifyCounters(hadoopjob, job);
   }
 
@@ -83,20 +81,17 @@ public class CompressTest {
       TestConstants.NATIVETASK_COMPRESS_TEST_NATIVE_OUTPUTDIR + "/gzip";
     final Job job = CompressMapper.getCompressJob("nativegzip", nativeConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, nativeOutputPath);
-    assertThat(job.waitForCompletion(true)).isTrue();
+    assertTrue(job.waitForCompletion(true));
 
     hadoopConf.set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, gzipCodec);
     final String hadoopOutputPath =
       TestConstants.NATIVETASK_COMPRESS_TEST_NORMAL_OUTPUTDIR + "/gzip";
     final Job hadoopjob = CompressMapper.getCompressJob("hadoopgzip", hadoopConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, hadoopOutputPath);
-    assertThat(hadoopjob.waitForCompletion(true)).isTrue();
+    assertTrue(hadoopjob.waitForCompletion(true));
 
     final boolean compareRet = ResultVerifier.verify(nativeOutputPath, hadoopOutputPath);
-    assertThat(compareRet)
-        .withFailMessage(
-            "file compare result: if they are the same ,then return true")
-        .isTrue();
+    assertEquals("file compare result: if they are the same ,then return true", true, compareRet);
     ResultVerifier.verifyCounters(hadoopjob, job);
   }
 
@@ -109,19 +104,16 @@ public class CompressTest {
       TestConstants.NATIVETASK_COMPRESS_TEST_NATIVE_OUTPUTDIR + "/lz4";
     final Job nativeJob = CompressMapper.getCompressJob("nativelz4", nativeConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, nativeOutputPath);
-    assertThat(nativeJob.waitForCompletion(true)).isTrue();
+    assertTrue(nativeJob.waitForCompletion(true));
 
     hadoopConf.set(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, lz4Codec);
     final String hadoopOutputPath =
       TestConstants.NATIVETASK_COMPRESS_TEST_NORMAL_OUTPUTDIR + "/lz4";
     final Job hadoopJob = CompressMapper.getCompressJob("hadooplz4", hadoopConf,
       TestConstants.NATIVETASK_COMPRESS_TEST_INPUTDIR, hadoopOutputPath);
-    assertThat(hadoopJob.waitForCompletion(true)).isTrue();
+    assertTrue(hadoopJob.waitForCompletion(true));
     final boolean compareRet = ResultVerifier.verify(nativeOutputPath, hadoopOutputPath);
-    assertThat(compareRet)
-        .withFailMessage(
-            "file compare result: if they are the same ,then return true")
-        .isTrue();
+    assertEquals("file compare result: if they are the same ,then return true", true, compareRet);
     ResultVerifier.verifyCounters(hadoopJob, nativeJob);
   }
 

@@ -44,11 +44,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.hadoop.test.PlatformAssumptions.assumeNotWindows;
 import static org.apache.hadoop.test.PlatformAssumptions.assumeWindows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.After;
@@ -60,7 +56,6 @@ import org.junit.rules.Timeout;
 
 import javax.annotation.Nonnull;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * This class tests the local file system via the FileSystem abstraction.
@@ -697,33 +692,27 @@ public class TestLocalFileSystem {
     FSDataOutputStreamBuilder builder =
         fileSys.createFile(path);
     try (FSDataOutputStream stream = builder.build()) {
-      assertThat(builder.getBlockSize())
-          .withFailMessage("Should be default block size")
-          .isEqualTo(fileSys.getDefaultBlockSize());
-      assertThat(builder.getReplication())
-          .withFailMessage("Should be default replication factor")
-          .isEqualTo(fileSys.getDefaultReplication());
-      assertThat(builder.getBufferSize())
-          .withFailMessage("Should be default buffer size")
-          .isEqualTo(fileSys.getConf().getInt(IO_FILE_BUFFER_SIZE_KEY,
+      Assert.assertEquals("Should be default block size",
+          builder.getBlockSize(), fileSys.getDefaultBlockSize());
+      Assert.assertEquals("Should be default replication factor",
+          builder.getReplication(), fileSys.getDefaultReplication());
+      Assert.assertEquals("Should be default buffer size",
+          builder.getBufferSize(),
+          fileSys.getConf().getInt(IO_FILE_BUFFER_SIZE_KEY,
               IO_FILE_BUFFER_SIZE_DEFAULT));
-      assertThat(builder.getPermission())
-          .withFailMessage("Should be default permission")
-          .isEqualTo(FsPermission.getFileDefault());
+      Assert.assertEquals("Should be default permission",
+          builder.getPermission(), FsPermission.getFileDefault());
     }
 
     // Test set 0 to replication, block size and buffer size
     builder = fileSys.createFile(path);
     builder.bufferSize(0).blockSize(0).replication((short) 0);
-    assertThat(builder.getBlockSize())
-        .withFailMessage("Block size should be 0")
-        .isZero();
-    assertThat(builder.getReplication())
-        .withFailMessage("Replication factor should be 0")
-        .isZero();
-    assertThat(builder.getBufferSize())
-        .withFailMessage("Buffer size should be 0")
-        .isZero();
+    Assert.assertEquals("Block size should be 0",
+        builder.getBlockSize(), 0);
+    Assert.assertEquals("Replication factor should be 0",
+        builder.getReplication(), 0);
+    Assert.assertEquals("Buffer size should be 0",
+        builder.getBufferSize(), 0);
   }
 
   /**

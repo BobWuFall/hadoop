@@ -47,6 +47,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_QUOTA_BY_STORAGETYPE_ENABLED_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_STORAGE_POLICY_ENABLED_KEY;
 
 public class FSDirAttrOp {
   static FileStatus setPermission(
@@ -150,7 +151,7 @@ public class FSDirAttrOp {
   static FileStatus unsetStoragePolicy(FSDirectory fsd, FSPermissionChecker pc,
       BlockManager bm, String src) throws IOException {
     return setStoragePolicy(fsd, pc, bm, src,
-        HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED);
+        HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED, "unset");
   }
 
   static FileStatus setStoragePolicy(FSDirectory fsd, FSPermissionChecker pc,
@@ -161,12 +162,17 @@ public class FSDirAttrOp {
       throw new HadoopIllegalArgumentException(
           "Cannot find a block policy with the name " + policyName);
     }
-    return setStoragePolicy(fsd, pc, bm, src, policy.getId());
+    return setStoragePolicy(fsd, pc, bm, src, policy.getId(), "set");
   }
 
   static FileStatus setStoragePolicy(FSDirectory fsd, FSPermissionChecker pc,
-      BlockManager bm, String src, final byte policyId)
+      BlockManager bm, String src, final byte policyId, final String operation)
       throws IOException {
+    if (!fsd.isStoragePolicyEnabled()) {
+      throw new IOException(String.format(
+          "Failed to %s storage policy since %s is set to false.", operation,
+          DFS_STORAGE_POLICY_ENABLED_KEY));
+    }
     INodesInPath iip;
     fsd.writeLock();
     try {
@@ -226,21 +232,14 @@ public class FSDirAttrOp {
    * Note: This does not support ".inodes" relative path.
    */
   static void setQuota(FSDirectory fsd, FSPermissionChecker pc, String src,
-      long nsQuota, long ssQuota, StorageType type, boolean allowOwner)
-      throws IOException {
+      long nsQuota, long ssQuota, StorageType type) throws IOException {
+    if (fsd.isPermissionEnabled()) {
+      pc.checkSuperuserPrivilege();
+    }
 
     fsd.writeLock();
     try {
       INodesInPath iip = fsd.resolvePath(pc, src, DirOp.WRITE);
-      if (fsd.isPermissionEnabled() && !pc.isSuperUser() && allowOwner) {
-        INodeDirectory parentDir= iip.getLastINode().getParent();
-        if (parentDir == null ||
-            !parentDir.getUserName().equals(pc.getUser())) {
-          throw new AccessControlException(
-              "Access denied for user " + pc.getUser() +
-              ". Superuser or owner of parent folder privilege is required");
-        }
-      }
       INodeDirectory changed =
           unprotectedSetQuota(fsd, iip, nsQuota, ssQuota, type);
       if (changed != null) {
@@ -476,14 +475,14 @@ public class FSDirAttrOp {
     boolean status = false;
     INode inode = iip.getLastINode();
     int latest = iip.getLatestSnapshotId();
-    if (mtime >= 0) {
+    if (mtime != -1) {
       inode = inode.setModificationTime(mtime, latest);
       status = true;
     }
 
     // if the last access time update was within the last precision interval,
     // then no need to store access time
-    if (atime >= 0 && (status || force
+    if (atime != -1 && (status || force
         || atime > inode.getAccessTime() + fsd.getAccessTimePrecision())) {
       inode.setAccessTime(atime, latest,
           fsd.getFSNamesystem().getSnapshotManager().

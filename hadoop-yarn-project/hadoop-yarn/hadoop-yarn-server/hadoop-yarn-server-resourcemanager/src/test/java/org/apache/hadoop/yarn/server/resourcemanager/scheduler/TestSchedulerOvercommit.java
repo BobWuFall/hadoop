@@ -56,8 +56,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.AdminService;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.TestResourceTrackerService.NullNodeAttributeStore;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
@@ -129,8 +127,7 @@ public abstract class TestSchedulerOvercommit {
     nmId = nm.getNodeId();
 
     // Start an AM with 2GB
-    RMApp app = MockRMAppSubmitter.submit(rm,
-        MockRMAppSubmissionData.Builder.createWithMemory(2 * GB, rm).build());
+    RMApp app = rm.submitApp(2 * GB);
     nm.nodeHeartbeat(true);
     attempt = app.getCurrentAppAttempt();
     am = rm.sendAMLaunched(attempt.getAppAttemptId());
@@ -370,11 +367,7 @@ public abstract class TestSchedulerOvercommit {
     waitMemory(scheduler, nmId, 4 * GB, 4 * GB, 200, 5 * 1000);
 
     // Start an AM with 2GB
-    RMApp app2 = MockRMAppSubmitter.submit(rm,
-        MockRMAppSubmissionData.Builder.createWithMemory(2 * GB, rm)
-            .withAppName("app2")
-            .withUser("user2")
-            .build());
+    RMApp app2 = rm.submitApp(2 * GB, "app2", "user2");
     nm.nodeHeartbeat(true);
     RMAppAttempt attempt2 = app2.getCurrentAppAttempt();
     MockAM am2 = rm.sendAMLaunched(attempt2.getAppAttemptId());

@@ -46,7 +46,7 @@ import org.apache.hadoop.yarn.proto.YarnServiceProtos.AllocateRequestProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.FinishApplicationMasterRequestProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.RegisterApplicationMasterRequestProto;
 
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.ServiceException;
 
 @Private
 public class ApplicationMasterProtocolPBClientImpl implements ApplicationMasterProtocol, Closeable {

@@ -44,7 +44,7 @@ import org.apache.hadoop.yarn.proto.YarnServiceProtos.UpdateContainerRequestProt
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.AllocateRequestProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.AllocateRequestProtoOrBuilder;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 @Private
 @Unstable

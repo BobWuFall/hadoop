@@ -22,7 +22,6 @@ import java.nio.MappedByteBuffer;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.hdfs.ExtendedBlockId;
 import org.apache.hadoop.io.nativeio.NativeIO;
 
 /**
@@ -48,11 +47,6 @@ public class MemoryMappedBlock implements MappableBlock {
   @Override
   public long getAddress() {
     return -1L;
-  }
-
-  @Override
-  public ExtendedBlockId getKey() {
-    return null;
   }
 
   @Override

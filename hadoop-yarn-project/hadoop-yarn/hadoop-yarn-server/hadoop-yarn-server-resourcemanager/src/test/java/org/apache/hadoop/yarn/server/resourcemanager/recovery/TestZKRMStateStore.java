@@ -453,7 +453,6 @@ public class TestZKRMStateStore extends RMStateStoreTestBase {
     rm = new MockRM(conf);
     rm.start();
     rm.getRMContext().getRMAdminService().transitionToActive(req);
-    stateStore = (ZKRMStateStore) rm.getRMContext().getStateStore();
     acls = stateStore.getACL(rootPath);
     assertEquals(acls.size(), 1);
     verifyZKACL("world", "anyone", Perms.ALL, acls);
@@ -464,7 +463,6 @@ public class TestZKRMStateStore extends RMStateStoreTestBase {
     rm = new MockRM(conf);
     rm.start();
     rm.getRMContext().getRMAdminService().transitionToActive(req);
-    stateStore = (ZKRMStateStore) rm.getRMContext().getStateStore();
     acls = stateStore.getACL(rootPath);
     assertThat(acls).hasSize(2);
     verifyZKACL("digest", "localhost", Perms.CREATE | Perms.DELETE, acls);
@@ -572,7 +570,7 @@ public class TestZKRMStateStore extends RMStateStoreTestBase {
             store.getCredentialsFromAppAttempt(mockAttempt),
             startTime, RMAppAttemptState.FINISHED, "testUrl", 
             "test", FinalApplicationStatus.SUCCEEDED, 100, 
-            finishTime, new HashMap<>(), new HashMap<>(), 0);
+            finishTime, new HashMap<>(), new HashMap<>());
     store.updateApplicationAttemptState(newAttemptState);
     assertEquals("RMStateStore should have been in fenced state",
             true, store.isFencedState());
@@ -822,7 +820,7 @@ public class TestZKRMStateStore extends RMStateStoreTestBase {
     return ApplicationAttemptStateData.newInstance(attemptId,
         container, null, startTime, RMAppAttemptState.FINISHED,
         "myTrackingUrl", "attemptDiagnostics", FinalApplicationStatus.SUCCEEDED,
-        amExitStatus, 0, resourceSecondsMap, preemptedResoureSecondsMap, 0);
+        amExitStatus, 0, resourceSecondsMap, preemptedResoureSecondsMap);
   }
 
   private ApplicationAttemptId storeAttempt(RMStateStore store,

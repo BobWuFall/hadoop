@@ -649,9 +649,8 @@ public class TestSequenceFile {
   @Test
   public void testRecursiveSeqFileCreate() throws IOException {
     FileSystem fs = FileSystem.getLocal(conf);
-    Path parentDir = new Path(GenericTestUtils.getTempPath(
-            "recursiveCreateDir"));
-    Path name = new Path(parentDir, "file");
+    Path name = new Path(new Path(GenericTestUtils.getTempPath(
+        "recursiveCreateDir")), "file");
     boolean createParent = false;
 
     try {
@@ -663,16 +662,11 @@ public class TestSequenceFile {
       // Expected
     }
 
-    try {
-      createParent = true;
-      SequenceFile.createWriter(fs, conf, name, RandomDatum.class,
-          RandomDatum.class, 512, (short) 1, 4096, createParent,
-          CompressionType.NONE, null, new Metadata());
-      // should succeed, fails if exception thrown
-    } finally {
-      fs.deleteOnExit(parentDir);
-      fs.close();
-    }
+    createParent = true;
+    SequenceFile.createWriter(fs, conf, name, RandomDatum.class,
+        RandomDatum.class, 512, (short) 1, 4096, createParent,
+        CompressionType.NONE, null, new Metadata());
+    // should succeed, fails if exception thrown
   }
 
   @Test

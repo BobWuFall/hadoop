@@ -18,8 +18,7 @@
 
 package org.apache.hadoop.ipc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import org.apache.hadoop.conf.Configuration;
@@ -69,47 +68,47 @@ public class TestWeightedRoundRobinMultiplexer {
     // Mux of size 1: 0 0 0 0 0, etc
     mux = new WeightedRoundRobinMultiplexer(1, "", new Configuration());
     for(int i = 0; i < 10; i++) {
-      assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
     }
 
     // Mux of size 2: 0 0 1 0 0 1 0 0 1, etc
     mux = new WeightedRoundRobinMultiplexer(2, "", new Configuration());
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
 
     // Size 3: 4x0 2x1 1x2, etc
     mux = new WeightedRoundRobinMultiplexer(3, "", new Configuration());
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 2);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
 
     // Size 4: 8x0 4x1 2x2 1x3
     mux = new WeightedRoundRobinMultiplexer(4, "", new Configuration());
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
-    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
-    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(3);
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 2);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 2);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 3);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
   }
 
   @Test
@@ -120,10 +119,10 @@ public class TestWeightedRoundRobinMultiplexer {
       "1", "1");
 
     mux = new WeightedRoundRobinMultiplexer(2, "test.custom", conf);
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+    assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
 
     // 1x0 3x1 2x2
     conf.setStrings("test.custom." + IPC_CALLQUEUE_WRRMUX_WEIGHTS_KEY,
@@ -132,12 +131,12 @@ public class TestWeightedRoundRobinMultiplexer {
     mux = new WeightedRoundRobinMultiplexer(3, "test.custom", conf);
 
     for(int i = 0; i < 5; i++) {
-      assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
-      assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-      assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-      assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
-      assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
-      assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 0);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 1);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 2);
+      assertEquals(mux.getAndAdvanceCurrentIndex(), 2);
     } // Ensure pattern repeats
 
   }

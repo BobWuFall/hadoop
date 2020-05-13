@@ -113,9 +113,5 @@ public abstract class ACLsTestBase {
     return userClient;
   }
 
-  public Configuration getConf() {
-    return conf;
-  }
-
   protected abstract Configuration createConfiguration() throws IOException;
 }

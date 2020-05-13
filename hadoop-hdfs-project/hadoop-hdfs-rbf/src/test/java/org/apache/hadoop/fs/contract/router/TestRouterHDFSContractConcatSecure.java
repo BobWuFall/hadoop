@@ -23,6 +23,9 @@ import org.junit.BeforeClass;
 
 import java.io.IOException;
 
+import static org.apache.hadoop.fs.contract.router.SecurityConfUtil.initSecurity;
+
+
 /**
  * Test secure concat operations on the Router-based FS.
  */
@@ -31,7 +34,7 @@ public class TestRouterHDFSContractConcatSecure
 
   @BeforeClass
   public static void createCluster() throws Exception {
-    RouterHDFSContract.createCluster(true);
+    RouterHDFSContract.createCluster(initSecurity());
     // perform a simple operation on the cluster to verify it is up
     RouterHDFSContract.getFileSystem().getDefaultBlockSize(new Path("/"));
   }

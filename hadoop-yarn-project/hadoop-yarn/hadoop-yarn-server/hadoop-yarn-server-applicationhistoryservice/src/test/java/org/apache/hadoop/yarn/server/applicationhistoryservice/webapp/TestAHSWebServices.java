@@ -24,16 +24,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -68,7 +64,6 @@ import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.server.timeline.TimelineDataManager;
 import org.apache.hadoop.yarn.server.timeline.TimelineStore;
 import org.apache.hadoop.yarn.server.timeline.security.TimelineACLsManager;
-import org.apache.hadoop.yarn.server.webapp.LogServlet;
 import org.apache.hadoop.yarn.server.webapp.LogWebServiceUtils;
 import org.apache.hadoop.yarn.server.webapp.YarnWebServiceParams;
 import org.apache.hadoop.yarn.server.webapp.dao.ContainerLogsInfo;
@@ -93,6 +88,7 @@ import org.junit.runners.Parameterized;
 import com.google.inject.Guice;
 import com.google.inject.Singleton;
 import com.google.inject.servlet.ServletModule;
+import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.GenericType;
@@ -141,13 +137,17 @@ public class TestAHSWebServices extends JerseyTestBase {
     };
     historyClientService.init(conf);
     historyClientService.start();
-
-    ahsWebservice = new AHSWebServices(historyClientService, conf);
-    LogServlet logServlet = spy(ahsWebservice.getLogServlet());
-    doReturn(null).when(logServlet).getNMWebAddressFromRM(any());
-    doReturn(NM_WEBADDRESS).when(logServlet).getNMWebAddressFromRM(NM_ID);
-    ahsWebservice.setLogServlet(logServlet);
-
+    ahsWebservice = new AHSWebServices(historyClientService, conf) {
+      @Override
+      public String getNMWebAddressFromRM(Configuration configuration,
+          String nodeId) throws ClientHandlerException,
+          UniformInterfaceException, JSONException {
+        if (nodeId.equals(NM_ID)) {
+          return NM_WEBADDRESS;
+        }
+        return null;
+      }
+    };
     fs = FileSystem.get(conf);
     GuiceServletConfig.setInjector(
         Guice.createInjector(new WebServletModule()));
@@ -171,7 +171,7 @@ public class TestAHSWebServices extends JerseyTestBase {
     @Override
     protected void configureServlets() {
       bind(JAXBContextResolver.class);
-      bind(AHSWebServices.class).toInstance(ahsWebservice);
+      bind(AHSWebServices.class).toInstance(ahsWebservice);;
       bind(GenericExceptionHandler.class);
       bind(ApplicationBaseProtocol.class).toInstance(historyClientService);
       serve("/*").with(GuiceContainer.class);
@@ -555,13 +555,11 @@ public class TestAHSWebServices extends JerseyTestBase {
     ContainerId containerId100 = ContainerId.newContainerId(appAttemptId, 100);
 
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId1,
-            "Hello." + containerId1),
-        nodeId, fileName, user, true);
+        rootLogDir, containerId1, nodeId, fileName, user,
+        ("Hello." + containerId1), true);
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId100,
-            "Hello." + containerId100),
-        nodeId2, fileName, user, false);
+        rootLogDir, containerId100, nodeId2, fileName, user,
+        ("Hello." + containerId100), false);
     // test whether we can find container log from remote diretory if
     // the containerInfo for this container could be fetched from AHS.
     WebResource r = resource();
@@ -616,10 +614,8 @@ public class TestAHSWebServices extends JerseyTestBase {
         appAttemptId100, 1);
 
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId100,
-        Collections.singletonMap(containerId1ForApp100,
-            "Hello." + containerId1ForApp100),
-        nodeId, fileName, user, true);
+        rootLogDir, containerId1ForApp100, nodeId, fileName, user,
+        ("Hello." + containerId1ForApp100), true);
     r = resource();
     response = r.path("ws").path("v1")
         .path("applicationhistory").path("containerlogs")
@@ -772,8 +768,7 @@ public class TestAHSWebServices extends JerseyTestBase {
     String content = "Hello." + containerId1000;
     NodeId nodeId = NodeId.newInstance("test host", 100);
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId1000, content),
-        nodeId, fileName, user, true);
+        rootLogDir, containerId1000, nodeId, fileName, user, content, true);
     r = resource();
     ClientResponse response = r.path("ws").path("v1")
         .path("applicationhistory").path("containerlogs")
@@ -812,8 +807,7 @@ public class TestAHSWebServices extends JerseyTestBase {
     String content1 = "Hello." + containerId1;
     NodeId nodeId1 = NodeId.fromString(NM_ID);
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId1, content1),
-        nodeId1, fileName, user, true);
+        rootLogDir, containerId1, nodeId1, fileName, user, content1, true);
     response = r.path("ws").path("v1")
         .path("applicationhistory").path("containers")
         .path(containerId1.toString()).path("logs").path(fileName)
@@ -873,8 +867,7 @@ public class TestAHSWebServices extends JerseyTestBase {
     String content = "Hello." + containerId1000;
     NodeId nodeId = NodeId.newInstance("test host", 100);
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId1000, content),
-        nodeId, fileName, user, true);
+        rootLogDir, containerId1000, nodeId, fileName, user, content, true);
     ClientResponse response = r.path("ws").path("v1")
         .path("applicationhistory").path("containers")
         .path(containerId1000.toString()).path("logs")
@@ -940,8 +933,7 @@ public class TestAHSWebServices extends JerseyTestBase {
     String content = "Hello." + containerId1;
     NodeId nodeId = NodeId.newInstance("test host", 100);
     TestContainerLogsUtils.createContainerLogFileInRemoteFS(conf, fs,
-        rootLogDir, appId, Collections.singletonMap(containerId1, content),
-        nodeId, fileName, user, true);
+        rootLogDir, containerId1, nodeId, fileName, user, content, true);
 
     WebResource r = resource();
     ClientResponse response = r.path("ws").path("v1")

@@ -58,7 +58,6 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -234,7 +233,7 @@ public class TestFileOutputCommitter {
     expectedOutput.append(key1).append("\n");
     expectedOutput.append(key2).append('\t').append(val2).append("\n");
     String output = slurp(expectedFile);
-    assertThat(output).isEqualTo(expectedOutput.toString());
+    assertEquals(output, expectedOutput.toString());
   }
 
   private void validateMapFileOutputContent(

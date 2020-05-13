@@ -576,7 +576,7 @@ public class S3AInputStream extends FSInputStream implements  CanSetReadahead,
           // and an abort is triggered, the initial attempt's statistics
           // aren't collected.
           streamStatistics.streamClose(false, drained);
-        } catch (Exception e) {
+        } catch (IOException e) {
           // exception escalates to an abort
           LOG.debug("When closing {} stream for {}", uri, reason, e);
           shouldAbort = true;

@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.FileSystem.Statistics;
-import org.apache.hadoop.fs.s3a.s3guard.MetastoreInstrumentation;
 import org.apache.hadoop.metrics2.AbstractMetric;
 import org.apache.hadoop.metrics2.MetricStringBuilder;
 import org.apache.hadoop.metrics2.MetricsCollector;
@@ -123,7 +122,6 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
   private final MutableCounterLong ignoredErrors;
   private final MutableQuantiles putLatencyQuantile;
   private final MutableQuantiles throttleRateQuantile;
-  private final MutableQuantiles s3GuardThrottleRateQuantile;
   private final MutableCounterLong numberOfFilesCreated;
   private final MutableCounterLong numberOfFilesCopied;
   private final MutableCounterLong bytesOfFilesCopied;
@@ -190,7 +188,6 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
       S3GUARD_METADATASTORE_RECORD_WRITES,
       S3GUARD_METADATASTORE_RETRY,
       S3GUARD_METADATASTORE_THROTTLED,
-      S3GUARD_METADATASTORE_AUTHORITATIVE_DIRECTORIES_UPDATED,
       STORE_IO_THROTTLED,
       DELEGATION_TOKENS_ISSUED,
       FILES_DELETE_REJECTED
@@ -249,9 +246,7 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
     int interval = 1;
     putLatencyQuantile = quantiles(S3GUARD_METADATASTORE_PUT_PATH_LATENCY,
         "ops", "latency", interval);
-    s3GuardThrottleRateQuantile = quantiles(S3GUARD_METADATASTORE_THROTTLE_RATE,
-        "events", "frequency (Hz)", interval);
-    throttleRateQuantile = quantiles(STORE_IO_THROTTLE_RATE,
+    throttleRateQuantile = quantiles(S3GUARD_METADATASTORE_THROTTLE_RATE,
         "events", "frequency (Hz)", interval);
 
     registerAsMetricsSource(name);
@@ -567,11 +562,11 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
   }
 
   /**
-   * Create a MetastoreInstrumentation instrumentation instance.
+   * Create a S3Guard instrumentation instance.
    * There's likely to be at most one instance of this per FS instance.
    * @return the S3Guard instrumentation point.
    */
-  public MetastoreInstrumentation getS3GuardInstrumentation() {
+  public S3GuardInstrumentation getS3GuardInstrumentation() {
     return s3GuardInstrumentation;
   }
 
@@ -616,15 +611,11 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
 
   public void close() {
     synchronized (metricsSystemLock) {
-      // it is critical to close each quantile, as they start a scheduled
-      // task in a shared thread pool.
       putLatencyQuantile.stop();
       throttleRateQuantile.stop();
-      s3GuardThrottleRateQuantile.stop();
       metricsSystem.unregisterSource(metricsSourceName);
       int activeSources = --metricsSourceActiveCounter;
       if (activeSources == 0) {
-        LOG.debug("Shutting down metrics publisher");
         metricsSystem.publishMetricsNow();
         metricsSystem.shutdown();
         metricsSystem = null;
@@ -1133,35 +1124,43 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
   /**
    * Instrumentation exported to S3Guard.
    */
-  private final class S3GuardInstrumentation
-      implements MetastoreInstrumentation {
+  public final class S3GuardInstrumentation {
 
-    @Override
+    /** Initialized event. */
     public void initialized() {
       incrementCounter(S3GUARD_METADATASTORE_INITIALIZATION, 1);
     }
 
-    @Override
     public void storeClosed() {
 
     }
 
-    @Override
+    /**
+     * Throttled request.
+     */
     public void throttled() {
       // counters are incremented by owner.
     }
 
-    @Override
+    /**
+     * S3Guard is retrying after a (retryable) failure.
+     */
     public void retrying() {
       // counters are incremented by owner.
     }
 
-    @Override
+    /**
+     * Records have been read.
+     * @param count the number of records read
+     */
     public void recordsDeleted(int count) {
       incrementCounter(S3GUARD_METADATASTORE_RECORD_DELETES, count);
     }
 
-    @Override
+    /**
+     * Records have been read.
+     * @param count the number of records read
+     */
     public void recordsRead(int count) {
       incrementCounter(S3GUARD_METADATASTORE_RECORD_READS, count);
     }
@@ -1170,23 +1169,8 @@ public class S3AInstrumentation implements Closeable, MetricsSource {
      * records have been written (including deleted).
      * @param count number of records written.
      */
-    @Override
     public void recordsWritten(int count) {
       incrementCounter(S3GUARD_METADATASTORE_RECORD_WRITES, count);
-    }
-
-    @Override
-    public void directoryMarkedAuthoritative() {
-      incrementCounter(S3GUARD_METADATASTORE_AUTHORITATIVE_DIRECTORIES_UPDATED,
-          1);
-    }
-
-    @Override
-    public void entryAdded(final long durationNanos) {
-      addValueToQuantiles(
-          S3GUARD_METADATASTORE_PUT_PATH_LATENCY,
-          durationNanos);
-      incrementCounter(S3GUARD_METADATASTORE_PUT_PATH_REQUEST, 1);
     }
 
   }

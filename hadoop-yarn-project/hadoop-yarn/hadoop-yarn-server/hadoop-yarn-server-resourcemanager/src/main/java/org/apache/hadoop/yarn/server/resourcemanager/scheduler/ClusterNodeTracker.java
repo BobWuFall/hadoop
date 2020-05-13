@@ -33,12 +33,12 @@ import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -386,21 +386,21 @@ public class ClusterNodeTracker<N extends SchedulerNode> {
 
   /**
    * Convenience method to sort nodes.
-   * Nodes can change while being sorted. Using a standard sort will fail
-   * without locking each node, the TreeSet handles this without locks.
    *
-   * @param comparator the comparator to sort the nodes with
-   * @return sorted set of nodes in the form of a TreeSet
+   * Note that the sort is performed without holding a lock. We are sorting
+   * here instead of on the caller to allow for future optimizations (e.g.
+   * sort once every x milliseconds).
    */
-  public TreeSet<N> sortedNodeSet(Comparator<N> comparator) {
-    TreeSet<N> sortedSet = new TreeSet<>(comparator);
+  public List<N> sortedNodeList(Comparator<N> comparator) {
+    List<N> sortedList = null;
     readLock.lock();
     try {
-      sortedSet.addAll(nodes.values());
+      sortedList = new ArrayList(nodes.values());
     } finally {
       readLock.unlock();
     }
-    return sortedSet;
+    Collections.sort(sortedList, comparator);
+    return sortedList;
   }
 
   /**

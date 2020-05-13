@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PathExistsException;
-import org.apache.hadoop.fs.s3a.commit.AbstractS3ACommitter;
 import org.apache.hadoop.fs.s3a.commit.InternalCommitterConstants;
 
 import static org.apache.hadoop.fs.s3a.commit.CommitConstants.*;
@@ -85,18 +84,17 @@ public class TestStagingDirectoryOutputCommitter
         () -> committer.setupJob(getJob()));
 
     // but there are no checks in job commit (HADOOP-15469)
-    // this is done by calling the preCommit method directly,
-    committer.preCommitJob(getJob(), AbstractS3ACommitter.ActiveCommit.empty());
+    committer.commitJob(getJob());
 
-    reset(getMockS3A());
+    reset((FileSystem) getMockS3A());
     pathDoesNotExist(getMockS3A(), outputPath);
 
     committer.setupJob(getJob());
     verifyExistenceChecked(getMockS3A(), outputPath);
     verifyMkdirsInvoked(getMockS3A(), outputPath);
-    verifyNoMoreInteractions(getMockS3A());
+    verifyNoMoreInteractions((FileSystem) getMockS3A());
 
-    reset(getMockS3A());
+    reset((FileSystem) getMockS3A());
     pathDoesNotExist(getMockS3A(), outputPath);
     committer.commitJob(getJob());
     verifyCompletion(getMockS3A());

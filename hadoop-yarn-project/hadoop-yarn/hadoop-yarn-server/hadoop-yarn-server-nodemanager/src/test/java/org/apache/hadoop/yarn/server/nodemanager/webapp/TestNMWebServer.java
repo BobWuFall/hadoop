@@ -28,6 +28,7 @@ import java.io.Writer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.util.NodeHealthScriptRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -41,19 +42,19 @@ import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.LocalDirsHandlerService;
+import org.apache.hadoop.yarn.server.nodemanager.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.ResourceView;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.application.Application;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.Container;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ContainerImpl;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.container.ContainerState;
-import org.apache.hadoop.yarn.server.nodemanager.health.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.nodemanager.metrics.NodeManagerMetrics;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMNullStateStoreService;
 import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
-
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -78,9 +79,10 @@ public class TestNMWebServer {
     FileUtil.fullyDelete(testLogDir);
   }
 
-  private NodeHealthCheckerService createNodeHealthCheckerService() {
+  private NodeHealthCheckerService createNodeHealthCheckerService(Configuration conf) {
+    NodeHealthScriptRunner scriptRunner = NodeManager.getNodeHealthScriptRunner(conf);
     LocalDirsHandlerService dirsHandler = new LocalDirsHandlerService();
-    return new NodeHealthCheckerService(dirsHandler);
+    return new NodeHealthCheckerService(scriptRunner, dirsHandler);
   }
 
   private int startNMWebAppServer(String webAddr) {
@@ -111,7 +113,7 @@ public class TestNMWebServer {
     };
     conf.set(YarnConfiguration.NM_LOCAL_DIRS, testRootDir.getAbsolutePath());
     conf.set(YarnConfiguration.NM_LOG_DIRS, testLogDir.getAbsolutePath());
-    NodeHealthCheckerService healthChecker = createNodeHealthCheckerService();
+    NodeHealthCheckerService healthChecker = createNodeHealthCheckerService(conf);
     healthChecker.init(conf);
     LocalDirsHandlerService dirsHandler = healthChecker.getDiskHandler();
     conf.set(YarnConfiguration.NM_WEBAPP_ADDRESS, webAddr);
@@ -174,7 +176,7 @@ public class TestNMWebServer {
     };
     conf.set(YarnConfiguration.NM_LOCAL_DIRS, testRootDir.getAbsolutePath());
     conf.set(YarnConfiguration.NM_LOG_DIRS, testLogDir.getAbsolutePath());
-    NodeHealthCheckerService healthChecker = createNodeHealthCheckerService();
+    NodeHealthCheckerService healthChecker = createNodeHealthCheckerService(conf);
     healthChecker.init(conf);
     LocalDirsHandlerService dirsHandler = healthChecker.getDiskHandler();
 

@@ -19,7 +19,6 @@
 package org.apache.hadoop.mapred;
 
 import java.util.regex.Pattern;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 
 import org.apache.hadoop.fs.Path;
@@ -100,9 +99,9 @@ public class TestJobConf {
     assertEquals(70, conf.getMaxReduceTaskFailuresPercent());
 
     // by default
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.DEFAULT);
+    assertEquals(JobPriority.DEFAULT.name(), conf.getJobPriority().name());
     conf.setJobPriority(JobPriority.HIGH);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.HIGH);
+    assertEquals(JobPriority.HIGH.name(), conf.getJobPriority().name());
 
     assertNull(conf.getJobSubmitHostName());
     conf.setJobSubmitHostName("hostname");
@@ -153,10 +152,10 @@ public class TestJobConf {
     
     // make sure mapreduce.map|reduce.java.opts are not set by default
     // so that they won't override mapred.child.java.opts
-    assertNull("mapreduce.map.java.opts should not be set by default",
-        conf.get(JobConf.MAPRED_MAP_TASK_JAVA_OPTS));
-    assertNull("mapreduce.reduce.java.opts should not be set by default",
-        conf.get(JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS));
+    assertEquals("mapreduce.map.java.opts should not be set by default",
+        null, conf.get(JobConf.MAPRED_MAP_TASK_JAVA_OPTS));
+    assertEquals("mapreduce.reduce.java.opts should not be set by default",
+        null, conf.get(JobConf.MAPRED_REDUCE_TASK_JAVA_OPTS));
   }
 
   /**
@@ -226,44 +225,44 @@ public class TestJobConf {
     JobConf configuration = new JobConf();
     configuration.set(MRJobConfig.MAP_MEMORY_MB,String.valueOf(300));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB,String.valueOf(300));
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(300);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(300);
+    Assert.assertEquals(configuration.getMemoryForMapTask(),300);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(),300);
 
     configuration.set("mapred.task.maxvmem" , String.valueOf(2*1024 * 1024));
     configuration.set(MRJobConfig.MAP_MEMORY_MB,String.valueOf(300));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB,String.valueOf(300));
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(2);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(2);
+    Assert.assertEquals(configuration.getMemoryForMapTask(),2);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(),2);
 
     configuration = new JobConf();
     configuration.set("mapred.task.maxvmem" , "-1");
     configuration.set(MRJobConfig.MAP_MEMORY_MB,String.valueOf(300));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB,String.valueOf(400));
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(300);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(400);
+    Assert.assertEquals(configuration.getMemoryForMapTask(), 300);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(), 400);
 
     configuration = new JobConf();
     configuration.set("mapred.task.maxvmem" , String.valueOf(2*1024 * 1024));
     configuration.set(MRJobConfig.MAP_MEMORY_MB,"-1");
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB,"-1");
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(2);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(2);
+    Assert.assertEquals(configuration.getMemoryForMapTask(),2);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(),2);
 
     configuration = new JobConf();
     configuration.set("mapred.task.maxvmem" , String.valueOf(-1));
     configuration.set(MRJobConfig.MAP_MEMORY_MB,"-1");
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB,"-1");
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(
+    Assert.assertEquals(configuration.getMemoryForMapTask(),
         MRJobConfig.DEFAULT_MAP_MEMORY_MB);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(
+    Assert.assertEquals(configuration.getMemoryForReduceTask(),
         MRJobConfig.DEFAULT_REDUCE_MEMORY_MB);
 
     configuration = new JobConf();
     configuration.set("mapred.task.maxvmem" , String.valueOf(2*1024 * 1024));
     configuration.set(MRJobConfig.MAP_MEMORY_MB, "3");
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB, "3");
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(2);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(2);
+    Assert.assertEquals(configuration.getMemoryForMapTask(),2);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(),2);
   }
 
   /**
@@ -306,47 +305,46 @@ public class TestJobConf {
    *   Test deprecated accessor and mutator method for mapred.task.maxvmem
    */
   @Test
-  @SuppressWarnings("deprecation")
   public void testMaxVirtualMemoryForTask() {
     JobConf configuration = new JobConf();
 
     //get test case
     configuration.set(MRJobConfig.MAP_MEMORY_MB, String.valueOf(300));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB, String.valueOf(-1));
-    assertThat(configuration.getMaxVirtualMemoryForTask())
-        .isEqualTo(1024 * 1024 * 1024);
+    Assert.assertEquals(
+      configuration.getMaxVirtualMemoryForTask(), 1024 * 1024 * 1024);
 
     configuration = new JobConf();
     configuration.set(MRJobConfig.MAP_MEMORY_MB, String.valueOf(-1));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB, String.valueOf(200));
-    assertThat(configuration.getMaxVirtualMemoryForTask())
-        .isEqualTo(1024 * 1024 * 1024);
+    Assert.assertEquals(
+      configuration.getMaxVirtualMemoryForTask(), 1024 * 1024 * 1024);
 
     configuration = new JobConf();
     configuration.set(MRJobConfig.MAP_MEMORY_MB, String.valueOf(-1));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB, String.valueOf(-1));
     configuration.set("mapred.task.maxvmem", String.valueOf(1 * 1024 * 1024));
-    assertThat(configuration.getMaxVirtualMemoryForTask())
-        .isEqualTo(1 * 1024 * 1024);
+    Assert.assertEquals(
+      configuration.getMaxVirtualMemoryForTask(), 1 * 1024 * 1024);
 
     configuration = new JobConf();
     configuration.set("mapred.task.maxvmem", String.valueOf(1 * 1024 * 1024));
-    assertThat(configuration.getMaxVirtualMemoryForTask())
-        .isEqualTo(1 * 1024 * 1024);
+    Assert.assertEquals(
+      configuration.getMaxVirtualMemoryForTask(), 1 * 1024 * 1024);
 
     //set test case
 
     configuration = new JobConf();
     configuration.setMaxVirtualMemoryForTask(2 * 1024 * 1024);
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(2);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(2);
+    Assert.assertEquals(configuration.getMemoryForMapTask(), 2);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(), 2);
 
     configuration = new JobConf();
     configuration.set(MRJobConfig.MAP_MEMORY_MB, String.valueOf(300));
     configuration.set(MRJobConfig.REDUCE_MEMORY_MB, String.valueOf(400));
     configuration.setMaxVirtualMemoryForTask(2 * 1024 * 1024);
-    assertThat(configuration.getMemoryForMapTask()).isEqualTo(2);
-    assertThat(configuration.getMemoryForReduceTask()).isEqualTo(2);
+    Assert.assertEquals(configuration.getMemoryForMapTask(), 2);
+    Assert.assertEquals(configuration.getMemoryForReduceTask(), 2);
   }
 
   /**
@@ -388,35 +386,37 @@ public class TestJobConf {
     JobConf conf = new JobConf();
 
     // by default
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.DEFAULT);
+    assertEquals(JobPriority.DEFAULT.name(), conf.getJobPriority().name());
     assertEquals(0, conf.getJobPriorityAsInteger());
     // Set JobPriority.LOW using old API, and verify output from both getter
     conf.setJobPriority(JobPriority.LOW);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.LOW);
+    assertEquals(JobPriority.LOW.name(), conf.getJobPriority().name());
     assertEquals(2, conf.getJobPriorityAsInteger());
 
     // Set JobPriority.VERY_HIGH using old API, and verify output
     conf.setJobPriority(JobPriority.VERY_HIGH);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.VERY_HIGH);
+    assertEquals(JobPriority.VERY_HIGH.name(), conf.getJobPriority().name());
     assertEquals(5, conf.getJobPriorityAsInteger());
 
     // Set 3 as priority using new API, and verify output from both getter
     conf.setJobPriorityAsInteger(3);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.NORMAL);
+    assertEquals(JobPriority.NORMAL.name(), conf.getJobPriority().name());
     assertEquals(3, conf.getJobPriorityAsInteger());
 
     // Set 4 as priority using new API, and verify output
     conf.setJobPriorityAsInteger(4);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.HIGH);
+    assertEquals(JobPriority.HIGH.name(), conf.getJobPriority().name());
     assertEquals(4, conf.getJobPriorityAsInteger());
     // Now set some high integer values and verify output from old api
     conf.setJobPriorityAsInteger(57);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.UNDEFINED_PRIORITY);
+    assertEquals(JobPriority.UNDEFINED_PRIORITY.name(), conf.getJobPriority()
+        .name());
     assertEquals(57, conf.getJobPriorityAsInteger());
 
     // Error case where UNDEFINED_PRIORITY is set explicitly
     conf.setJobPriority(JobPriority.UNDEFINED_PRIORITY);
-    assertThat(conf.getJobPriority()).isEqualTo(JobPriority.UNDEFINED_PRIORITY);
+    assertEquals(JobPriority.UNDEFINED_PRIORITY.name(), conf.getJobPriority()
+        .name());
 
     // As UNDEFINED_PRIORITY cannot be mapped to any integer value, resetting
     // to default as 0.

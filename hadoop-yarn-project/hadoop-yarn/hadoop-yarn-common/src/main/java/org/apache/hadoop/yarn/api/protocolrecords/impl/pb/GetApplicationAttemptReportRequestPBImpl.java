@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationAttemptIdProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetApplicationAttemptReportRequestProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetApplicationAttemptReportRequestProtoOrBuilder;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 @Private
 @Unstable

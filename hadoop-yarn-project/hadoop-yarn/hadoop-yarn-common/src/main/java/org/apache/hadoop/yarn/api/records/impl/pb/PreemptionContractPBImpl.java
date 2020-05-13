@@ -33,7 +33,7 @@ import org.apache.hadoop.yarn.proto.YarnProtos.PreemptionContractProto;
 import org.apache.hadoop.yarn.proto.YarnProtos.PreemptionContractProtoOrBuilder;
 import org.apache.hadoop.yarn.proto.YarnProtos.PreemptionResourceRequestProto;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 @Private
 @Unstable

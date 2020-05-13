@@ -147,7 +147,6 @@ public class TestYarnCLI {
           null, null, false, Priority.newInstance(0), "high-mem", "high-mem");
       newApplicationReport.setLogAggregationStatus(LogAggregationStatus.SUCCEEDED);
       newApplicationReport.setPriority(Priority.newInstance(0));
-      newApplicationReport.setRMClusterId("Cluster1");
       ApplicationTimeout timeout = ApplicationTimeout
           .newInstance(ApplicationTimeoutType.LIFETIME, "UNLIMITED", -1);
       newApplicationReport.setApplicationTimeouts(
@@ -187,7 +186,6 @@ public class TestYarnCLI {
       pw.print("\tTimeoutType : LIFETIME");
       pw.print("\tExpiryTime : UNLIMITED");
       pw.println("\tRemainingTime : -1seconds");
-      pw.println("\tRMClusterId : Cluster1");
       pw.println();
       pw.close();
       String appReportStr = baos.toString("UTF-8");
@@ -1730,9 +1728,9 @@ public class TestYarnCLI {
     pw.println("Queue Information : ");
     pw.println("Queue Name : " + "queueA");
     pw.println("\tState : " + "RUNNING");
-    pw.println("\tCapacity : " + "40.00%");
-    pw.println("\tCurrent Capacity : " + "50.00%");
-    pw.println("\tMaximum Capacity : " + "80.00%");
+    pw.println("\tCapacity : " + "40.0%");
+    pw.println("\tCurrent Capacity : " + "50.0%");
+    pw.println("\tMaximum Capacity : " + "80.0%");
     pw.println("\tDefault Node Label expression : " + "GPU");
     pw.println("\tAccessible Node Labels : " + "JDK_7,GPU");
     pw.println("\tPreemption : " + "enabled");
@@ -1897,9 +1895,9 @@ public class TestYarnCLI {
     pw.println("Queue Information : ");
     pw.println("Queue Name : " + "queueA");
     pw.println("\tState : " + "RUNNING");
-    pw.println("\tCapacity : " + "40.00%");
-    pw.println("\tCurrent Capacity : " + "50.00%");
-    pw.println("\tMaximum Capacity : " + "80.00%");
+    pw.println("\tCapacity : " + "40.0%");
+    pw.println("\tCurrent Capacity : " + "50.0%");
+    pw.println("\tMaximum Capacity : " + "80.0%");
     pw.println("\tDefault Node Label expression : "
         + NodeLabel.DEFAULT_NODE_LABEL_PARTITION);
     pw.println("\tAccessible Node Labels : ");

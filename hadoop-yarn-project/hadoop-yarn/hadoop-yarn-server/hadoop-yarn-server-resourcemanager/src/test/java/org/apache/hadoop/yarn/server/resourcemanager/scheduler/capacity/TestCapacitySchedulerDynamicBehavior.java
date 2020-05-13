@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.reservation.ReservationConstants;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMAppState;
@@ -170,15 +168,7 @@ public class TestCapacitySchedulerDynamicBehavior {
     a1.setEntitlement(new QueueEntitlement(A1_CAPACITY / 100, 1f));
 
     // submit an app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(GB, rm)
-            .withAppName("test-move-1")
-            .withUser("user_0")
-            .withAcls(null)
-            .withQueue("a1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(GB, "test-move-1", "user_0", null, "a1");
     // check preconditions
     List<ApplicationAttemptId> appsInA1 = cs.getAppsInQueue("a1");
     assertEquals(1, appsInA1.size());
@@ -213,15 +203,7 @@ public class TestCapacitySchedulerDynamicBehavior {
     CapacityScheduler scheduler = (CapacityScheduler) rm.getResourceScheduler();
 
     // submit an app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(GB, rm)
-            .withAppName("test-move-1")
-            .withUser("user_0")
-            .withAcls(null)
-            .withQueue("b1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(GB, "test-move-1", "user_0", null, "b1");
     ApplicationAttemptId appAttemptId =
         rm.getApplicationReport(app.getApplicationId())
             .getCurrentApplicationAttemptId();

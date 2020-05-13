@@ -83,7 +83,7 @@ import org.apache.hadoop.hdfs.server.namenode.XAttrFeature;
 import org.apache.hadoop.hdfs.util.EnumCounters;
 
 import com.google.common.base.Preconditions;
-import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import com.google.protobuf.ByteString;
 
 @InterfaceAudience.Private
 public class FSImageFormatPBSnapshot {
@@ -529,14 +529,9 @@ public class FSImageFormatPBSnapshot {
         if (i % FSImageFormatProtobuf.Saver.CHECK_CANCEL_INTERVAL == 0) {
           context.checkCancelled();
         }
-        if (i % parent.getInodesPerSubSection() == 0) {
-          parent.commitSubSection(headers,
-              FSImageFormatProtobuf.SectionName.SNAPSHOT_DIFF_SUB);
-        }
       }
-      parent.commitSectionAndSubSection(headers,
-          FSImageFormatProtobuf.SectionName.SNAPSHOT_DIFF,
-          FSImageFormatProtobuf.SectionName.SNAPSHOT_DIFF_SUB);
+      parent.commitSection(headers,
+          FSImageFormatProtobuf.SectionName.SNAPSHOT_DIFF);
     }
 
     private void serializeFileDiffList(INodeFile file, OutputStream out)

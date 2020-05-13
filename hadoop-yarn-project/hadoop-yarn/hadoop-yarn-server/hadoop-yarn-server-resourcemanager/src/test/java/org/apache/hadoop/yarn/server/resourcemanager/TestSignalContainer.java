@@ -57,7 +57,7 @@ public class TestSignalContainer {
 
     MockNM nm1 = rm.registerNode("h1:1234", 5000);
 
-    RMApp app = MockRMAppSubmitter.submitWithMemory(2000, rm);
+    RMApp app = rm.submitApp(2000);
 
     //kick the scheduling
     nm1.nodeHeartbeat(true);

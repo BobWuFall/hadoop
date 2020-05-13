@@ -33,17 +33,16 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
+/*
  * DAO object to display application activity.
  */
-@XmlRootElement(name = "appActivities")
+@XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AppActivitiesInfo {
-  private String applicationId;
-  private String diagnostic;
-  private Long timestamp;
-  private String dateTime;
-  private List<AppAllocationInfo> allocations;
+  protected String applicationId;
+  protected String diagnostic;
+  protected String timeStamp;
+  protected List<AppAllocationInfo> allocations;
 
   private static final Logger LOG =
       LoggerFactory.getLogger(AppActivitiesInfo.class);
@@ -54,7 +53,10 @@ public class AppActivitiesInfo {
   public AppActivitiesInfo(String errorMessage, String applicationId) {
     this.diagnostic = errorMessage;
     this.applicationId = applicationId;
-    setTime(SystemClock.getInstance().getTime());
+
+    Date date = new Date();
+    date.setTime(SystemClock.getInstance().getTime());
+    this.timeStamp = date.toString();
   }
 
   public AppActivitiesInfo(List<AppAllocation> appAllocations,
@@ -65,7 +67,10 @@ public class AppActivitiesInfo {
 
     if (appAllocations == null) {
       diagnostic = "waiting for display";
-      setTime(SystemClock.getInstance().getTime());
+
+      Date date = new Date();
+      date.setTime(SystemClock.getInstance().getTime());
+      this.timeStamp = date.toString();
     } else {
       for (int i = appAllocations.size() - 1; i > -1; i--) {
         AppAllocation appAllocation = appAllocations.get(i);
@@ -76,29 +81,8 @@ public class AppActivitiesInfo {
     }
   }
 
-  private void setTime(long ts) {
-    this.timestamp = ts;
-    this.dateTime = new Date(ts).toString();
-  }
-
   @VisibleForTesting
   public List<AppAllocationInfo> getAllocations() {
     return allocations;
-  }
-
-  public Long getTimestamp() {
-    return timestamp;
-  }
-
-  public String getDateTime() {
-    return dateTime;
-  }
-
-  public String getApplicationId() {
-    return applicationId;
-  }
-
-  public String getDiagnostic() {
-    return diagnostic;
   }
 }

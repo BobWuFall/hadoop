@@ -17,7 +17,6 @@
 */
 package org.apache.hadoop.mapreduce.v2.app.local;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -203,8 +202,8 @@ public class TestLocalContainerAllocator {
     Container container = containerAssignedCaptor.getValue().getContainer();
     Resource containerResource = container.getResource();
     Assert.assertNotNull(containerResource);
-    assertThat(containerResource.getMemorySize()).isEqualTo(0);
-    assertThat(containerResource.getVirtualCores()).isEqualTo(0);
+    Assert.assertEquals(containerResource.getMemorySize(), 0);
+    Assert.assertEquals(containerResource.getVirtualCores(), 0);
   }
 
   private static ContainerAllocatorEvent createContainerRequestEvent() {

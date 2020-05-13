@@ -25,7 +25,7 @@ import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProt
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.FederationProtocolPBTranslator;
 import org.apache.hadoop.hdfs.server.federation.store.records.DisabledNameservice;
 
-import org.apache.hadoop.thirdparty.protobuf.Message;
+import com.google.protobuf.Message;
 
 /**
  * Protobuf implementation of the {@link DisabledNameservice} record.

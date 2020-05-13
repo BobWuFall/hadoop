@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.gpu;
 
-import static org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourcesExceptionUtil.throwIfNecessary;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -77,8 +75,7 @@ public class GpuResourceHandlerImpl implements ResourceHandler {
         String message = "GPU is enabled on the NodeManager, but couldn't find "
             + "any usable GPU devices, please double check configuration!";
         LOG.error(message);
-        throwIfNecessary(new ResourceHandlerException(message),
-            configuration);
+        throw new ResourceHandlerException(message);
       }
     } catch (YarnException e) {
       LOG.error("Exception when trying to get usable GPU device", e);
@@ -180,7 +177,7 @@ public class GpuResourceHandlerImpl implements ResourceHandler {
   @Override
   public synchronized List<PrivilegedOperation> postComplete(
       ContainerId containerId) throws ResourceHandlerException {
-    gpuAllocator.unassignGpus(containerId);
+    gpuAllocator.cleanupAssignGpus(containerId);
     cGroupsHandler.deleteCGroup(CGroupsHandler.CGroupController.DEVICES,
         containerId.toString());
     return null;

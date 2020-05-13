@@ -146,10 +146,9 @@ public class TestInstrumentedReadWriteLock {
     InstrumentedReadLock readLock = new InstrumentedReadLock(testname, LOG,
         readWriteLock, 2000, 300, mclock) {
       @Override
-      protected void logWarning(
-          long lockHeldTime, SuppressedSnapshot stats) {
+      protected void logWarning(long lockHeldTime, long suppressed) {
         wlogged.incrementAndGet();
-        wsuppresed.set(stats.getSuppressedCount());
+        wsuppresed.set(suppressed);
       }
     };
 
@@ -201,9 +200,9 @@ public class TestInstrumentedReadWriteLock {
     InstrumentedWriteLock writeLock = new InstrumentedWriteLock(testname, LOG,
         readWriteLock, 2000, 300, mclock) {
       @Override
-      protected void logWarning(long lockHeldTime, SuppressedSnapshot stats) {
+      protected void logWarning(long lockHeldTime, long suppressed) {
         wlogged.incrementAndGet();
-        wsuppresed.set(stats.getSuppressedCount());
+        wsuppresed.set(suppressed);
       }
     };
 

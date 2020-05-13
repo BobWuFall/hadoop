@@ -182,9 +182,7 @@ public class RpcMetrics {
    * Shutdown the instrumentation for the process
    */
   //@Override
-  public void shutdown() {
-    DefaultMetricsSystem.instance().unregisterSource(name);
-  }
+  public void shutdown() {}
 
   /**
    * Increment sent bytes by count

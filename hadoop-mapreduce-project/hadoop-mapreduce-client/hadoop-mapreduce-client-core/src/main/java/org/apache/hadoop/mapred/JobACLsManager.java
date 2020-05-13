@@ -117,7 +117,7 @@ public class JobACLsManager {
     // Allow Job-owner for any operation on the job
     if (isMRAdmin(callerUGI)
         || user.equals(jobOwner)
-        || (null != jobACL && jobACL.isUserAllowed(callerUGI))) {
+        || jobACL.isUserAllowed(callerUGI)) {
       return true;
     }
 

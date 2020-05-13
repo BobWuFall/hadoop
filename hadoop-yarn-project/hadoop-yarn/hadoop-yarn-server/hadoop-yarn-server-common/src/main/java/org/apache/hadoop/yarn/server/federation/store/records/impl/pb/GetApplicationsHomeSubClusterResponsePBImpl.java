@@ -29,7 +29,7 @@ import org.apache.hadoop.yarn.federation.proto.YarnServerFederationProtos.GetApp
 import org.apache.hadoop.yarn.server.federation.store.records.ApplicationHomeSubCluster;
 import org.apache.hadoop.yarn.server.federation.store.records.GetApplicationsHomeSubClusterResponse;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 /**
  * Protocol buffer based implementation of

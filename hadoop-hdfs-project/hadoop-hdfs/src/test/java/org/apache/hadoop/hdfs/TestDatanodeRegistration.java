@@ -364,16 +364,14 @@ public class TestDatanodeRegistration {
       waitForHeartbeat(dn, dnd);
       assertTrue(dnd.isRegistered());
       assertSame(lastReg, dn.getDNRegistrationForBP(bpId));
-      assertTrue("block report is not processed for DN " + dnd,
-          waitForBlockReport(dn, dnd));
+      assertTrue(waitForBlockReport(dn, dnd));
       assertTrue(dnd.isRegistered());
       assertSame(lastReg, dn.getDNRegistrationForBP(bpId));
 
       // check that block report is not processed and registration didn't
       // change.
       dnd.setForceRegistration(true);
-      assertFalse("block report is processed for DN " + dnd,
-          waitForBlockReport(dn, dnd));
+      assertFalse(waitForBlockReport(dn, dnd));
       assertFalse(dnd.isRegistered());
       assertSame(lastReg, dn.getDNRegistrationForBP(bpId));
 
@@ -384,8 +382,7 @@ public class TestDatanodeRegistration {
       newReg = dn.getDNRegistrationForBP(bpId);
       assertNotSame(lastReg, newReg);
       lastReg = newReg;
-      assertTrue("block report is not processed for DN " + dnd,
-          waitForBlockReport(dn, dnd));
+      assertTrue(waitForBlockReport(dn, dnd));
       assertTrue(dnd.isRegistered());
       assertSame(lastReg, dn.getDNRegistrationForBP(bpId));
 
@@ -450,9 +447,8 @@ public class TestDatanodeRegistration {
         public Boolean get() {
           return lastCount != storage.getBlockReportCount();
         }
-      }, 10, 6000);
+      }, 10, 2000);
     } catch (TimeoutException te) {
-      LOG.error("Timeout waiting for block report for {}", dnd);
       return false;
     }
     return true;

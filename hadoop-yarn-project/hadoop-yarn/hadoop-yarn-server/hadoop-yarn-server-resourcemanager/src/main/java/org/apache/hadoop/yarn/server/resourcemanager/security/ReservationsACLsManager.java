@@ -79,7 +79,7 @@ public class ReservationsACLsManager {
     if (this.reservationAcls.containsKey(queueName)) {
       Map<ReservationACL, AccessControlList> acls = this.reservationAcls.get(
               queueName);
-      if (acls != null && acls.containsKey(acl)) {
+      if (acls.containsKey(acl)) {
         return acls.get(acl).isUserAllowed(callerUGI);
       } else {
         // Give access if acl is undefined for queue.

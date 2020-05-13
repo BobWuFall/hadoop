@@ -457,7 +457,7 @@ public class WriteOperationHelper {
   @Retries.RetryTranslated
   public PutObjectResult putObject(PutObjectRequest putObjectRequest)
       throws IOException {
-    return retry("Writing Object",
+    return retry("put",
         putObjectRequest.getKey(), true,
         () -> owner.putObjectDirect(putObjectRequest));
   }
@@ -472,7 +472,7 @@ public class WriteOperationHelper {
   public UploadResult uploadObject(PutObjectRequest putObjectRequest)
       throws IOException {
     // no retry; rely on xfer manager logic
-    return retry("Writing Object",
+    return retry("put",
         putObjectRequest.getKey(), true,
         () -> owner.executePut(putObjectRequest, null));
   }
@@ -482,16 +482,14 @@ public class WriteOperationHelper {
    * Relies on retry code in filesystem
    * @throws IOException on problems
    * @param destKey destination key
-   * @param operationState operational state for a bulk update
    */
   @Retries.OnceTranslated
-  public void revertCommit(String destKey,
-      @Nullable BulkOperationState operationState) throws IOException {
+  public void revertCommit(String destKey) throws IOException {
     once("revert commit", destKey,
         () -> {
           Path destPath = owner.keyToQualifiedPath(destKey);
           owner.deleteObjectAtPath(destPath,
-              destKey, true, operationState);
+              destKey, true);
           owner.maybeCreateFakeParentDirectory(destPath);
         }
     );

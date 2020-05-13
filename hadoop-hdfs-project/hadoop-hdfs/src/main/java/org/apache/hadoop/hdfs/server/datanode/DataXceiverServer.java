@@ -169,10 +169,6 @@ class DataXceiverServer implements Runnable {
 
   final BlockBalanceThrottler balanceThrottler;
 
-  private final DataTransferThrottler transferThrottler;
-
-  private final DataTransferThrottler writeThrottler;
-
   /**
    * Stores an estimate for block size to check if the disk partition has enough
    * space. Newer clients pass the expected block size to the DataNode. For
@@ -198,24 +194,6 @@ class DataXceiverServer implements Runnable {
             DFSConfigKeys.DFS_DATANODE_BALANCE_BANDWIDTHPERSEC_DEFAULT),
         conf.getInt(DFSConfigKeys.DFS_DATANODE_BALANCE_MAX_NUM_CONCURRENT_MOVES_KEY,
             DFSConfigKeys.DFS_DATANODE_BALANCE_MAX_NUM_CONCURRENT_MOVES_DEFAULT));
-
-    long bandwidthPerSec = conf.getLongBytes(
-        DFSConfigKeys.DFS_DATANODE_DATA_TRANSFER_BANDWIDTHPERSEC_KEY,
-        DFSConfigKeys.DFS_DATANODE_DATA_TRANSFER_BANDWIDTHPERSEC_DEFAULT);
-    if (bandwidthPerSec > 0) {
-      this.transferThrottler = new DataTransferThrottler(bandwidthPerSec);
-    } else {
-      this.transferThrottler = null;
-    }
-
-    bandwidthPerSec = conf.getLongBytes(
-        DFSConfigKeys.DFS_DATANODE_DATA_WRITE_BANDWIDTHPERSEC_KEY,
-        DFSConfigKeys.DFS_DATANODE_DATA_WRITE_BANDWIDTHPERSEC_DEFAULT);
-    if (bandwidthPerSec > 0) {
-      this.writeThrottler = new DataTransferThrottler(bandwidthPerSec);
-    } else {
-      this.writeThrottler = null;
-    }
   }
 
   @Override
@@ -229,7 +207,7 @@ class DataXceiverServer implements Runnable {
         int curXceiverCount = datanode.getXceiverCount();
         if (curXceiverCount > maxXceiverCount) {
           throw new IOException("Xceiver count " + curXceiverCount
-              + " exceeds the limit of concurrent xceivers: "
+              + " exceeds the limit of concurrent xcievers: "
               + maxXceiverCount);
         }
 
@@ -463,14 +441,6 @@ class DataXceiverServer implements Runnable {
   @VisibleForTesting
   PeerServer getPeerServer() {
     return peerServer;
-  }
-
-  public DataTransferThrottler getTransferThrottler() {
-    return transferThrottler;
-  }
-
-  public DataTransferThrottler getWriteThrottler() {
-    return writeThrottler;
   }
 
   /**

@@ -549,8 +549,7 @@ public class TestDataNodeHotSwapVolumes {
     dn.data = Mockito.spy(data);
 
     final int newVolumeCount = 40;
-    List<Thread> addVolumeDelayedThreads =
-        Collections.synchronizedList(new ArrayList<>());
+    List<Thread> addVolumeDelayedThreads = new ArrayList<>();
     AtomicBoolean addVolumeError = new AtomicBoolean(false);
     AtomicBoolean listStorageError = new AtomicBoolean(false);
     CountDownLatch addVolumeCompletionLatch =

@@ -90,7 +90,7 @@ public class TestLocalModeWithNewApis {
     job.setOutputValueClass(IntWritable.class);
     FileInputFormat.addInputPath(job, inDir);
     FileOutputFormat.setOutputPath(job, outDir);
-    assertTrue(job.waitForCompletion(true));
+    assertEquals(job.waitForCompletion(true), true);
 
     String output = readOutput(outDir, conf);
     assertEquals("The\t1\nbrown\t1\nfox\t2\nhas\t1\nmany\t1\n" +

@@ -31,7 +31,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
 /**
@@ -85,9 +84,8 @@ public class TestXFrameOptionsFilter {
 
     filter.doFilter(request, response, chain);
 
-    assertThat(headers.size())
-        .withFailMessage("X-Frame-Options count not equal to 1.")
-        .isOne();
+    Assert.assertEquals("X-Frame-Options count not equal to 1.",
+        headers.size(), 1);
   }
 
   @Test
@@ -140,12 +138,10 @@ public class TestXFrameOptionsFilter {
 
     filter.doFilter(request, response, chain);
 
-    assertThat(headers.size())
-        .withFailMessage("X-Frame-Options count not equal to 1.")
-        .isOne();
+    Assert.assertEquals("X-Frame-Options count not equal to 1.",
+        headers.size(), 1);
 
-    assertThat(headers.toArray()[0])
-        .withFailMessage("X-Frame-Options count not equal to 1.")
-        .isEqualTo("SAMEORIGIN");
+    Assert.assertEquals("X-Frame-Options count not equal to 1.",
+        headers.toArray()[0], "SAMEORIGIN");
   }
 }

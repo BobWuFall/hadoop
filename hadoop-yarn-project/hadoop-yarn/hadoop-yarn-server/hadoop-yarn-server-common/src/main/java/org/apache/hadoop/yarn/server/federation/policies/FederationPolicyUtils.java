@@ -37,8 +37,6 @@ import org.apache.hadoop.yarn.server.federation.utils.FederationStateStoreFacade
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-
 /**
  * Utility class for Federation policy.
  */
@@ -50,7 +48,7 @@ public final class FederationPolicyUtils {
   public static final String NO_ACTIVE_SUBCLUSTER_AVAILABLE =
       "No active SubCluster available to submit the request.";
 
-  private static Random rand = new Random(System.currentTimeMillis());
+  private static final Random RAND = new Random(System.currentTimeMillis());
 
   /** Disable constructor. */
   private FederationPolicyUtils() {
@@ -225,7 +223,7 @@ public final class FederationPolicyUtils {
     if (totalWeight == 0) {
       return -1;
     }
-    float samplePoint = rand.nextFloat() * totalWeight;
+    float samplePoint = RAND.nextFloat() * totalWeight;
     int lastIndex = 0;
     for (i = 0; i < weights.size(); i++) {
       if (weights.get(i) > 0) {
@@ -240,10 +238,5 @@ public final class FederationPolicyUtils {
     // This can only happen if samplePoint is very close to totoalWeight and
     // float rounding kicks in during subtractions
     return lastIndex;
-  }
-
-  @VisibleForTesting
-  public static void setRand(long seed){
-    rand.setSeed(seed);
   }
 }

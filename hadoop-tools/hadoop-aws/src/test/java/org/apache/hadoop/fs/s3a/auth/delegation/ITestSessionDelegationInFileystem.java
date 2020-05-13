@@ -139,10 +139,6 @@ public class ITestSessionDelegationInFileystem extends AbstractDelegationIT {
     // disable if assume role opts are off
     assumeSessionTestsEnabled(conf);
     disableFilesystemCaching(conf);
-    removeBaseAndBucketOverrides(conf,
-        DELEGATION_TOKEN_BINDING,
-        SERVER_SIDE_ENCRYPTION_ALGORITHM,
-        SERVER_SIDE_ENCRYPTION_KEY);
     conf.set(HADOOP_SECURITY_AUTHENTICATION,
         UserGroupInformation.AuthenticationMethod.KERBEROS.name());
     enableDelegationTokens(conf, getDelegationBinding());
@@ -336,7 +332,6 @@ public class ITestSessionDelegationInFileystem extends AbstractDelegationIT {
     removeBaseAndBucketOverrides(bucket, conf,
         ACCESS_KEY, SECRET_KEY, SESSION_TOKEN,
         SERVER_SIDE_ENCRYPTION_ALGORITHM,
-        SERVER_SIDE_ENCRYPTION_KEY,
         DELEGATION_TOKEN_ROLE_ARN,
         DELEGATION_TOKEN_ENDPOINT);
     // this is done to make sure you cannot create an STS session no
@@ -352,10 +347,8 @@ public class ITestSessionDelegationInFileystem extends AbstractDelegationIT {
       LOG.info("Delegated filesystem is: {}", delegatedFS);
       assertBoundToDT(delegatedFS, tokenKind);
       if (encryptionTestEnabled()) {
-        assertNotNull("Encryption propagation failed",
-            delegatedFS.getServerSideEncryptionAlgorithm());
         assertEquals("Encryption propagation failed",
-            fs.getServerSideEncryptionAlgorithm(),
+            S3AEncryptionMethods.SSE_S3,
             delegatedFS.getServerSideEncryptionAlgorithm());
       }
       verifyRestrictedPermissions(delegatedFS);
@@ -387,10 +380,8 @@ public class ITestSessionDelegationInFileystem extends AbstractDelegationIT {
     try (S3AFileSystem secondDelegate = newS3AInstance(uri, conf)) {
       assertBoundToDT(secondDelegate, tokenKind);
       if (encryptionTestEnabled()) {
-        assertNotNull("Encryption propagation failed",
-            secondDelegate.getServerSideEncryptionAlgorithm());
         assertEquals("Encryption propagation failed",
-            fs.getServerSideEncryptionAlgorithm(),
+            S3AEncryptionMethods.SSE_S3,
             secondDelegate.getServerSideEncryptionAlgorithm());
       }
       ContractTestUtils.assertDeleted(secondDelegate, testPath, true);

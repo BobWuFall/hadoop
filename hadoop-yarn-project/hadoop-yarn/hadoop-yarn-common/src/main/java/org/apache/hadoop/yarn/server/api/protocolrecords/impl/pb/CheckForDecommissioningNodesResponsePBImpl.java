@@ -31,7 +31,7 @@ import org.apache.hadoop.yarn.proto.YarnServerResourceManagerServiceProtos.Check
 import org.apache.hadoop.yarn.proto.YarnServerResourceManagerServiceProtos.CheckForDecommissioningNodesResponseProtoOrBuilder;
 import org.apache.hadoop.yarn.server.api.protocolrecords.CheckForDecommissioningNodesResponse;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 @Private
 @Unstable

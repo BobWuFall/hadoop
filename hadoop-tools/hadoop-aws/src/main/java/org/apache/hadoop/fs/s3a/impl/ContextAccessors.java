@@ -20,7 +20,6 @@ package org.apache.hadoop.fs.s3a.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.s3a.Retries;
@@ -68,7 +67,6 @@ public interface ContextAccessors {
    * Get the region of a bucket. This may be via an S3 API call if not
    * already cached.
    * @return the region in which a bucket is located
-   * @throws AccessDeniedException if the caller lacks permission.
    * @throws IOException on any failure.
    */
   @Retries.RetryTranslated

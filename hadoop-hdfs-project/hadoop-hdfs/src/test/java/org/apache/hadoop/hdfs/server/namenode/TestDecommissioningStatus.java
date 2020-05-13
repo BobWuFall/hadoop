@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import java.util.concurrent.TimeoutException;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
@@ -56,7 +55,6 @@ import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.datanode.DataNodeTestUtils;
 import org.apache.hadoop.hdfs.tools.DFSAdmin;
 import org.apache.hadoop.hdfs.util.HostsFileWriter;
-import org.apache.hadoop.test.GenericTestUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -67,31 +65,20 @@ import org.junit.Test;
  * This class tests the decommissioning of nodes.
  */
 public class TestDecommissioningStatus {
-  private final long seed = 0xDEADBEEFL;
-  private final int blockSize = 8192;
-  private final int fileSize = 16384;
-  private final int numDatanodes = 2;
-  private MiniDFSCluster cluster;
-  private FileSystem fileSys;
-  private HostsFileWriter hostsFileWriter;
-  private Configuration conf;
+  private static final long seed = 0xDEADBEEFL;
+  private static final int blockSize = 8192;
+  private static final int fileSize = 16384;
+  private static final int numDatanodes = 2;
+  private static MiniDFSCluster cluster;
+  private static FileSystem fileSys;
+  private static HostsFileWriter hostsFileWriter;
+  private static Configuration conf;
   private Logger LOG;
 
   final ArrayList<String> decommissionedNodes = new ArrayList<String>(numDatanodes);
-
-  protected MiniDFSCluster getCluster() {
-    return cluster;
-  }
-
-  protected FileSystem getFileSys() {
-    return fileSys;
-  }
-
-  protected HostsFileWriter getHostsFileWriter() {
-    return hostsFileWriter;
-  }
-
-  protected Configuration setupConfig() throws Exception  {
+  
+  @Before
+  public void setUp() throws Exception {
     conf = new HdfsConfiguration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_CONSIDERLOAD_KEY,
         false);
@@ -99,7 +86,7 @@ public class TestDecommissioningStatus {
     // Set up the hosts/exclude files.
     hostsFileWriter = new HostsFileWriter();
     hostsFileWriter.initialize(conf, "work-dir/decommission");
-    conf.setInt(DFSConfigKeys.DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY,
+    conf.setInt(DFSConfigKeys.DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY, 
         1000);
     conf.setInt(DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_KEY, 1);
     conf.setInt(
@@ -107,24 +94,14 @@ public class TestDecommissioningStatus {
     conf.setInt(DFSConfigKeys.DFS_NAMENODE_REDUNDANCY_INTERVAL_SECONDS_KEY, 1);
     conf.setInt(DFSConfigKeys.DFS_NAMENODE_DECOMMISSION_INTERVAL_KEY, 1);
     conf.setLong(DFSConfigKeys.DFS_DATANODE_BALANCE_BANDWIDTHPERSEC_KEY, 1);
-    Logger.getLogger(DatanodeAdminManager.class).setLevel(Level.DEBUG);
-    LOG = Logger.getLogger(TestDecommissioningStatus.class);
-    return conf;
-  }
 
-  protected void createCluster() throws Exception {
-    cluster =
-        new MiniDFSCluster.Builder(conf).numDataNodes(numDatanodes).build();
+    cluster = new MiniDFSCluster.Builder(conf).numDataNodes(numDatanodes).build();
     cluster.waitActive();
     fileSys = cluster.getFileSystem();
     cluster.getNamesystem().getBlockManager().getDatanodeManager()
         .setHeartbeatExpireInterval(3000);
-  }
-
-  @Before
-  public void setUp() throws Exception {
-    setupConfig();
-    createCluster();
+    Logger.getLogger(DatanodeAdminManager.class).setLevel(Level.DEBUG);
+    LOG = Logger.getLogger(TestDecommissioningStatus.class);
   }
 
   @After
@@ -139,7 +116,7 @@ public class TestDecommissioningStatus {
   /*
    * Decommissions the node at the given index
    */
-  protected String decommissionNode(DFSClient client,
+  private String decommissionNode(DFSClient client,
       int nodeIndex) throws IOException {
     DatanodeInfo[] info = client.datanodeReport(DatanodeReportType.LIVE);
 
@@ -151,7 +128,7 @@ public class TestDecommissioningStatus {
   /*
    * Decommissions the node by name
    */
-  protected void decommissionNode(String dnName)
+  private void decommissionNode(String dnName)
       throws IOException {
     System.out.println("Decommissioning node: " + dnName);
 
@@ -161,7 +138,7 @@ public class TestDecommissioningStatus {
     hostsFileWriter.initExcludeHosts(nodes);
   }
 
-  protected void checkDecommissionStatus(DatanodeDescriptor decommNode,
+  private void checkDecommissionStatus(DatanodeDescriptor decommNode,
       int expectedUnderRep, int expectedDecommissionOnly,
       int expectedUnderRepInOpenFiles) {
     assertEquals("Unexpected num under-replicated blocks",
@@ -176,7 +153,7 @@ public class TestDecommissioningStatus {
         decommNode.getLeavingServiceStatus().getUnderReplicatedInOpenFiles());
   }
 
-  protected void checkDFSAdminDecommissionStatus(
+  private void checkDFSAdminDecommissionStatus(
       List<DatanodeDescriptor> expectedDecomm, DistributedFileSystem dfs,
       DFSAdmin admin) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -222,23 +199,6 @@ public class TestDecommissioningStatus {
   }
 
   /**
-   * Allows the main thread to block until the decommission is checked by the
-   * admin manager.
-   * @param dnAdminMgr admin instance in the datanode manager.
-   * @param trackedNumber number of nodes expected to be DECOMMISSIONED or
-   *        IN_MAINTENANCE.
-   * @throws TimeoutException
-   * @throws InterruptedException
-   */
-  private void waitForDecommissionedNodes(final DatanodeAdminManager dnAdminMgr,
-      final int trackedNumber)
-      throws TimeoutException, InterruptedException {
-    GenericTestUtils
-        .waitFor(() -> dnAdminMgr.getNumTrackedNodes() == trackedNumber,
-            100, 2000);
-  }
-
-  /**
    * Tests Decommissioning Status in DFS.
    */
   @Test
@@ -273,8 +233,6 @@ public class TestDecommissioningStatus {
       dm.refreshNodes(conf);
       decommissionedNodes.add(downnode);
       BlockManagerTestUtil.recheckDecommissionState(dm);
-      // Block until the admin's monitor updates the number of tracked nodes.
-      waitForDecommissionedNodes(dm.getDatanodeAdminManager(), iteration + 1);
       final List<DatanodeDescriptor> decommissioningNodes = dm.getDecommissioningNodes();
       if (iteration == 0) {
         assertEquals(decommissioningNodes.size(), 1);
@@ -286,7 +244,7 @@ public class TestDecommissioningStatus {
         assertEquals(decommissioningNodes.size(), 2);
         DatanodeDescriptor decommNode1 = decommissioningNodes.get(0);
         DatanodeDescriptor decommNode2 = decommissioningNodes.get(1);
-        // This one is still 3,3,1 since it passed over the UC block
+        // This one is still 3,3,1 since it passed over the UC block 
         // earlier, before node 2 was decommed
         checkDecommissionStatus(decommNode1, 3, 3, 1);
         // This one is 4,4,2 since it has the full state
@@ -351,11 +309,11 @@ public class TestDecommissioningStatus {
 
     // Force DatanodeManager to check decommission state.
     BlockManagerTestUtil.recheckDecommissionState(dm);
-    // Block until the admin's monitor updates the number of tracked nodes.
-    waitForDecommissionedNodes(dm.getDatanodeAdminManager(), 1);
+
     // Verify that the DN remains in DECOMMISSION_INPROGRESS state.
     assertTrue("the node should be DECOMMISSION_IN_PROGRESSS",
         dead.get(0).isDecommissionInProgress());
+
     // Check DatanodeManager#getDecommissionNodes, make sure it returns
     // the node as decommissioning, even if it's dead
     List<DatanodeDescriptor> decomlist = dm.getDecommissioningNodes();
@@ -365,8 +323,6 @@ public class TestDecommissioningStatus {
     // DECOMMISSION_IN_PROGRESS node become DECOMMISSIONED
     AdminStatesBaseTest.cleanupFile(fileSys, f);
     BlockManagerTestUtil.recheckDecommissionState(dm);
-    // Block until the admin's monitor updates the number of tracked nodes.
-    waitForDecommissionedNodes(dm.getDatanodeAdminManager(), 0);
     assertTrue("the node should be decommissioned",
         dead.get(0).isDecommissioned());
 
@@ -401,8 +357,6 @@ public class TestDecommissioningStatus {
     decommissionNode(dnName);
     dm.refreshNodes(conf);
     BlockManagerTestUtil.recheckDecommissionState(dm);
-    // Block until the admin's monitor updates the number of tracked nodes.
-    waitForDecommissionedNodes(dm.getDatanodeAdminManager(), 0);
     assertTrue(dnDescriptor.isDecommissioned());
 
     // Add the node back
@@ -451,8 +405,6 @@ public class TestDecommissioningStatus {
     hostsFileWriter.initExcludeHosts(nodes);
     dm.refreshNodes(conf);
     BlockManagerTestUtil.recheckDecommissionState(dm);
-    // Block until the admin's monitor updates the number of tracked nodes.
-    waitForDecommissionedNodes(dm.getDatanodeAdminManager(), 0);
     assertTrue(dnDescriptor0.isDecommissioned());
     assertTrue(dnDescriptor1.isDecommissioned());
 

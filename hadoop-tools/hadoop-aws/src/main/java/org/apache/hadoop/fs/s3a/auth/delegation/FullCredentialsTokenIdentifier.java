@@ -37,13 +37,11 @@ public class FullCredentialsTokenIdentifier extends SessionTokenIdentifier {
 
   public FullCredentialsTokenIdentifier(final URI uri,
       final Text owner,
-      final Text renewer,
       final MarshalledCredentials marshalledCredentials,
       final EncryptionSecrets encryptionSecrets,
       String origin) {
     super(DelegationConstants.FULL_TOKEN_KIND,
         owner,
-        renewer,
         uri,
         marshalledCredentials,
         encryptionSecrets,

@@ -118,13 +118,10 @@ public class RouterHttpServer extends AbstractService {
 
   private static void setupServlets(
       HttpServer2 httpServer, Configuration conf) {
+    // TODO Add servlets for FSCK, etc
     httpServer.addInternalServlet(IsRouterActiveServlet.SERVLET_NAME,
         IsRouterActiveServlet.PATH_SPEC,
         IsRouterActiveServlet.class);
-    httpServer.addInternalServlet(RouterFsckServlet.SERVLET_NAME,
-        RouterFsckServlet.PATH_SPEC,
-        RouterFsckServlet.class,
-        true);
   }
 
   public InetSocketAddress getHttpAddress() {
@@ -133,10 +130,6 @@ public class RouterHttpServer extends AbstractService {
 
   public InetSocketAddress getHttpsAddress() {
     return this.httpsAddress;
-  }
-
-  static Configuration getConfFromContext(ServletContext context) {
-    return (Configuration)context.getAttribute(JspHelper.CURRENT_CONF);
   }
 
   public static Router getRouterFromContext(ServletContext context) {

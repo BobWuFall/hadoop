@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hdfs.server.namenode;
 
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_CORRUPT_BLOCK_DELETE_IMMEDIATELY_ENABLED;
 import static org.apache.hadoop.hdfs.MiniDFSCluster.HDFS_MINIDFS_BASEDIR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -188,8 +187,6 @@ public class TestFsck {
   @Before
   public void setUp() throws Exception {
     conf = new Configuration();
-    conf.setBoolean(DFS_NAMENODE_CORRUPT_BLOCK_DELETE_IMMEDIATELY_ENABLED,
-        false);
   }
 
   @After
@@ -1154,7 +1151,17 @@ public class TestFsck {
       }
     }
 
-    waitForCorruptionBlocks(3, "/corruptData");
+    // wait for the namenode to see the corruption
+    final NamenodeProtocols namenode = cluster.getNameNodeRpc();
+    CorruptFileBlocks corruptFileBlocks = namenode
+        .listCorruptFileBlocks("/corruptData", null);
+    int numCorrupt = corruptFileBlocks.getFiles().length;
+    while (numCorrupt == 0) {
+      Thread.sleep(1000);
+      corruptFileBlocks = namenode
+          .listCorruptFileBlocks("/corruptData", null);
+      numCorrupt = corruptFileBlocks.getFiles().length;
+    }
     outStr = runFsck(conf, -1, true, "/corruptData", "-list-corruptfileblocks");
     System.out.println("2. bad fsck out: " + outStr);
     assertTrue(outStr.contains("has 3 CORRUPT files"));
@@ -1164,14 +1171,8 @@ public class TestFsck {
     outStr = runFsck(conf, 0, true, "/goodData", "-list-corruptfileblocks");
     System.out.println("3. good fsck out: " + outStr);
     assertTrue(outStr.contains("has 0 CORRUPT files"));
-    util.cleanup(fs, "/goodData");
-
-    // validate if a directory have any invalid entries
-    util.createFiles(fs, "/corruptDa");
-    outStr = runFsck(conf, 0, true, "/corruptDa", "-list-corruptfileblocks");
-    assertTrue(outStr.contains("has 0 CORRUPT files"));
     util.cleanup(fs, "/corruptData");
-    util.cleanup(fs, "/corruptDa");
+    util.cleanup(fs, "/goodData");
   }
   
   /**
@@ -2141,7 +2142,17 @@ public class TestFsck {
     hdfs.delete(fp, false);
     numFiles--;
 
-    waitForCorruptionBlocks(numSnapshots, "/corruptData");
+    // wait for the namenode to see the corruption
+    final NamenodeProtocols namenode = cluster.getNameNodeRpc();
+    CorruptFileBlocks corruptFileBlocks = namenode
+        .listCorruptFileBlocks("/corruptData", null);
+    int numCorrupt = corruptFileBlocks.getFiles().length;
+    while (numCorrupt == 0) {
+      Thread.sleep(1000);
+      corruptFileBlocks = namenode
+          .listCorruptFileBlocks("/corruptData", null);
+      numCorrupt = corruptFileBlocks.getFiles().length;
+    }
 
     // with -includeSnapshots all files are reported
     outStr = runFsck(conf, -1, true, "/corruptData",
@@ -2157,30 +2168,6 @@ public class TestFsck {
     System.out.println("3. bad fsck exclude snapshot out: " + outStr);
     assertTrue(outStr.contains("has " + numFiles + " CORRUPT files"));
     assertFalse(outStr.contains("/.snapshot/"));
-  }
-
-  /**
-   * Wait for the namenode to see the corruption.
-   * @param corruptBlocks The expected number of corruptfilelocks
-   * @param path The Directory Path where corruptfileblocks exists
-   * @throws IOException
-   */
-  private void waitForCorruptionBlocks(int corruptBlocks, String path)
-      throws Exception {
-    GenericTestUtils.waitFor(() -> {
-      try {
-        final NamenodeProtocols namenode = cluster.getNameNodeRpc();
-        CorruptFileBlocks corruptFileBlocks =
-            namenode.listCorruptFileBlocks(path, null);
-        int numCorrupt = corruptFileBlocks.getFiles().length;
-        if (numCorrupt == corruptBlocks) {
-          return true;
-        }
-      } catch (Exception e) {
-        LOG.error("Exception while getting Corrupt file blocks", e);
-      }
-      return false;
-    }, 100, 10000);
   }
 
   @Test (timeout = 300000)

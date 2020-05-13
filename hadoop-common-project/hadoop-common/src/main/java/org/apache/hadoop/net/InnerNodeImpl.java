@@ -59,8 +59,7 @@ public class InnerNodeImpl extends NodeBase implements InnerNode {
   }
 
   /** @return the number of children this node has. */
-  @Override
-  public int getNumOfChildren() {
+  int getNumOfChildren() {
     return children.size();
   }
 

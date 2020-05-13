@@ -56,9 +56,9 @@ public class EditsDoubleBuffer {
     bufReady = new TxnBuffer(initBufferSize);
 
   }
-
-  public void writeOp(FSEditLogOp op, int logVersion) throws IOException {
-    bufCurrent.writeOp(op, logVersion);
+    
+  public void writeOp(FSEditLogOp op) throws IOException {
+    bufCurrent.writeOp(op);
   }
 
   public void writeRaw(byte[] bytes, int offset, int length) throws IOException {
@@ -149,13 +149,13 @@ public class EditsDoubleBuffer {
       reset();
     }
 
-    public void writeOp(FSEditLogOp op, int logVersion) throws IOException {
+    public void writeOp(FSEditLogOp op) throws IOException {
       if (firstTxId == HdfsServerConstants.INVALID_TXID) {
         firstTxId = op.txid;
       } else {
         assert op.txid > firstTxId;
       }
-      writer.writeOp(op, logVersion);
+      writer.writeOp(op);
       numTxns++;
     }
     

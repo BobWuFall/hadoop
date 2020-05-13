@@ -98,12 +98,13 @@ class ChRootedFileSystem extends FilterFileSystem {
   
   /**
    * Constructor
-   * @param fs base file system
-   * @param uri base uri
+   * @param uri base file system
+   * @param conf configuration
    * @throws IOException 
    */
-  ChRootedFileSystem(final FileSystem fs, URI uri) throws IOException {
-    super(fs);
+  public ChRootedFileSystem(final URI uri, Configuration conf)
+      throws IOException {
+    super(FileSystem.get(uri, conf));
     String pathString = uri.getPath();
     if (pathString.isEmpty()) {
       pathString = "/";
@@ -114,18 +115,7 @@ class ChRootedFileSystem extends FilterFileSystem {
     workingDir = getHomeDirectory();
     // We don't use the wd of the myFs
   }
-
-  /**
-   * Constructor.
-   * @param uri base file system
-   * @param conf configuration
-   * @throws IOException
-   */
-  public ChRootedFileSystem(final URI uri, Configuration conf)
-      throws IOException {
-    this(FileSystem.get(uri, conf), uri);
-  }
-
+  
   /** 
    * Called after a new FileSystem instance is constructed.
    * @param name a uri whose authority section names the host, port, etc.
@@ -277,11 +267,6 @@ class ChRootedFileSystem extends FilterFileSystem {
   public boolean mkdirs(final Path f, final FsPermission permission)
       throws IOException {
     return super.mkdirs(fullPath(f), permission);
-  }
-
-  @Override
-  public boolean mkdirs(final Path f) throws IOException {
-    return super.mkdirs(fullPath(f));
   }
 
   @Override
@@ -490,11 +475,5 @@ class ChRootedFileSystem extends FilterFileSystem {
   public FutureDataInputStreamBuilder openFile(final Path path)
       throws IOException, UnsupportedOperationException {
     return super.openFile(fullPath(path));
-  }
-
-  @Override
-  public boolean hasPathCapability(final Path path, final String capability)
-      throws IOException {
-    return super.hasPathCapability(fullPath(path), capability);
   }
 }

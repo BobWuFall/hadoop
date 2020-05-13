@@ -44,12 +44,6 @@ public class ConnectionPoolId implements Comparable<ConnectionPoolId> {
   private final UserGroupInformation ugi;
   /** Protocol for the connection. */
   private final Class<?> protocol;
-  /**
-   * Caching ugi.toString() to save the redundant calculation effort,
-   * since it is a costly operation and is used as part of both hash calculation
-   * and equals method.
-   */
-  private final String ugiString;
 
   /**
    * New connection pool identifier.
@@ -63,14 +57,13 @@ public class ConnectionPoolId implements Comparable<ConnectionPoolId> {
     this.nnId = nnId;
     this.ugi = ugi;
     this.protocol = proto;
-    this.ugiString = ugi.toString();
   }
 
   @Override
   public int hashCode() {
     int hash = new HashCodeBuilder(17, 31)
         .append(this.nnId)
-        .append(this.ugiString)
+        .append(this.ugi.toString())
         .append(this.getTokenIds())
         .append(this.protocol)
         .toHashCode();
@@ -84,7 +77,7 @@ public class ConnectionPoolId implements Comparable<ConnectionPoolId> {
       if (!this.nnId.equals(other.nnId)) {
         return false;
       }
-      if (!this.ugiString.equals(other.ugiString)) {
+      if (!this.ugi.toString().equals(other.ugi.toString())) {
         return false;
       }
       String thisTokens = this.getTokenIds().toString();

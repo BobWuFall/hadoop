@@ -23,7 +23,7 @@ import org.apache.hadoop.yarn.federation.proto.YarnServerFederationProtos.GetSub
 import org.apache.hadoop.yarn.federation.proto.YarnServerFederationProtos.GetSubClustersInfoRequestProtoOrBuilder;
 import org.apache.hadoop.yarn.server.federation.store.records.GetSubClustersInfoRequest;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 /**
  * Protocol buffer based implementation of {@link GetSubClustersInfoRequest}.

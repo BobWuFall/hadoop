@@ -64,9 +64,7 @@ public abstract class BaseSLSRunnerTest {
 
   @After
   public void tearDown() throws InterruptedException {
-    if (sls != null) {
-      sls.stop();
-    }
+    sls.stop();
   }
 
   public void runSLS(Configuration conf, long timeout) throws Exception {

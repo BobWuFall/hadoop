@@ -430,3 +430,4 @@ please contact the developer mailing list for the relevant component(s):
 * [hdfs-dev](mailto:hdfs-dev@hadoop.apache.org)
 * [mapreduce-dev](mailto:mapreduce-dev@hadoop.apache.org)
 * [yarn-dev](mailto:yarn-dev@hadoop.apache.org)
+* [submarine-dev](mailto:submarine-dev@hadoop.apache.org)

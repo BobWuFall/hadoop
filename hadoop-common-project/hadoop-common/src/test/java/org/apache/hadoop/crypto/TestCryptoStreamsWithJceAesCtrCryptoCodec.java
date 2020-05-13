@@ -19,21 +19,20 @@ package org.apache.hadoop.crypto;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.junit.Assert;
 import org.junit.BeforeClass;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestCryptoStreamsWithJceAesCtrCryptoCodec extends 
     TestCryptoStreams {
 
   @BeforeClass
-  public static void init() {
+  public static void init() throws Exception {
     Configuration conf = new Configuration();
     conf.set(
         CommonConfigurationKeysPublic.HADOOP_SECURITY_CRYPTO_CODEC_CLASSES_AES_CTR_NOPADDING_KEY,
         JceAesCtrCryptoCodec.class.getName());
     codec = CryptoCodec.getInstance(conf);
-    assertThat(JceAesCtrCryptoCodec.class.getCanonicalName())
-        .isEqualTo(codec.getClass().getCanonicalName());
+    Assert.assertEquals(JceAesCtrCryptoCodec.class.getCanonicalName(),
+        codec.getClass().getCanonicalName());
   }
 }

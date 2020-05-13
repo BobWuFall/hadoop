@@ -27,7 +27,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
-import java.nio.channels.UnresolvedAddressException;
 import java.util.List;
 
 import com.google.common.io.ByteArrayDataOutput;
@@ -824,7 +823,7 @@ public class BlockReaderFactory implements ShortCircuitReplicaCreator {
           datanode);
       LOG.trace("nextTcpPeer: created newConnectedPeer {}", peer);
       return new BlockReaderPeer(peer, false);
-    } catch (IOException | UnresolvedAddressException e) {
+    } catch (IOException e) {
       LOG.trace("nextTcpPeer: failed to create newConnectedPeer connected to"
           + "{}", datanode);
       throw e;
@@ -856,7 +855,7 @@ public class BlockReaderFactory implements ShortCircuitReplicaCreator {
         fileName, block, token, startOffset, length,
         verifyChecksum, clientName, peer, datanode,
         clientContext.getPeerCache(), cachingStrategy,
-        networkDistance, configuration);
+        networkDistance);
   }
 
   @Override

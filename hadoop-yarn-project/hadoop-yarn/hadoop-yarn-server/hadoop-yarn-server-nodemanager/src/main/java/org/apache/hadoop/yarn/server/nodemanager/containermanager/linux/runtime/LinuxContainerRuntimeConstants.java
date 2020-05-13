@@ -37,8 +37,7 @@ public final class LinuxContainerRuntimeConstants {
   public enum RuntimeType {
     DEFAULT,
     DOCKER,
-    JAVASANDBOX,
-    RUNC;
+    JAVASANDBOX;
   }
 
   public static final Attribute<Map> LOCALIZED_RESOURCES = Attribute

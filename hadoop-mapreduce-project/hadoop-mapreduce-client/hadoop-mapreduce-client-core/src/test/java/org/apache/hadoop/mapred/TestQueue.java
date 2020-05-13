@@ -35,7 +35,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -72,7 +71,7 @@ public class TestQueue {
       manager.setSchedulerInfo("first", "queueInfo");
       manager.setSchedulerInfo("second", "queueInfoqueueInfo");
       Queue root = manager.getRoot();
-      assertThat(root.getChildren().size()).isEqualTo(2);
+      assertTrue(root.getChildren().size() == 2);
       Iterator<Queue> iterator = root.getChildren().iterator();
       Queue firstSubQueue = iterator.next();
       assertEquals("first", firstSubQueue.getName());
@@ -82,15 +81,11 @@ public class TestQueue {
           "Users [user1, user2] and members of the groups [group1, group2] are allowed");
       Queue secondSubQueue = iterator.next();
       assertEquals("second", secondSubQueue.getName());
-      assertThat(secondSubQueue.getProperties().getProperty("key"))
-          .isEqualTo("value");
-      assertThat(secondSubQueue.getProperties().getProperty("key1"))
-          .isEqualTo("value1");
+      assertEquals(secondSubQueue.getProperties().getProperty("key"), "value");
+      assertEquals(secondSubQueue.getProperties().getProperty("key1"), "value1");
       // test status
-      assertThat(firstSubQueue.getState().getStateName())
-          .isEqualTo("running");
-      assertThat(secondSubQueue.getState().getStateName())
-          .isEqualTo("stopped");
+      assertEquals(firstSubQueue.getState().getStateName(), "running");
+      assertEquals(secondSubQueue.getState().getStateName(), "stopped");
 
       Set<String> template = new HashSet<String>();
       template.add("first");
@@ -110,7 +105,7 @@ public class TestQueue {
       assertTrue(manager.hasAccess("first", QueueACL.ADMINISTER_JOBS, mockUGI));
 
       QueueAclsInfo[] qai = manager.getQueueAcls(mockUGI);
-      assertThat(qai.length).isEqualTo(1);
+      assertEquals(qai.length, 1);
       // test refresh queue
       manager.refreshQueues(getConfiguration(), null);
 
@@ -118,28 +113,21 @@ public class TestQueue {
       Queue firstSubQueue1 = iterator.next();
       Queue secondSubQueue1 = iterator.next();
       // tets equal method
-      assertThat(firstSubQueue).isEqualTo(firstSubQueue1);
-      assertThat(firstSubQueue1.getState().getStateName())
-          .isEqualTo("running");
-      assertThat(secondSubQueue1.getState().getStateName())
-          .isEqualTo("stopped");
+      assertTrue(firstSubQueue.equals(firstSubQueue1));
+      assertEquals(firstSubQueue1.getState().getStateName(), "running");
+      assertEquals(secondSubQueue1.getState().getStateName(), "stopped");
 
-      assertThat(firstSubQueue1.getSchedulingInfo())
-          .isEqualTo("queueInfo");
-      assertThat(secondSubQueue1.getSchedulingInfo())
-          .isEqualTo("queueInfoqueueInfo");
+      assertEquals(firstSubQueue1.getSchedulingInfo(), "queueInfo");
+      assertEquals(secondSubQueue1.getSchedulingInfo(), "queueInfoqueueInfo");
 
       // test JobQueueInfo
-      assertThat(firstSubQueue.getJobQueueInfo().getQueueName())
-          .isEqualTo("first");
-      assertThat(firstSubQueue.getJobQueueInfo().getState().toString())
-          .isEqualTo("running");
-      assertThat(firstSubQueue.getJobQueueInfo().getSchedulingInfo())
-          .isEqualTo("queueInfo");
-      assertThat(secondSubQueue.getJobQueueInfo().getChildren().size())
-          .isEqualTo(0);
+      assertEquals(firstSubQueue.getJobQueueInfo().getQueueName(), "first");
+      assertEquals(firstSubQueue.getJobQueueInfo().getQueueState(), "running");
+      assertEquals(firstSubQueue.getJobQueueInfo().getSchedulingInfo(),
+          "queueInfo");
+      assertEquals(secondSubQueue.getJobQueueInfo().getChildren().size(), 0);
       // test
-      assertThat(manager.getSchedulerInfo("first")).isEqualTo("queueInfo");
+      assertEquals(manager.getSchedulerInfo("first"), "queueInfo");
       Set<String> queueJobQueueInfos = new HashSet<String>();
       for(JobQueueInfo jobInfo : manager.getJobQueueInfos()){
     	  queueJobQueueInfos.add(jobInfo.getQueueName());
@@ -150,8 +138,8 @@ public class TestQueue {
       }
       assertEquals(queueJobQueueInfos, rootJobQueueInfos);
       // test getJobQueueInfoMapping
-      assertThat(manager.getJobQueueInfoMapping().get("first").getQueueName())
-          .isEqualTo("first");
+      assertEquals(
+          manager.getJobQueueInfoMapping().get("first").getQueueName(), "first");
       // test dumpConfiguration
       Writer writer = new StringWriter();
 
@@ -197,7 +185,7 @@ public class TestQueue {
   @Test (timeout=5000)
   public void testDefaultConfig() {
     QueueManager manager = new QueueManager(true);
-    assertThat(manager.getRoot().getChildren().size()).isEqualTo(2);
+    assertEquals(manager.getRoot().getChildren().size(), 2);
   }
 
   /**
@@ -221,27 +209,27 @@ public class TestQueue {
     Iterator<Queue> iterator = root.getChildren().iterator();
     Queue firstSubQueue = iterator.next();
     assertEquals("first", firstSubQueue.getName());
-    assertThat(
+    assertEquals(
         firstSubQueue.getAcls().get("mapred.queue.first.acl-submit-job")
-            .toString()).isEqualTo(
-                "Users [user1, user2] and members of " +
-                    "the groups [group1, group2] are allowed");
+            .toString(),
+        "Users [user1, user2] and members of the groups [group1, group2] are allowed");
     Queue secondSubQueue = iterator.next();
     assertEquals("second", secondSubQueue.getName());
 
-    assertThat(firstSubQueue.getState().getStateName()).isEqualTo("running");
-    assertThat(secondSubQueue.getState().getStateName()).isEqualTo("stopped");
+    assertEquals(firstSubQueue.getState().getStateName(), "running");
+    assertEquals(secondSubQueue.getState().getStateName(), "stopped");
     assertTrue(manager.isRunning("first"));
     assertFalse(manager.isRunning("second"));
 
-    assertThat(firstSubQueue.getSchedulingInfo()).isEqualTo("queueInfo");
-    assertThat(secondSubQueue.getSchedulingInfo())
-        .isEqualTo("queueInfoqueueInfo");
-    // test leaf queue
+    assertEquals(firstSubQueue.getSchedulingInfo(), "queueInfo");
+    assertEquals(secondSubQueue.getSchedulingInfo(), "queueInfoqueueInfo");
+// test leaf queue
     Set<String> template = new HashSet<String>();
     template.add("first");
     template.add("second");
     assertEquals(manager.getLeafQueueNames(), template);
+
+    
   }
 /**
  * write cofiguration

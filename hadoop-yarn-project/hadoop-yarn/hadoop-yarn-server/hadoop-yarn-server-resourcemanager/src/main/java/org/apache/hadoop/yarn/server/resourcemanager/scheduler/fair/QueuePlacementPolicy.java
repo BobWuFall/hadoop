@@ -107,13 +107,8 @@ final class QueuePlacementPolicy {
     LOG.debug("Placement rule order check");
     for (int i = 0; i < newTerminalState.size()-1; i++) {
       if (newTerminalState.get(i)) {
-        String errorMsg = "Rules after rule "
-            + (i+1) + " in queue placement policy can never be reached";
-        if (fs.isNoTerminalRuleCheck()) {
-          LOG.warn(errorMsg);
-        } else {
-          throw new AllocationConfigurationException(errorMsg);
-        }
+        throw new AllocationConfigurationException("Rules after rule "
+            + (i+1) + " in queue placement policy can never be reached");
       }
     }
     if (!newTerminalState.get(newTerminalState.size()-1)) {

@@ -29,7 +29,6 @@ import java.util.EnumSet;
 import java.util.UUID;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ReadOption;
 import org.apache.hadoop.hdfs.BlockReader;
 import org.apache.hadoop.hdfs.PeerCache;
@@ -55,9 +54,6 @@ import com.google.common.annotations.VisibleForTesting;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_BLOCK_READER_REMOTE_BUFFER_SIZE_DEFAULT;
-import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_BLOCK_READER_REMOTE_BUFFER_SIZE_KEY;
 
 /**
  * This is a wrapper around connection to datanode
@@ -395,13 +391,10 @@ public class BlockReaderRemote implements BlockReader {
       Peer peer, DatanodeID datanodeID,
       PeerCache peerCache,
       CachingStrategy cachingStrategy,
-      int networkDistance, Configuration configuration) throws IOException {
+      int networkDistance) throws IOException {
     // in and out will be closed when sock is closed (by the caller)
-    int bufferSize = configuration.getInt(
-        DFS_CLIENT_BLOCK_READER_REMOTE_BUFFER_SIZE_KEY,
-        DFS_CLIENT_BLOCK_READER_REMOTE_BUFFER_SIZE_DEFAULT);
     final DataOutputStream out = new DataOutputStream(new BufferedOutputStream(
-        peer.getOutputStream(), bufferSize));
+        peer.getOutputStream()));
     new Sender(out).readBlock(block, blockToken, clientName, startOffset, len,
         verifyChecksum, cachingStrategy);
 

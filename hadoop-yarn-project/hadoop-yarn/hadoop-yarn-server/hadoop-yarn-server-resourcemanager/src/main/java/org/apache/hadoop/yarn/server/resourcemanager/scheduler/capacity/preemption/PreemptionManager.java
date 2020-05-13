@@ -47,11 +47,11 @@ public class PreemptionManager {
     try {
       PreemptableQueue parentEntity = null;
       if (parent != null) {
-        parentEntity = entities.get(parent.getQueuePath());
+        parentEntity = entities.get(parent.getQueueName());
       }
 
-      if (!entities.containsKey(current.getQueuePath())) {
-        entities.put(current.getQueuePath(),
+      if (!entities.containsKey(current.getQueueName())) {
+        entities.put(current.getQueueName(),
             new PreemptableQueue(parentEntity));
       }
 

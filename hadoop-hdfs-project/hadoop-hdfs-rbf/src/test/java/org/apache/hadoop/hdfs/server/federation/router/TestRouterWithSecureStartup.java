@@ -27,6 +27,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 
 import static org.apache.hadoop.fs.contract.router.SecurityConfUtil.initSecurity;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_WEB_AUTHENTICATION_KERBEROS_PRINCIPAL_KEY;
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_ROUTER_KEYTAB_FILE_KEY;
 
 
@@ -35,22 +36,13 @@ import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_
  */
 public class TestRouterWithSecureStartup {
 
-  private static final String HTTP_KERBEROS_PRINCIPAL_CONF_KEY =
-      "hadoop.http.authentication.kerberos.principal";
-
   @Rule
   public ExpectedException exceptionRule = ExpectedException.none();
 
-  /*
-   * hadoop.http.authentication.kerberos.principal has default value, so if we
-   * don't config the spnego principal, cluster will still start normally
-   */
   @Test
   public void testStartupWithoutSpnegoPrincipal() throws Exception {
-    Configuration conf = initSecurity();
-    conf.unset(HTTP_KERBEROS_PRINCIPAL_CONF_KEY);
-    RouterWebHDFSContract.createCluster(conf);
-    assertNotNull(RouterWebHDFSContract.getCluster());
+    testCluster(DFS_WEB_AUTHENTICATION_KERBEROS_PRINCIPAL_KEY,
+        "Unable to initialize WebAppContext");
   }
 
   @Test

@@ -96,7 +96,7 @@ public class AllocationFileLoaderService extends AbstractService {
   private Thread reloadThread;
   private volatile boolean running = true;
 
-  public AllocationFileLoaderService(FairScheduler scheduler) {
+  AllocationFileLoaderService(FairScheduler scheduler) {
     this(SystemClock.getInstance(), scheduler);
   }
 
@@ -186,7 +186,7 @@ public class AllocationFileLoaderService extends AbstractService {
    * classpath, but loaded like a regular File.
    */
   @VisibleForTesting
-  public Path getAllocationFile(Configuration conf)
+  Path getAllocationFile(Configuration conf)
       throws UnsupportedFileSystemException {
     String allocFilePath = conf.get(FairSchedulerConfiguration.ALLOCATION_FILE,
         FairSchedulerConfiguration.DEFAULT_ALLOCATION_FILE);

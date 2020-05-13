@@ -31,7 +31,6 @@ import java.util.Set;
 
 class ErasureCodingWork extends BlockReconstructionWork {
   private final byte[] liveBlockIndicies;
-  private final byte[] liveBusyBlockIndicies;
   private final String blockPoolId;
 
   public ErasureCodingWork(String blockPoolId, BlockInfo block,
@@ -39,14 +38,13 @@ class ErasureCodingWork extends BlockReconstructionWork {
       DatanodeDescriptor[] srcNodes,
       List<DatanodeDescriptor> containingNodes,
       List<DatanodeStorageInfo> liveReplicaStorages,
-      int additionalReplRequired, int priority,
-      byte[] liveBlockIndicies, byte[] liveBusyBlockIndicies) {
+      int additionalReplRequired,
+      int priority, byte[] liveBlockIndicies) {
     super(block, bc, srcNodes, containingNodes,
         liveReplicaStorages, additionalReplRequired, priority);
     this.blockPoolId = blockPoolId;
     this.liveBlockIndicies = liveBlockIndicies;
-    this.liveBusyBlockIndicies = liveBusyBlockIndicies;
-    LOG.debug("Creating an ErasureCodingWork to {} reconstruct ",
+    BlockManager.LOG.debug("Creating an ErasureCodingWork to {} reconstruct ",
         block);
   }
 
@@ -72,16 +70,12 @@ class ErasureCodingWork extends BlockReconstructionWork {
    */
   private boolean hasAllInternalBlocks() {
     final BlockInfoStriped block = (BlockInfoStriped) getBlock();
-    if (liveBlockIndicies.length
-        + liveBusyBlockIndicies.length < block.getRealTotalBlockNum()) {
+    if (getSrcNodes().length < block.getRealTotalBlockNum()) {
       return false;
     }
     BitSet bitSet = new BitSet(block.getTotalBlockNum());
     for (byte index : liveBlockIndicies) {
       bitSet.set(index);
-    }
-    for (byte busyIndex: liveBusyBlockIndicies) {
-      bitSet.set(busyIndex);
     }
     for (int i = 0; i < block.getRealDataBlockNum(); i++) {
       if (!bitSet.get(i)) {
@@ -163,28 +157,18 @@ class ErasureCodingWork extends BlockReconstructionWork {
         internBlkLen, stripedBlk.getGenerationStamp());
     source.addBlockToBeReplicated(targetBlk,
         new DatanodeStorageInfo[] {target});
-    LOG.debug("Add replication task from source {} to "
-        + "target {} for EC block {}", source, target, targetBlk);
+    if (BlockManager.LOG.isDebugEnabled()) {
+      BlockManager.LOG.debug("Add replication task from source {} to "
+          + "target {} for EC block {}", source, target, targetBlk);
+    }
   }
 
   private List<Integer> findLeavingServiceSources() {
-    // Mark the block in normal node.
-    BlockInfoStriped block = (BlockInfoStriped)getBlock();
-    BitSet bitSet = new BitSet(block.getRealTotalBlockNum());
-    for (int i = 0; i < getSrcNodes().length; i++) {
-      if (getSrcNodes()[i].isInService()) {
-        bitSet.set(liveBlockIndicies[i]);
-      }
-    }
-    // If the block is on the node which is decommissioning or
-    // entering_maintenance, and it doesn't exist on other normal nodes,
-    // we just add the node into source list.
     List<Integer> srcIndices = new ArrayList<>();
     for (int i = 0; i < getSrcNodes().length; i++) {
-      if ((getSrcNodes()[i].isDecommissionInProgress() ||
+      if (getSrcNodes()[i].isDecommissionInProgress() ||
           (getSrcNodes()[i].isEnteringMaintenance() &&
-          getSrcNodes()[i].isAlive())) &&
-          !bitSet.get(liveBlockIndicies[i])) {
+          getSrcNodes()[i].isAlive())) {
         srcIndices.add(i);
       }
     }

@@ -27,7 +27,7 @@ import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationResourceUsageReportPro
 import org.apache.hadoop.yarn.proto.YarnProtos.ApplicationResourceUsageReportProtoOrBuilder;
 import org.apache.hadoop.yarn.proto.YarnProtos.ResourceProto;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 import java.util.Map;
 

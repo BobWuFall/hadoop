@@ -406,7 +406,7 @@ public final class LambdaTestUtils {
       throws Exception {
     try {
       eval.call();
-      throw new AssertionError("Expected an exception of type " + clazz);
+      throw new AssertionError("Expected an exception");
     } catch (Throwable e) {
       if (clazz.isAssignableFrom(e.getClass())) {
         return (E)e;
@@ -575,9 +575,6 @@ public final class LambdaTestUtils {
     if (o == null) {
       return NULL_RESULT;
     } else {
-      if (o instanceof String) {
-        return '"' + (String)o + '"';
-      }
       try {
         return o.toString();
       } catch (Exception e) {

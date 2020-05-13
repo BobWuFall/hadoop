@@ -38,13 +38,9 @@ import org.junit.Test;
 public class TestRMTimelineService {
   private static MockRM rm;
 
-  private void setup(boolean v1Enabled, boolean v2Enabled,
-                     boolean systemMetricEnabled) {
+  private void setup(boolean v1Enabled, boolean v2Enabled) {
     Configuration conf = new YarnConfiguration(new Configuration(false));
     Assert.assertFalse(YarnConfiguration.timelineServiceEnabled(conf));
-
-    conf.setBoolean(YarnConfiguration.SYSTEM_METRICS_PUBLISHER_ENABLED,
-        systemMetricEnabled);
 
     if (v1Enabled || v2Enabled) {
       conf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, true);
@@ -73,8 +69,7 @@ public class TestRMTimelineService {
   }
 
   // validate RM services exist or not as we specified
-  private void validate(boolean v1Enabled, boolean v2Enabled,
-                        boolean systemMetricEnabled) {
+  private void validate(boolean v1Enabled, boolean v2Enabled) {
     boolean v1PublisherServiceFound = false;
     boolean v2PublisherServiceFound = false;
     List<Service> services = rm.getServices();
@@ -86,13 +81,8 @@ public class TestRMTimelineService {
       }
     }
 
-    if(systemMetricEnabled) {
-      Assert.assertEquals(v1Enabled, v1PublisherServiceFound);
-      Assert.assertEquals(v2Enabled, v2PublisherServiceFound);
-    } else {
-      Assert.assertEquals(false, v1PublisherServiceFound);
-      Assert.assertEquals(false, v2PublisherServiceFound);
-    }
+    Assert.assertEquals(v1Enabled, v1PublisherServiceFound);
+    Assert.assertEquals(v2Enabled, v2PublisherServiceFound);
   }
 
   private void cleanup() throws Exception {
@@ -102,58 +92,31 @@ public class TestRMTimelineService {
 
   // runs test to validate RM creates a timeline service publisher if and
   // only if the service is enabled for v1 and v2 (independently).
-  private void runTest(boolean v1Enabled, boolean v2Enabled,
-                       boolean systemMetricEnabled) throws Exception {
-    setup(v1Enabled, v2Enabled, systemMetricEnabled);
-    validate(v1Enabled, v2Enabled, systemMetricEnabled);
+  private void runTest(boolean v1Enabled, boolean v2Enabled) throws Exception {
+    setup(v1Enabled, v2Enabled);
+    validate(v1Enabled, v2Enabled);
     cleanup();
   }
 
   @Test
   public void testTimelineServiceV1V2Enabled() throws Exception {
-    runTest(true, true, true);
+    runTest(true, true);
   }
 
   @Test
   public void testTimelineServiceV1Enabled() throws Exception {
-    runTest(true, false, true);
+    runTest(true, false);
   }
 
   @Test
   public void testTimelineServiceV2Enabled() throws Exception {
-    runTest(false, true, true);
+    runTest(false, true);
   }
 
   @Test
   public void testTimelineServiceDisabled() throws Exception {
-    runTest(false, false, true);
+    runTest(false, false);
   }
-
-
-  @Test
-  public void testTimelineServiceV1V2EnabledSystemMetricDisable()
-      throws Exception {
-    runTest(true, true, false);
-  }
-
-  @Test
-  public void testTimelineServiceV1EnabledSystemMetricDisable()
-      throws Exception {
-    runTest(true, false, false);
-  }
-
-  @Test
-  public void testTimelineServiceV2EnabledSystemMetricDisable()
-      throws Exception {
-    runTest(false, true, false);
-  }
-
-  @Test
-  public void testTimelineServiceDisabledSystemMetricDisable()
-      throws Exception {
-    runTest(false, false, false);
-  }
-
 }
 
 

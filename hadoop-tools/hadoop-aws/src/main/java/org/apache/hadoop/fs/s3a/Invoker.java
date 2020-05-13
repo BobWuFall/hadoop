@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.retry.RetryPolicy;
-import org.apache.hadoop.util.DurationInfo;
 
 /**
  * Class to provide lambda expression invocation of AWS operations.
@@ -106,7 +105,7 @@ public class Invoker {
   @Retries.OnceTranslated
   public static <T> T once(String action, String path, Operation<T> operation)
       throws IOException {
-    try (DurationInfo ignored = new DurationInfo(LOG, false, "%s", action)) {
+    try {
       return operation.execute();
     } catch (AmazonClientException e) {
       throw S3AUtils.translateException(action, path, e);

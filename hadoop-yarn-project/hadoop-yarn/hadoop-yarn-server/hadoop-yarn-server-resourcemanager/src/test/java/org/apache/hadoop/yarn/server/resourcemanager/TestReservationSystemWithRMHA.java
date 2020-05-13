@@ -194,7 +194,7 @@ public class TestReservationSystemWithRMHA extends RMHATestBase {
           break;
         }
         LOG.info("Waiting for node capacity to be added to plan");
-        Thread.sleep(1000);
+        Thread.sleep(100);
       } while (attempts-- > 0);
       if (attempts <= 0) {
         Assert.fail("Exhausted attempts in checking if node capacity was "

@@ -28,9 +28,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 public class SLSConfiguration {
   // sls
   public static final String PREFIX = "yarn.sls.";
-  public static final String DNS_CACHING_ENABLED = PREFIX
-      + "dns.caching.enabled";
-  public static final boolean DNS_CACHING_ENABLED_DEFAULT = false;
   // runner
   public static final String RUNNER_PREFIX = PREFIX + "runner.";
   public static final String RUNNER_POOL_SIZE = RUNNER_PREFIX + "pool.size";
@@ -126,9 +123,5 @@ public class SLSConfiguration {
   public static final String TASK_TYPE = TASK_CONTAINER + "type";
   public static final String TASK_EXECUTION_TYPE = TASK_CONTAINER
       + "execution.type";
-  public static final String TASK_ALLOCATION_ID = TASK_CONTAINER
-      + "allocation.id";
-  public static final String TASK_REQUEST_DELAY = TASK_CONTAINER
-      + "request.delay";
 
 }

@@ -48,8 +48,6 @@ public class HttpFSAuthenticationFilter
 
   static final String CONF_PREFIX = "httpfs.authentication.";
 
-  static final String HADOOP_HTTP_CONF_PREFIX = "hadoop.http.authentication.";
-
   private static final String SIGNATURE_SECRET_FILE = SIGNATURE_SECRET
       + ".file";
 
@@ -57,9 +55,8 @@ public class HttpFSAuthenticationFilter
    * Returns the hadoop-auth configuration from HttpFSServer's configuration.
    * <p>
    * It returns all HttpFSServer's configuration properties prefixed with
-   * <code>hadoop.http.authentication</code>. The
-   * <code>hadoop.http.authentication</code> prefix is removed from the
-   * returned property names.
+   * <code>httpfs.authentication</code>. The <code>httpfs.authentication</code>
+   * prefix is removed from the returned property names.
    *
    * @param configPrefix parameter not used.
    * @param filterConfig parameter not used.
@@ -73,15 +70,6 @@ public class HttpFSAuthenticationFilter
     Configuration conf = HttpFSServerWebApp.get().getConfig();
 
     props.setProperty(AuthenticationFilter.COOKIE_PATH, "/");
-    for (Map.Entry<String, String> entry : conf) {
-      String name = entry.getKey();
-      if (name.startsWith(HADOOP_HTTP_CONF_PREFIX)) {
-        name = name.substring(HADOOP_HTTP_CONF_PREFIX.length());
-        props.setProperty(name, entry.getValue());
-      }
-    }
-
-    // Replace Hadoop Http Authentication Configs with HttpFS specific Configs
     for (Map.Entry<String, String> entry : conf) {
       String name = entry.getKey();
       if (name.startsWith(CONF_PREFIX)) {

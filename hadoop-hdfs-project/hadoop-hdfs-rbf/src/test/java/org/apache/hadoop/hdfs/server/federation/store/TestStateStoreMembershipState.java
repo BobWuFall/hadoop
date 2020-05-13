@@ -104,16 +104,6 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
 
     MembershipState newState = getNamenodeRegistration(ns, nn);
     assertEquals(FederationNamenodeServiceState.ACTIVE, newState.getState());
-
-    // Override cache
-    UpdateNamenodeRegistrationRequest request1 =
-        UpdateNamenodeRegistrationRequest.newInstance(ns, nn,
-            FederationNamenodeServiceState.OBSERVER);
-    assertTrue(
-        membershipStore.updateNamenodeRegistration(request1).getResult());
-
-    MembershipState newState1 = getNamenodeRegistration(ns, nn);
-    assertEquals(FederationNamenodeServiceState.OBSERVER, newState1.getState());
   }
 
   @Test
@@ -170,7 +160,7 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
         router, ns,
         nn, "testcluster", "testblock-" + ns, "testrpc-"+ ns + nn,
         "testservice-"+ ns + nn, "testlifeline-"+ ns + nn,
-        "http", "testweb-" + ns + nn, state, false);
+        "testweb-" + ns + nn, state, false);
     return record;
   }
 
@@ -238,35 +228,34 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     String lifelineAddress = "testlifelineaddress";
     String blockPoolId = "testblockpool";
     String clusterId = "testcluster";
-    String webScheme = "http";
     String webAddress = "testwebaddress";
     boolean safemode = false;
 
     // Active
     MembershipState record = MembershipState.newInstance(
         ROUTERS[0], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme,
-        webAddress, FederationNamenodeServiceState.ACTIVE, safemode);
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
+        FederationNamenodeServiceState.ACTIVE, safemode);
     registrationList.add(record);
 
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[1], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme,
-        webAddress, FederationNamenodeServiceState.EXPIRED, safemode);
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
+        FederationNamenodeServiceState.EXPIRED, safemode);
     registrationList.add(record);
 
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[2], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     registrationList.add(record);
 
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[3], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     registrationList.add(record);
     registerAndLoadRegistrations(registrationList);
@@ -294,7 +283,6 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     String lifelineAddress = "testlifelineaddress";
     String blockPoolId = "testblockpool";
     String clusterId = "testcluster";
-    String webScheme = "http";
     String webAddress = "testwebaddress";
     boolean safemode = false;
     long startingTime = Time.now();
@@ -302,7 +290,7 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     // Expired
     MembershipState record = MembershipState.newInstance(
         ROUTERS[0], ns, nn, clusterId, blockPoolId,
-        rpcAddress, webAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, webAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     record.setDateModified(startingTime - 10000);
     registrationList.add(record);
@@ -310,7 +298,7 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[1], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     record.setDateModified(startingTime);
     registrationList.add(record);
@@ -318,7 +306,7 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[2], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     record.setDateModified(startingTime);
     registrationList.add(record);
@@ -326,7 +314,7 @@ public class TestStateStoreMembershipState extends TestStateStoreBase {
     // Expired
     record = MembershipState.newInstance(
         ROUTERS[3], ns, nn, clusterId, blockPoolId,
-        rpcAddress, serviceAddress, lifelineAddress, webScheme, webAddress,
+        rpcAddress, serviceAddress, lifelineAddress, webAddress,
         FederationNamenodeServiceState.EXPIRED, safemode);
     record.setDateModified(startingTime);
     registrationList.add(record);

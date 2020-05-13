@@ -41,6 +41,8 @@ import org.apache.hadoop.hdfs.DFSUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import org.slf4j.Logger;
+
 /**
  * Keeps a Collection for every named machine containing blocks
  * that have recently been invalidated and are thought to live
@@ -70,17 +72,17 @@ class InvalidateBlocks {
     this.blockInvalidateLimit = blockInvalidateLimit;
     this.pendingPeriodInMs = pendingPeriodInMs;
     this.blockIdManager = blockIdManager;
-    printBlockDeletionTime();
+    printBlockDeletionTime(BlockManager.LOG);
   }
 
-  private void printBlockDeletionTime() {
-    BlockManager.LOG.info("{} is set to {}",
+  private void printBlockDeletionTime(final Logger log) {
+    log.info("{} is set to {}",
         DFSConfigKeys.DFS_NAMENODE_STARTUP_DELAY_BLOCK_DELETION_SEC_KEY,
         DFSUtil.durationToString(pendingPeriodInMs));
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy MMM dd HH:mm:ss");
     Calendar calendar = new GregorianCalendar();
     calendar.add(Calendar.SECOND, (int) (this.pendingPeriodInMs / 1000));
-    BlockManager.LOG.info("The block deletion will start around {}",
+    log.info("The block deletion will start around {}",
         sdf.format(calendar.getTime()));
   }
 
@@ -110,11 +112,17 @@ class InvalidateBlocks {
   }
 
   private LightWeightHashSet<Block> getBlocksSet(final DatanodeInfo dn) {
-    return nodeToBlocks.get(dn);
+    if (nodeToBlocks.containsKey(dn)) {
+      return nodeToBlocks.get(dn);
+    }
+    return null;
   }
 
   private LightWeightHashSet<Block> getECBlocksSet(final DatanodeInfo dn) {
-    return nodeToECBlocks.get(dn);
+    if (nodeToECBlocks.containsKey(dn)) {
+      return nodeToECBlocks.get(dn);
+    }
+    return null;
   }
 
   private LightWeightHashSet<Block> getBlocksSet(final DatanodeInfo dn,

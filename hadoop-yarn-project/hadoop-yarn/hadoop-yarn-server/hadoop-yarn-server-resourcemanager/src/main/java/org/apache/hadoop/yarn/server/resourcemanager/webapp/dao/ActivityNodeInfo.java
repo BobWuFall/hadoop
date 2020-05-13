@@ -38,16 +38,16 @@ import java.util.stream.Collectors;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ActivityNodeInfo {
-  private String name;  // The name for activity node
-  private Integer appPriority;
-  private Integer requestPriority;
-  private Long allocationRequestId;
-  private String allocationState;
-  private String diagnostic;
+  protected String name;  // The name for activity node
+  protected String appPriority;
+  protected String requestPriority;
+  protected String allocationState;
+  protected String diagnostic;
   private String nodeId;
+  private String allocationRequestId;
 
   // Used for groups of activities
-  private Integer count;
+  private String count;
   private List<String> nodeIds;
 
   protected List<ActivityNodeInfo> children;
@@ -55,19 +55,19 @@ public class ActivityNodeInfo {
   ActivityNodeInfo() {
   }
 
-  public ActivityNodeInfo(String name, ActivityState activityState,
+  public ActivityNodeInfo(String name, ActivityState allocationState,
       String diagnostic, NodeId nId) {
     this.name = name;
-    this.allocationState = activityState.name();
+    this.allocationState = allocationState.name();
     this.diagnostic = diagnostic;
     setNodeId(nId);
   }
 
-  public ActivityNodeInfo(ActivityState groupActivityState,
+  public ActivityNodeInfo(ActivityState groupAllocationState,
       String groupDiagnostic, List<String> groupNodeIds) {
-    this.allocationState = groupActivityState.name();
+    this.allocationState = groupAllocationState.name();
     this.diagnostic = groupDiagnostic;
-    this.count = groupNodeIds.size();
+    this.count = String.valueOf(groupNodeIds.size());
     this.nodeIds = groupNodeIds;
   }
 
@@ -113,11 +113,11 @@ public class ActivityNodeInfo {
     this.nodeIds = nodeIds;
   }
 
-  public Long getAllocationRequestId() {
+  public String getAllocationRequestId() {
     return allocationRequestId;
   }
 
-  public Integer getCount() {
+  public String getCount() {
     return count;
   }
 
@@ -127,25 +127,5 @@ public class ActivityNodeInfo {
 
   public List<ActivityNodeInfo> getChildren() {
     return children;
-  }
-
-  public String getAllocationState() {
-    return allocationState;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public Integer getAppPriority() {
-    return appPriority;
-  }
-
-  public Integer getRequestPriority() {
-    return requestPriority;
-  }
-
-  public String getDiagnostic() {
-    return diagnostic;
   }
 }

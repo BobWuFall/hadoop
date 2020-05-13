@@ -20,7 +20,6 @@ package org.apache.hadoop.ha;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -34,7 +33,7 @@ import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 
-import org.apache.hadoop.thirdparty.protobuf.BlockingService;
+import com.google.protobuf.BlockingService;
 
 @InterfaceAudience.LimitedPrivate("HDFS")
 @InterfaceStability.Evolving
@@ -64,12 +63,6 @@ public class ZKFCRpcServer implements ZKFCProtocol {
     // set service-level authorization security policy
     if (conf.getBoolean(
         CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION, false)) {
-      if (policy == null) {
-        throw new HadoopIllegalArgumentException(
-            CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION
-                + "is configured to true but service-level"
-                + "authorization security policy is null.");
-      }
       server.refreshServiceAcl(conf, policy);
     }
 

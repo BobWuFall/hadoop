@@ -66,15 +66,15 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testParsePeriod() {
     // By default
-    scheduler = new DecayRpcScheduler(1, "ipc.1", new Configuration());
+    scheduler = new DecayRpcScheduler(1, "", new Configuration());
     assertEquals(DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_PERIOD_DEFAULT,
       scheduler.getDecayPeriodMillis());
 
     // Custom
     Configuration conf = new Configuration();
-    conf.setLong("ipc.2." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY,
+    conf.setLong("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY,
       1058);
-    scheduler = new DecayRpcScheduler(1, "ipc.2", conf);
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
     assertEquals(1058L, scheduler.getDecayPeriodMillis());
   }
 
@@ -82,15 +82,15 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testParseFactor() {
     // Default
-    scheduler = new DecayRpcScheduler(1, "ipc.3", new Configuration());
+    scheduler = new DecayRpcScheduler(1, "", new Configuration());
     assertEquals(DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_FACTOR_DEFAULT,
       scheduler.getDecayFactor(), 0.00001);
 
     // Custom
     Configuration conf = new Configuration();
-    conf.set("ipc.4." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_FACTOR_KEY,
+    conf.set("prefix." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_FACTOR_KEY,
       "0.125");
-    scheduler = new DecayRpcScheduler(1, "ipc.4", conf);
+    scheduler = new DecayRpcScheduler(1, "prefix", conf);
     assertEquals(0.125, scheduler.getDecayFactor(), 0.00001);
   }
 
@@ -106,23 +106,23 @@ public class TestDecayRpcScheduler {
   public void testParseThresholds() {
     // Defaults vary by number of queues
     Configuration conf = new Configuration();
-    scheduler = new DecayRpcScheduler(1, "ipc.5", conf);
+    scheduler = new DecayRpcScheduler(1, "", conf);
     assertEqualDecimalArrays(new double[]{}, scheduler.getThresholds());
 
-    scheduler = new DecayRpcScheduler(2, "ipc.6", conf);
+    scheduler = new DecayRpcScheduler(2, "", conf);
     assertEqualDecimalArrays(new double[]{0.5}, scheduler.getThresholds());
 
-    scheduler = new DecayRpcScheduler(3, "ipc.7", conf);
+    scheduler = new DecayRpcScheduler(3, "", conf);
     assertEqualDecimalArrays(new double[]{0.25, 0.5}, scheduler.getThresholds());
 
-    scheduler = new DecayRpcScheduler(4, "ipc.8", conf);
+    scheduler = new DecayRpcScheduler(4, "", conf);
     assertEqualDecimalArrays(new double[]{0.125, 0.25, 0.5}, scheduler.getThresholds());
 
     // Custom
     conf = new Configuration();
-    conf.set("ipc.9." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_THRESHOLDS_KEY,
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_THRESHOLDS_KEY,
       "1, 10, 20, 50, 85");
-    scheduler = new DecayRpcScheduler(6, "ipc.9", conf);
+    scheduler = new DecayRpcScheduler(6, "ns", conf);
     assertEqualDecimalArrays(new double[]{0.01, 0.1, 0.2, 0.5, 0.85}, scheduler.getThresholds());
   }
 
@@ -130,9 +130,8 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testAccumulate() {
     Configuration conf = new Configuration();
-    conf.set("ipc.10." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY,
-        "99999999"); // Never flush
-    scheduler = new DecayRpcScheduler(1, "ipc.10", conf);
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "99999999"); // Never flush
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
 
     assertEquals(0, scheduler.getCallCostSnapshot().size()); // empty first
 
@@ -152,11 +151,11 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testDecay() throws Exception {
     Configuration conf = new Configuration();
-    conf.setLong("ipc.11." // Never decay
+    conf.setLong("ns." // Never decay
         + DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_PERIOD_KEY, 999999999);
-    conf.setDouble("ipc.11."
+    conf.setDouble("ns."
         + DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_FACTOR_KEY, 0.5);
-    scheduler = new DecayRpcScheduler(1, "ipc.11", conf);
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
 
     assertEquals(0, scheduler.getTotalCallSnapshot());
 
@@ -203,7 +202,7 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testPriority() throws Exception {
     Configuration conf = new Configuration();
-    final String namespace = "ipc.12";
+    final String namespace = "ns";
     conf.set(namespace + "." + DecayRpcScheduler
         .IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "99999999"); // Never flush
     conf.set(namespace + "." + DecayRpcScheduler
@@ -240,11 +239,9 @@ public class TestDecayRpcScheduler {
   @SuppressWarnings("deprecation")
   public void testPeriodic() throws InterruptedException {
     Configuration conf = new Configuration();
-    conf.set(
-        "ipc.13." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "10");
-    conf.set(
-        "ipc.13." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_FACTOR_KEY, "0.5");
-    scheduler = new DecayRpcScheduler(1, "ipc.13", conf);
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "10");
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_FACTOR_KEY, "0.5");
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
 
     assertEquals(10, scheduler.getDecayPeriodMillis());
     assertEquals(0, scheduler.getTotalCallSnapshot());
@@ -272,7 +269,7 @@ public class TestDecayRpcScheduler {
       // MetricsSystemImpl to true
       DefaultMetricsSystem.initialize("NameNode");
       Configuration conf = new Configuration();
-      scheduler = new DecayRpcScheduler(1, "ipc.14", conf);
+      scheduler = new DecayRpcScheduler(1, "ns", conf);
       // check if there is npe in log
       assertFalse(bytes.toString().contains("NullPointerException"));
     } finally {
@@ -283,7 +280,7 @@ public class TestDecayRpcScheduler {
 
   @Test
   public void testUsingWeightedTimeCostProvider() {
-    scheduler = getSchedulerWithWeightedTimeCostProvider(3, "ipc.15");
+    scheduler = getSchedulerWithWeightedTimeCostProvider(3);
 
     // 3 details in increasing order of cost. Although medium has a longer
     // duration, the shared lock is weighted less than the exclusive lock
@@ -333,7 +330,7 @@ public class TestDecayRpcScheduler {
 
   @Test
   public void testUsingWeightedTimeCostProviderWithZeroCostCalls() {
-    scheduler = getSchedulerWithWeightedTimeCostProvider(2, "ipc.16");
+    scheduler = getSchedulerWithWeightedTimeCostProvider(2);
 
     ProcessingDetails emptyDetails =
         new ProcessingDetails(TimeUnit.MILLISECONDS);
@@ -350,7 +347,7 @@ public class TestDecayRpcScheduler {
 
   @Test
   public void testUsingWeightedTimeCostProviderNoRequests() {
-    scheduler = getSchedulerWithWeightedTimeCostProvider(2, "ipc.18");
+    scheduler = getSchedulerWithWeightedTimeCostProvider(2);
 
     assertEquals(0, scheduler.getPriorityLevel(mockCall("A")));
   }
@@ -360,13 +357,13 @@ public class TestDecayRpcScheduler {
    * normal decaying disabled.
    */
   private static DecayRpcScheduler getSchedulerWithWeightedTimeCostProvider(
-      int priorityLevels, String ns) {
+      int priorityLevels) {
     Configuration conf = new Configuration();
-    conf.setClass(ns + "." + CommonConfigurationKeys.IPC_COST_PROVIDER_KEY,
+    conf.setClass("ns." + CommonConfigurationKeys.IPC_COST_PROVIDER_KEY,
         WeightedTimeCostProvider.class, CostProvider.class);
-    conf.setLong(ns + "."
+    conf.setLong("ns."
         + DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_PERIOD_KEY, 999999);
-    return new DecayRpcScheduler(priorityLevels, ns, conf);
+    return new DecayRpcScheduler(priorityLevels, "ns", conf);
   }
 
   /**

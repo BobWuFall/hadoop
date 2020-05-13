@@ -108,7 +108,7 @@ public class HdfsLocatedFileStatus
 
   @Override
   public boolean isSymlink() {
-    return uSymlink != null && uSymlink.length > 0;
+    return uSymlink != null;
   }
 
   @Override

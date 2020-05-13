@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +31,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +40,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.s3a.S3AFileStatus;
-import org.apache.hadoop.fs.s3a.S3ATestConstants;
 import org.apache.hadoop.fs.s3a.S3ATestUtils;
 import org.apache.hadoop.fs.s3a.Tristate;
 import org.apache.hadoop.io.IOUtils;
@@ -74,8 +71,6 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
   static final String GROUP = null;
   private final long accessTime = 0;
   private static ITtlTimeProvider ttlTimeProvider;
-
-  private static final List<Path> EMPTY_LIST = Collections.emptyList();
 
   /**
    * Each test should override this.  Will use a new Configuration instance.
@@ -114,7 +109,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
   /** The MetadataStore contract used to test against. */
   private AbstractMSContract contract;
 
-  protected MetadataStore ms;
+  private MetadataStore ms;
 
   /**
    * @return reference to the test contract.
@@ -339,7 +334,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
   public void testDelete() throws Exception {
     setUpDeleteTest();
 
-    ms.delete(strToPath("/ADirectory1/db1/file2"), null);
+    ms.delete(strToPath("/ADirectory1/db1/file2"));
 
     /* Ensure delete happened. */
     assertDirectorySize("/ADirectory1/db1", 1);
@@ -368,7 +363,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     if (!allowMissing()) {
       assertCached(p + "/ADirectory1/db1");
     }
-    ms.deleteSubtree(strToPath(p + "/ADirectory1/db1/"), null);
+    ms.deleteSubtree(strToPath(p + "/ADirectory1/db1/"));
 
     assertEmptyDirectory(p + "/ADirectory1");
     assertDeleted(p + "/ADirectory1/db1");
@@ -388,7 +383,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
   public void testDeleteRecursiveRoot() throws Exception {
     setUpDeleteTest();
 
-    ms.deleteSubtree(strToPath("/"), null);
+    ms.deleteSubtree(strToPath("/"));
     assertDeleted("/ADirectory1");
     assertDeleted("/ADirectory2");
     assertDeleted("/ADirectory2/db1");
@@ -399,10 +394,10 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
   @Test
   public void testDeleteNonExisting() throws Exception {
     // Path doesn't exist, but should silently succeed
-    ms.delete(strToPath("/bobs/your/uncle"), null);
+    ms.delete(strToPath("/bobs/your/uncle"));
 
     // Ditto.
-    ms.deleteSubtree(strToPath("/internets"), null);
+    ms.deleteSubtree(strToPath("/internets"));
   }
 
 
@@ -440,7 +435,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     }
 
     if (!(ms instanceof NullMetadataStore)) {
-      ms.delete(strToPath(filePath), null);
+      ms.delete(strToPath(filePath));
       meta = ms.get(strToPath(filePath));
       assertTrue("Tombstone not left for deleted file", meta.isDeleted());
     }
@@ -559,9 +554,8 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
 
     DirListingMetadata dirMeta = ms.listChildren(strToPath("/a1/b1"));
     dirMeta.setAuthoritative(true);
-    dirMeta.put(new PathMetadata(
-        makeFileStatus("/a1/b1/file_new", 100)));
-    ms.put(dirMeta, EMPTY_LIST, null);
+    dirMeta.put(makeFileStatus("/a1/b1/file_new", 100));
+    ms.put(dirMeta, null);
 
     dirMeta = ms.listChildren(strToPath("/a1/b1"));
     assertListingsEqual(dirMeta.getListing(), "/a1/b1/file1", "/a1/b1/file2",
@@ -669,11 +663,11 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
 
     // Make sure delete is correct as well
     if (!allowMissing()) {
-      ms.delete(new Path(p2), null);
+      ms.delete(new Path(p2));
       meta = ms.get(new Path(p1));
       assertNotNull("Path should not have been deleted", meta);
     }
-    ms.delete(new Path(p1), null);
+    ms.delete(new Path(p1));
   }
 
   @Test
@@ -762,7 +756,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     if (!allowMissing()) {
       DirListingMetadata parentDirMd = ms.listChildren(strToPath(parentDir));
       parentDirMd.setAuthoritative(true);
-      ms.put(parentDirMd, EMPTY_LIST, null);
+      ms.put(parentDirMd, null);
     }
 
     ms.prune(MetadataStore.PruneMode.ALL_BY_MODTIME, time);
@@ -801,7 +795,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
       // set parent dir as authoritative
       DirListingMetadata parentDirMd = ms.listChildren(strToPath(parentDir));
       parentDirMd.setAuthoritative(true);
-      ms.put(parentDirMd, EMPTY_LIST, null);
+      ms.put(parentDirMd, null);
 
       // prune the ms
       ms.prune(MetadataStore.PruneMode.ALL_BY_MODTIME, time);
@@ -833,7 +827,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     }
     DirListingMetadata dirMeta =
         new DirListingMetadata(strToPath(dirPath), metas, authoritative);
-    ms.put(dirMeta, EMPTY_LIST, null);
+    ms.put(dirMeta, null);
 
     if (!allowMissing()) {
       assertDirectorySize(dirPath, filenames.length);
@@ -1014,7 +1008,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     }
     DirListingMetadata dirMeta =
         new DirListingMetadata(strToPath(dirPath), metas, authoritative);
-    ms.put(dirMeta, EMPTY_LIST, null);
+    ms.put(dirMeta, null);
   }
 
   protected void createNewDirs(String... dirs)
@@ -1204,7 +1198,7 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
     return basicFileStatus(path, size, isDir, modTime);
   }
 
-  public static S3AFileStatus basicFileStatus(int size, boolean isDir,
+  protected S3AFileStatus basicFileStatus(int size, boolean isDir,
       long blockSize, long modificationTime, Path path) {
     if (isDir) {
       return new S3AFileStatus(Tristate.UNKNOWN, path, null);
@@ -1280,27 +1274,8 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
       final long time,
       BulkOperationState operationState) throws IOException {
     PathMetadata meta = new PathMetadata(makeFileStatus(key, 1, time));
-    meta.setLastUpdated(time);
-    ms.put(meta, operationState);
-    return meta;
-  }
-
-  /**
-   * Put a dir to the shared DDB table.
-   * @param key key
-   * @param time timestamp.
-   * @param operationState ongoing state
-   * @return the entry
-   * @throws IOException IO failure
-   */
-  protected PathMetadata putDir(
-      final String key,
-      final long time,
-      BulkOperationState operationState) throws IOException {
-    PathMetadata meta = new PathMetadata(
-        basicFileStatus(strToPath(key), 0, true, time));
-    meta.setLastUpdated(time);
-    ms.put(meta, operationState);
+    ms.put(meta,
+        operationState);
     return meta;
   }
 
@@ -1333,10 +1308,4 @@ public abstract class MetadataStoreTestBase extends HadoopTestBase {
         null, null);
     return new PathMetadata(s3aStatus, Tristate.UNKNOWN, true);
   }
-
-  @Override
-  protected Timeout retrieveTestTimeout() {
-    return Timeout.millis(S3ATestConstants.S3A_TEST_TIMEOUT);
-  }
-
 }

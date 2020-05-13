@@ -44,7 +44,7 @@ public class ZKDelegationTokenSecretManagerImpl extends
     try {
       super.startThreads();
     } catch (IOException e) {
-      LOG.error("Error starting threads for zkDelegationTokens", e);
+      LOG.error("Error starting threads for zkDelegationTokens ");
     }
     LOG.info("Zookeeper delegation token secret manager instantiated");
   }

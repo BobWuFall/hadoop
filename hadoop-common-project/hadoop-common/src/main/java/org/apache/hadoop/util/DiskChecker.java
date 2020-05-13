@@ -296,7 +296,7 @@ public class DiskChecker {
       }
       file = null;
     } finally {
-      IOUtils.cleanupWithLogger(LOG, fos);
+      IOUtils.cleanup(null, fos);
       FileUtils.deleteQuietly(file);
     }
   }

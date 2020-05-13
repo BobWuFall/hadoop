@@ -77,11 +77,6 @@ public class LocatedStripedBlock extends LocatedBlock {
     return true;
   }
 
-  @Override
-  public BlockType getBlockType() {
-    return BlockType.STRIPED;
-  }
-
   public Token<BlockTokenIdentifier>[] getBlockTokens() {
     return blockTokens;
   }

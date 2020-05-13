@@ -82,15 +82,6 @@ public abstract class AbstractFSContractTestBase extends Assert
     Thread.currentThread().setName("JUnit");
   }
 
-  @Before
-  public void nameThread() {
-    Thread.currentThread().setName("JUnit-" + getMethodName());
-  }
-
-  protected String getMethodName() {
-    return methodName.getMethodName();
-  }
-
   /**
    * This must be implemented by all instantiated test cases.
    * -provide the FS contract
@@ -181,7 +172,6 @@ public abstract class AbstractFSContractTestBase extends Assert
    */
   @Before
   public void setup() throws Exception {
-    Thread.currentThread().setName("setup");
     LOG.debug("== Setup ==");
     contract = createContract(createConfiguration());
     contract.init();
@@ -210,7 +200,6 @@ public abstract class AbstractFSContractTestBase extends Assert
    */
   @After
   public void teardown() throws Exception {
-    Thread.currentThread().setName("teardown");
     LOG.debug("== Teardown ==");
     deleteTestDirInTeardown();
     LOG.debug("== Teardown complete ==");
@@ -234,15 +223,6 @@ public abstract class AbstractFSContractTestBase extends Assert
   protected Path path(String filepath) throws IOException {
     return getFileSystem().makeQualified(
       new Path(getContract().getTestPath(), filepath));
-  }
-
-  /**
-   * Get a path whose name ends with the name of this method.
-   * @return a path implicitly unique amongst all methods in this class
-   * @throws IOException IO problems
-   */
-  protected Path methodPath() throws IOException {
-    return path(methodName.getMethodName());
   }
 
   /**

@@ -158,7 +158,7 @@ public class LocatedBlock {
    * {@link org.apache.hadoop.hdfs.protocol.LocatedBlock#updateCachedStorageInfo}
    * to update the cached Storage ID/Type arrays.
    */
-  public DatanodeInfoWithStorage[] getLocations() {
+  public DatanodeInfo[] getLocations() {
     return locs;
   }
 
@@ -268,7 +268,6 @@ public class LocatedBlock {
         + "; corrupt=" + corrupt
         + "; offset=" + offset
         + "; locs=" + Arrays.asList(locs)
-        + "; cachedLocs=" + Arrays.asList(cachedLocs)
         + "}";
   }
 

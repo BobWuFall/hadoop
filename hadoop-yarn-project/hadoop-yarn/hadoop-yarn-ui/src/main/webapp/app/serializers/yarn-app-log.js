@@ -28,10 +28,9 @@ export default DS.JSONAPISerializer.extend({
       id: id,
       type: primaryModelClass.modelName,
       attributes: {
-        logs: payload.data,
+        logs: payload,
         containerID: splits[0],
-        logFileName: splits[1],
-        redirectedUrl: payload.redirectedUrl
+        logFileName: splits[1]
       }
     };
     return { data: convertedPayload };

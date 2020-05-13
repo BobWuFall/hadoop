@@ -30,7 +30,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class TestSequenceFileInputFilter {
@@ -148,7 +147,7 @@ public class TestSequenceFileInputFilter {
       int expectedCount = length/1000;
       if (expectedCount*1000!=length)
         expectedCount++;
-      assertThat(count).isEqualTo(expectedCount);
+      assertEquals(count, expectedCount);
     }
       
     // clean up

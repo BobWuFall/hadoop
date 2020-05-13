@@ -23,6 +23,5 @@ package org.apache.hadoop.fs.azurebfs.services;
 public enum AuthType {
     SharedKey,
     OAuth,
-    Custom,
-    SAS
+    Custom
 }

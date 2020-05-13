@@ -18,8 +18,7 @@
 
 package org.apache.hadoop.fs.s3a.s3guard;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.Assert;
 
 /**
  * Something to track throttles in DynamoDB metastores.
@@ -35,25 +34,19 @@ import org.slf4j.LoggerFactory;
  */
 class ThrottleTracker {
 
-  private static final Logger LOG = LoggerFactory.getLogger(
-      ThrottleTracker.class);
   private final DynamoDBMetadataStore ddbms;
 
-  private long writeThrottleEventOrig;
+  private long writeThrottleEventOrig = 0;
 
-  private long readThrottleEventOrig;
+  private long readThrottleEventOrig = 0;
 
-  private long batchWriteThrottleCountOrig;
-
-  private long scanThrottleCountOrig;
+  private long batchWriteThrottleCountOrig = 0;
 
   private long readThrottles;
 
   private long writeThrottles;
 
   private long batchThrottles;
-
-  private long scanThrottles;
 
   ThrottleTracker(final DynamoDBMetadataStore ddbms) {
     this.ddbms = ddbms;
@@ -72,9 +65,6 @@ class ThrottleTracker {
 
     batchWriteThrottleCountOrig
         = ddbms.getBatchWriteCapacityExceededCount();
-
-    scanThrottleCountOrig
-        = ddbms.getScanThrottleEventCount();
   }
 
   /**
@@ -88,8 +78,6 @@ class ThrottleTracker {
         - writeThrottleEventOrig);
     setBatchThrottles(ddbms.getBatchWriteCapacityExceededCount()
         - batchWriteThrottleCountOrig);
-    setScanThrottles(ddbms.getScanThrottleEventCount()
-        - scanThrottleCountOrig);
     return isThrottlingDetected();
   }
 
@@ -97,35 +85,27 @@ class ThrottleTracker {
   public String toString() {
     return String.format(
         "Tracker with read throttle events = %d;"
-            + " write throttles = %d;"
-            + " batch throttles = %d;"
-            + " scan throttles = %d",
-        getReadThrottles(), getWriteThrottles(), getBatchThrottles(),
-        getScanThrottles());
+            + " write events = %d;"
+            + " batch throttles = %d",
+        getReadThrottles(), getWriteThrottles(), getBatchThrottles());
   }
 
   /**
-   * Check that throttling was detected; Warn if not.
-   * @return true if throttling took place.
+   * Assert that throttling has been detected.
    */
-  public boolean probeThrottlingDetected() {
-    if (!isThrottlingDetected()) {
-      LOG.warn("No throttling detected in {} against {}",
-          this, ddbms);
-      return false;
-    }
-    return true;
+  public void assertThrottlingDetected() {
+    Assert.assertTrue("No throttling detected in " + this +
+            " against " + ddbms.toString(),
+        isThrottlingDetected());
   }
 
   /**
    * Has there been any throttling on an operation?
-   * @return true if any operations were throttled.
+   * @return true iff read, write or batch operations were throttled.
    */
   public boolean isThrottlingDetected() {
-    return getReadThrottles() > 0
-        || getWriteThrottles() > 0
-        || getBatchThrottles() > 0
-        || getScanThrottles() > 0;
+    return getReadThrottles() > 0 || getWriteThrottles()
+        > 0 || getBatchThrottles() > 0;
   }
 
   public long getReadThrottles() {
@@ -150,13 +130,5 @@ class ThrottleTracker {
 
   public void setBatchThrottles(long batchThrottles) {
     this.batchThrottles = batchThrottles;
-  }
-
-  public long getScanThrottles() {
-    return scanThrottles;
-  }
-
-  public void setScanThrottles(final long scanThrottles) {
-    this.scanThrottles = scanThrottles;
   }
 }

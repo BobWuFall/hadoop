@@ -85,7 +85,6 @@ public class TestLogAggregationIndexedFileController
       .createImmutable((short) (0777));
   private static final UserGroupInformation USER_UGI = UserGroupInformation
       .createRemoteUser("testUser");
-  private static final String ZERO_FILE = "zero";
   private FileSystem fs;
   private ApplicationId appId;
   private ContainerId containerId;
@@ -154,8 +153,6 @@ public class TestLogAggregationIndexedFileController
           logType);
       files.add(file);
     }
-    files.add(createZeroLocalLogFile(appLogsDir));
-
     LogValue value = mock(LogValue.class);
     when(value.getPendingLogFilesToUploadForThisContainer()).thenReturn(files);
 
@@ -215,13 +212,12 @@ public class TestLogAggregationIndexedFileController
     for (ContainerLogMeta log : meta) {
       assertEquals(containerId.toString(), log.getContainerId());
       assertEquals(nodeId.toString(), log.getNodeId());
-      assertEquals(4, log.getContainerLogMeta().size());
+      assertEquals(3, log.getContainerLogMeta().size());
       for (ContainerLogFileInfo file : log.getContainerLogMeta()) {
         fileNames.add(file.getFileName());
       }
     }
     fileNames.removeAll(logTypes);
-    fileNames.remove(ZERO_FILE);
     assertTrue(fileNames.isEmpty());
 
     boolean foundLogs = fileFormat.readAggregatedLogs(logRequest, System.out);
@@ -230,7 +226,6 @@ public class TestLogAggregationIndexedFileController
       assertTrue(sysOutStream.toString().contains(logMessage(
           containerId, logType)));
     }
-    assertZeroFileIsContained(sysOutStream.toString());
     sysOutStream.reset();
 
     Configuration factoryConf = new Configuration(getConf());
@@ -302,13 +297,12 @@ public class TestLogAggregationIndexedFileController
     for (ContainerLogMeta log : meta) {
       assertEquals(containerId.toString(), log.getContainerId());
       assertEquals(nodeId.toString(), log.getNodeId());
-      assertEquals(4, log.getContainerLogMeta().size());
+      assertEquals(3, log.getContainerLogMeta().size());
       for (ContainerLogFileInfo file : log.getContainerLogMeta()) {
         fileNames.add(file.getFileName());
       }
     }
     fileNames.removeAll(logTypes);
-    fileNames.remove(ZERO_FILE);
     assertTrue(fileNames.isEmpty());
     foundLogs = fileFormat.readAggregatedLogs(logRequest, System.out);
     assertTrue(foundLogs);
@@ -339,7 +333,6 @@ public class TestLogAggregationIndexedFileController
       }
     }
     fileNames.removeAll(newLogTypes);
-    fileNames.remove(ZERO_FILE);
     assertTrue(fileNames.isEmpty());
     foundLogs = fileFormat.readAggregatedLogs(logRequest, System.out);
     assertTrue(foundLogs);
@@ -368,7 +361,6 @@ public class TestLogAggregationIndexedFileController
       }
     }
     fileNames.removeAll(newLogTypes);
-    fileNames.remove(ZERO_FILE);
     assertTrue(fileNames.isEmpty());
     foundLogs = fileFormat.readAggregatedLogs(logRequest, System.out);
     assertTrue(foundLogs);
@@ -431,25 +423,8 @@ public class TestLogAggregationIndexedFileController
     sysOutStream.reset();
   }
 
-  private void assertZeroFileIsContained(String outStream) {
-    assertTrue(outStream.contains(
-        "LogContents:\n" +
-        "\n" +
-        "End of LogType:zero"));
-  }
-
-  private File createZeroLocalLogFile(Path localLogDir) throws IOException {
-    return createAndWriteLocalLogFile(localLogDir, ZERO_FILE, "");
-  }
-
   private File createAndWriteLocalLogFile(ContainerId containerId,
       Path localLogDir, String logType) throws IOException {
-    return createAndWriteLocalLogFile(localLogDir, logType,
-        logMessage(containerId, logType));
-  }
-
-  private File createAndWriteLocalLogFile(Path localLogDir, String logType,
-      String message) throws IOException {
     File file = new File(localLogDir.toString(), logType);
     if (file.exists()) {
       file.delete();
@@ -458,7 +433,7 @@ public class TestLogAggregationIndexedFileController
     Writer writer = null;
     try {
       writer = new FileWriter(file);
-      writer.write(message);
+      writer.write(logMessage(containerId, logType));
       writer.close();
       return file;
     } finally {
@@ -468,33 +443,5 @@ public class TestLogAggregationIndexedFileController
 
   private String logMessage(ContainerId containerId, String logType) {
     return "Hello " + containerId + " in " + logType + "!";
-  }
-
-  @Test
-  public void testGetRollOverLogMaxSize() {
-    String fileControllerName = "testController";
-    String remoteDirConf = String.format(
-        YarnConfiguration.LOG_AGGREGATION_REMOTE_APP_LOG_DIR_FMT,
-        fileControllerName);
-    Configuration conf = new Configuration();
-    LogAggregationIndexedFileController fileFormat
-        = new LogAggregationIndexedFileController();
-    long defaultRolloverSize = 10L * 1024 * 1024 * 1024;
-
-    // test local filesystem
-    fileFormat.initialize(conf, fileControllerName);
-    assertThat(fileFormat.getRollOverLogMaxSize(conf))
-        .isEqualTo(defaultRolloverSize);
-
-    // test file system supporting append
-    conf.set(remoteDirConf, "webhdfs://localhost/path");
-    fileFormat.initialize(conf, fileControllerName);
-    assertThat(fileFormat.getRollOverLogMaxSize(conf))
-        .isEqualTo(defaultRolloverSize);
-
-    // test file system not supporting append
-    conf.set(remoteDirConf, "s3a://test/path");
-    fileFormat.initialize(conf, fileControllerName);
-    assertThat(fileFormat.getRollOverLogMaxSize(conf)).isZero();
   }
 }

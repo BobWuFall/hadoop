@@ -87,6 +87,8 @@ public class GenericExceptionHandler implements ExceptionMapper<Exception> {
       s = Response.Status.BAD_REQUEST;
     } else if (e instanceof IllegalArgumentException) {
       s = Response.Status.BAD_REQUEST;
+    } else if (e instanceof NumberFormatException) {
+      s = Response.Status.BAD_REQUEST;
     } else if (e instanceof BadRequestException) {
       s = Response.Status.BAD_REQUEST;
     } else if (e instanceof WebApplicationException

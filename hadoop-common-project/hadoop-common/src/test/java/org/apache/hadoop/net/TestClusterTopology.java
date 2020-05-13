@@ -18,7 +18,6 @@
 package org.apache.hadoop.net;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
@@ -194,10 +193,6 @@ public class TestClusterTopology extends Assert {
     }
     assertEquals("Random is not selecting the nodes it should",
         2, histogram.size());
-
-    Node val = cluster.chooseRandom("/d1", "/d", Collections.emptyList());
-    assertNotNull(val);
-
   }
 
   @Test
@@ -232,15 +227,6 @@ public class TestClusterTopology extends Assert {
 
     node = cluster.chooseRandom("/a1/b1", "/a1/b1/c1", Arrays.asList(node4));
     assertSame("node3", node.getName());
-  }
-
-  @Test
-  public void testNodeBaseNormalizeRemoveLeadingSlash() {
-    assertEquals("/d1", NodeBase.normalize("/d1///"));
-    assertEquals("/d1", NodeBase.normalize("/d1/"));
-    assertEquals("/d1", NodeBase.normalize("/d1"));
-    assertEquals("", NodeBase.normalize("///"));
-    assertEquals("", NodeBase.normalize("/"));
   }
 
   private NodeElement getNewNode(String name, String rackLocation) {

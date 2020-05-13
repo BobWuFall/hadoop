@@ -109,11 +109,11 @@ public class MagicS3GuardCommitter extends AbstractS3ACommitter {
    * @return a list of pending commits.
    * @throws IOException Any IO failure
    */
-  protected ActiveCommit listPendingUploadsToCommit(
+  protected List<SinglePendingCommit> listPendingUploadsToCommit(
       JobContext context)
       throws IOException {
     FileSystem fs = getDestFS();
-    return ActiveCommit.fromStatusList(fs,
+    return loadPendingsetFiles(context, false, fs,
         listAndFilter(fs, getJobAttemptPath(context), false,
             CommitOperations.PENDINGSET_FILTER));
   }
@@ -174,7 +174,6 @@ public class MagicS3GuardCommitter extends AbstractS3ACommitter {
     } finally {
       // delete the task attempt so there's no possibility of a second attempt
       deleteTaskAttemptPathQuietly(context);
-      destroyThreadPool();
     }
     getCommitOperations().taskCompleted(true);
   }
@@ -182,7 +181,7 @@ public class MagicS3GuardCommitter extends AbstractS3ACommitter {
   /**
    * Inner routine for committing a task.
    * The list of pending commits is loaded and then saved to the job attempt
-   * dir in a single pendingset file.
+   * dir.
    * Failure to load any file or save the final file triggers an abort of
    * all known pending commits.
    * @param context context
@@ -251,7 +250,6 @@ public class MagicS3GuardCommitter extends AbstractS3ACommitter {
       deleteQuietly(
           attemptPath.getFileSystem(context.getConfiguration()),
           attemptPath, true);
-      destroyThreadPool();
     }
   }
 

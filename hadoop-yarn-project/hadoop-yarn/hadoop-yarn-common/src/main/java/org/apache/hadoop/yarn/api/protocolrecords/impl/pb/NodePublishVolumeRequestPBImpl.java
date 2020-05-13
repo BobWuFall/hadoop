@@ -19,7 +19,7 @@ package org.apache.hadoop.yarn.api.protocolrecords.impl.pb;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 import org.apache.hadoop.yarn.api.protocolrecords.NodePublishVolumeRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.ValidateVolumeCapabilitiesRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.ValidateVolumeCapabilitiesRequest.VolumeCapability;
@@ -154,10 +154,10 @@ public class NodePublishVolumeRequestPBImpl extends
       CsiAdaptorProtos.VolumeCapability vc =
           CsiAdaptorProtos.VolumeCapability.newBuilder()
               .setAccessMode(CsiAdaptorProtos.VolumeCapability
-                  .AccessMode.forNumber(
+                  .AccessMode.valueOf(
                       capability.getAccessMode().ordinal()))
               .setVolumeType(CsiAdaptorProtos.VolumeCapability
-                  .VolumeType.forNumber(capability.getVolumeType().ordinal()))
+                  .VolumeType.valueOf(capability.getVolumeType().ordinal()))
               .addAllMountFlags(capability.getMountFlags())
               .build();
       builder.setVolumeCapability(vc);

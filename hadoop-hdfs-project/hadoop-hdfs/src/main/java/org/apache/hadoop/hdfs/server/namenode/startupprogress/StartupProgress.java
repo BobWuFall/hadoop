@@ -218,7 +218,7 @@ public class StartupProgress {
    * @param total long to set
    */
   public void setTotal(Phase phase, Step step, long total) {
-    if (!isComplete(phase)) {
+    if (!isComplete()) {
       lazyInitStep(phase, step).total = total;
     }
   }

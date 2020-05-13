@@ -271,9 +271,9 @@ public class TrashPolicyDefault extends TrashPolicy {
     public void run() {
       if (emptierInterval == 0)
         return;                                   // trash disabled
-      long now, end;
+      long now = Time.now();
+      long end;
       while (true) {
-        now = Time.now();
         end = ceiling(now, emptierInterval);
         try {                                     // sleep for interval
           Thread.sleep(end - now);

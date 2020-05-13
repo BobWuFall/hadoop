@@ -33,7 +33,7 @@ import org.apache.hadoop.ipc.protobuf.RpcHeaderProtos.RpcRequestHeaderProto;
 import org.apache.hadoop.ipc.protobuf.RpcHeaderProtos.RpcRequestHeaderProto.OperationProto;
 import org.junit.Test;
 
-import org.apache.hadoop.thirdparty.protobuf.CodedOutputStream;
+import com.google.protobuf.CodedOutputStream;
 
 public class TestProtoUtil {
   
@@ -69,7 +69,7 @@ public class TestProtoUtil {
   private void doVarIntTest(int value) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     CodedOutputStream cout = CodedOutputStream.newInstance(baos);
-    cout.writeUInt32NoTag(value);
+    cout.writeRawVarint32(value);
     cout.flush();
 
     DataInputStream dis = new DataInputStream(

@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.qjournal.protocol.QJournalProtocolProtos.GetJournaledEditsResponseProto;
@@ -62,7 +61,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 /**
  * A JournalManager that writes to a set of remote JournalNodes,
@@ -73,9 +72,9 @@ public class QuorumJournalManager implements JournalManager {
   static final Logger LOG = LoggerFactory.getLogger(QuorumJournalManager.class);
 
   // This config is not publicly exposed
-  public static final String QJM_RPC_MAX_TXNS_KEY =
+  static final String QJM_RPC_MAX_TXNS_KEY =
       "dfs.ha.tail-edits.qjm.rpc.max-txns";
-  public static final int QJM_RPC_MAX_TXNS_DEFAULT = 5000;
+  static final int QJM_RPC_MAX_TXNS_DEFAULT = 5000;
 
   // Maximum number of transactions to fetch at a time when using the
   // RPC edit fetch mechanism
@@ -105,8 +104,7 @@ public class QuorumJournalManager implements JournalManager {
   
   private final AsyncLoggerSet loggers;
 
-  private static final int OUTPUT_BUFFER_CAPACITY_DEFAULT = 512 * 1024;
-  private int outputBufferCapacity;
+  private int outputBufferCapacity = 512 * 1024;
   private final URLConnectionFactory connectionFactory;
 
   /** Limit logging about input stream selection to every 5 seconds max. */
@@ -191,7 +189,6 @@ public class QuorumJournalManager implements JournalManager {
         DFSConfigKeys.DFS_QJOURNAL_HTTP_READ_TIMEOUT_DEFAULT);
     this.connectionFactory = URLConnectionFactory
         .newDefaultURLConnectionFactory(connectTimeoutMs, readTimeoutMs, conf);
-    setOutputBufferCapacity(OUTPUT_BUFFER_CAPACITY_DEFAULT);
   }
   
   protected List<AsyncLogger> createLoggers(
@@ -436,7 +433,7 @@ public class QuorumJournalManager implements JournalManager {
     loggers.waitForWriteQuorum(q, startSegmentTimeoutMs,
         "startLogSegment(" + txId + ")");
     return new QuorumOutputStream(loggers, txId, outputBufferCapacity,
-        writeTxnsTimeoutMs, layoutVersion);
+        writeTxnsTimeoutMs);
   }
 
   @Override
@@ -450,15 +447,6 @@ public class QuorumJournalManager implements JournalManager {
 
   @Override
   public void setOutputBufferCapacity(int size) {
-    int ipcMaxDataLength = conf.getInt(
-        CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH,
-        CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH_DEFAULT);
-    if (size >= ipcMaxDataLength) {
-      throw new IllegalArgumentException("Attempted to use QJM output buffer "
-          + "capacity (" + size + ") greater than the IPC max data length ("
-          + CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH + " = "
-          + ipcMaxDataLength + "). This will cause journals to reject edits.");
-    }
     outputBufferCapacity = size;
   }
 
@@ -579,8 +567,6 @@ public class QuorumJournalManager implements JournalManager {
         LOG.debug(msg.toString());
       }
     }
-    // Cancel any outstanding calls to JN's.
-    q.cancelCalls();
 
     int maxAllowedTxns = !onlyDurableTxns ? highestTxnCount :
         responseCounts.get(responseCounts.size() - loggers.getMajoritySize());

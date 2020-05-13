@@ -17,7 +17,8 @@
  */
 package org.apache.hadoop.mapred.nativetask.nonsorttest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -53,22 +54,19 @@ public class NonSortTest {
     final Job nativeNonSort = getJob(nativeConf, "NativeNonSort",
       TestConstants.NATIVETASK_NONSORT_TEST_INPUTDIR,
       TestConstants.NATIVETASK_NONSORT_TEST_NATIVE_OUTPUT);
-    assertThat(nativeNonSort.waitForCompletion(true)).isTrue();
+    assertTrue(nativeNonSort.waitForCompletion(true));
 
     Configuration normalConf = ScenarioConfiguration.getNormalConfiguration();
     normalConf.addResource(TestConstants.NONSORT_TEST_CONF);
     final Job hadoopWithSort = getJob(normalConf, "NormalJob",
       TestConstants.NATIVETASK_NONSORT_TEST_INPUTDIR,
       TestConstants.NATIVETASK_NONSORT_TEST_NORMAL_OUTPUT);
-    assertThat(hadoopWithSort.waitForCompletion(true)).isTrue();
+    assertTrue(hadoopWithSort.waitForCompletion(true));
 
     final boolean compareRet = ResultVerifier.verify(
       TestConstants.NATIVETASK_NONSORT_TEST_NATIVE_OUTPUT,
       TestConstants.NATIVETASK_NONSORT_TEST_NORMAL_OUTPUT);
-    assertThat(compareRet)
-        .withFailMessage(
-            "file compare result: if they are the same ,then return true")
-        .isTrue();
+    assertEquals("file compare result: if they are the same ,then return true", true, compareRet);
     ResultVerifier.verifyCounters(hadoopWithSort, nativeNonSort);
   }
 

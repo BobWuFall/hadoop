@@ -25,12 +25,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -65,8 +64,8 @@ public class TestMultiFileSplit {
       
       assertTrue(split.getLength() != 0);
       assertEquals(split.getLength(), readSplit.getLength());
-      assertThat(readSplit.getPaths()).containsExactly(split.getPaths());
-      assertThat(readSplit.getLengths()).containsExactly(split.getLengths());
+      assertTrue(Arrays.equals(split.getPaths(), readSplit.getPaths()));
+      assertTrue(Arrays.equals(split.getLengths(), readSplit.getLengths()));
       System.out.println(split.toString());
     }
     
@@ -89,7 +88,7 @@ public class TestMultiFileSplit {
       
       MultiFileSplit  split = new MultiFileSplit(job,path,lengths);
      String [] locations= split.getLocations();
-     assertThat(locations.length).isOne();
-     assertThat(locations[0]).isEqualTo("localhost");
+     assertTrue(locations.length==1);
+     assertEquals(locations[0], "localhost");
     }
 }

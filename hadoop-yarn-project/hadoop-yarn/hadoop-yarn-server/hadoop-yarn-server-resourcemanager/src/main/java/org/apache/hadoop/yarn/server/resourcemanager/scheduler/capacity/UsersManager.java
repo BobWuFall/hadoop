@@ -789,7 +789,7 @@ public class UsersManager implements AbstractUsersManager {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("User limit computation for " + userName
-          + ",  in queue: " + lQueue.getQueuePath()
+          + ",  in queue: " + lQueue.getQueueName()
           + ",  userLimitPercent=" + lQueue.getUserLimit()
           + ",  userLimitFactor=" + lQueue.getUserLimitFactor()
           + ",  required=" + required

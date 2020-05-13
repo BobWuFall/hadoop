@@ -24,7 +24,6 @@ import org.apache.hadoop.fs.FileChecksum;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.MD5MD5CRC32FileChecksum;
-import org.apache.hadoop.fs.QuotaUsage;
 import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.XAttrCodec;
@@ -157,7 +156,7 @@ public class JsonUtil {
     return m;
   }
 
-  public static Map<String, Object> getEcPolicyAsMap(
+  private static Map<String, Object> getEcPolicyAsMap(
       final ErasureCodingPolicy ecPolicy) {
     /** Convert an ErasureCodingPolicy to a map. */
     ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
@@ -354,50 +353,25 @@ public class JsonUtil {
     m.put("length", contentsummary.getLength());
     m.put("fileCount", contentsummary.getFileCount());
     m.put("directoryCount", contentsummary.getDirectoryCount());
-    m.put("ecPolicy", contentsummary.getErasureCodingPolicy());
-    // For ContentSummary we don't need this since we already have
-    // separate count for file and directory.
-    m.putAll(toJsonMap(contentsummary, false));
-    m.put("snapshotLength", contentsummary.getSnapshotLength());
-    m.put("snapshotFileCount", contentsummary.getSnapshotFileCount());
-    m.put("snapshotDirectoryCount",
-        contentsummary.getSnapshotDirectoryCount());
-    m.put("snapshotSpaceConsumed", contentsummary.getSnapshotSpaceConsumed());
-    return toJsonString(ContentSummary.class, m);
-  }
-
-  /** Convert a QuotaUsage to a JSON string. */
-  public static String toJsonString(final QuotaUsage quotaUsage) {
-    if (quotaUsage == null) {
-      return null;
-    }
-    return toJsonString(QuotaUsage.class, toJsonMap(quotaUsage, true));
-  }
-
-  private static Map<String, Object> toJsonMap(
-      final QuotaUsage quotaUsage, boolean includeFileAndDirectoryCount) {
-    final Map<String, Object> m = new TreeMap<>();
-    if (includeFileAndDirectoryCount) {
-      m.put("fileAndDirectoryCount", quotaUsage.getFileAndDirectoryCount());
-    }
-    m.put("quota", quotaUsage.getQuota());
-    m.put("spaceConsumed", quotaUsage.getSpaceConsumed());
-    m.put("spaceQuota", quotaUsage.getSpaceQuota());
-    final Map<String, Map<String, Long>> typeQuota = new TreeMap<>();
+    m.put("quota", contentsummary.getQuota());
+    m.put("spaceConsumed", contentsummary.getSpaceConsumed());
+    m.put("spaceQuota", contentsummary.getSpaceQuota());
+    final Map<String, Map<String, Long>> typeQuota =
+        new TreeMap<String, Map<String, Long>>();
     for (StorageType t : StorageType.getTypesSupportingQuota()) {
-      long tQuota = quotaUsage.getTypeQuota(t);
+      long tQuota = contentsummary.getTypeQuota(t);
       if (tQuota != HdfsConstants.QUOTA_RESET) {
         Map<String, Long> type = typeQuota.get(t.toString());
         if (type == null) {
-          type = new TreeMap<>();
+          type = new TreeMap<String, Long>();
           typeQuota.put(t.toString(), type);
         }
-        type.put("quota", quotaUsage.getTypeQuota(t));
-        type.put("consumed", quotaUsage.getTypeConsumed(t));
+        type.put("quota", contentsummary.getTypeQuota(t));
+        type.put("consumed", contentsummary.getTypeConsumed(t));
       }
     }
     m.put("typeQuota", typeQuota);
-    return m;
+    return toJsonString(ContentSummary.class, m);
   }
 
   /** Convert a MD5MD5CRC32FileChecksum to a Json string. */

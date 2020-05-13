@@ -390,10 +390,6 @@ public class AppInfo {
     return this.diagnostics;
   }
 
-  public void setNote(String diagnosticsMsg) {
-    this.diagnostics = diagnosticsMsg;
-  }
-
   public FinalApplicationStatus getFinalStatus() {
     return this.finalStatus;
   }

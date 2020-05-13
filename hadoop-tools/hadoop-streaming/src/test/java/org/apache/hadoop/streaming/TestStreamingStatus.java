@@ -22,9 +22,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.File;
 
-import org.apache.hadoop.mapred.MiniMRClientCluster;
-import org.apache.hadoop.mapred.MiniMRClientClusterFactory;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +32,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.MiniMRCluster;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapred.TaskLog;
@@ -92,7 +90,7 @@ public class TestStreamingStatus {
     "print STDERR \"my error msg after consuming input\\n\";\n" +
     "print STDERR \"reporter:counter:myOwnCounterGroup,myOwnCounter,1\\n\";\n";
 
-  private MiniMRClientCluster mr;
+  MiniMRCluster mr = null;
   FileSystem fs = null;
   JobConf conf = null;
 
@@ -107,10 +105,10 @@ public class TestStreamingStatus {
     conf.setBoolean(JTConfig.JT_RETIREJOBS, false);
     conf.setBoolean(JTConfig.JT_PERSIST_JOBSTATUS, false);
 
-    mr = MiniMRClientClusterFactory.create(this.getClass(), 3, conf);
+    mr = new MiniMRCluster(1, "file:///", 3, null , null, conf);
 
     Path inFile = new Path(INPUT_FILE);
-    fs = inFile.getFileSystem(mr.getConfig());
+    fs = inFile.getFileSystem(mr.createJobConf());
     clean(fs);
 
     buildExpectedJobOutput();
@@ -120,13 +118,9 @@ public class TestStreamingStatus {
    * Kill the cluster after the test is done.
    */
   @After
-  public void tearDown() throws IOException {
-    if (fs != null) {
-      clean(fs);
-    }
-    if (mr != null) {
-      mr.stop();
-    }
+  public void tearDown() {
+    if (fs != null) { clean(fs); }
+    if (mr != null) { mr.shutdown(); }
   }
 
   // Updates expectedOutput to have the expected job output as a string
@@ -152,24 +146,21 @@ public class TestStreamingStatus {
     file.close();
   }
 
-  protected String[] genArgs(String jobtracker, String rmAddress,
-                             String mapper, String reducer)
+  protected String[] genArgs(String jobtracker, String mapper, String reducer)
   {
     return new String[] {
-        "-input", INPUT_FILE,
-        "-output", OUTPUT_DIR,
-        "-mapper", mapper,
-        "-reducer", reducer,
-        "-jobconf", MRJobConfig.NUM_MAPS + "=1",
-        "-jobconf", MRJobConfig.NUM_REDUCES + "=1",
-        "-jobconf", MRJobConfig.PRESERVE_FAILED_TASK_FILES + "=true",
-        "-jobconf", YarnConfiguration.RM_ADDRESS + "=" + rmAddress,
-        "-jobconf", "stream.tmpdir=" +
-        new Path(TEST_ROOT_DIR).toUri().getPath(),
-        "-jobconf", JTConfig.JT_IPC_ADDRESS + "="+jobtracker,
-        "-jobconf", "fs.default.name=file:///",
-        "-jobconf", "mapred.jar=" + TestStreaming.STREAMING_JAR,
-        "-jobconf", "mapreduce.framework.name=yarn"
+      "-input", INPUT_FILE,
+      "-output", OUTPUT_DIR,
+      "-mapper", mapper,
+      "-reducer", reducer,
+      "-jobconf", MRJobConfig.NUM_MAPS + "=1",
+      "-jobconf", MRJobConfig.NUM_REDUCES + "=1",
+      "-jobconf", MRJobConfig.PRESERVE_FAILED_TASK_FILES + "=true",
+      "-jobconf", "stream.tmpdir=" + new Path(TEST_ROOT_DIR).toUri().getPath(),
+      "-jobconf", JTConfig.JT_IPC_ADDRESS + "="+jobtracker,
+      "-jobconf", "fs.default.name=file:///",
+      "-jobconf", "mapred.jar=" + TestStreaming.STREAMING_JAR,
+      "-jobconf", "mapreduce.framework.name=yarn"
     };
   }
 
@@ -227,9 +218,10 @@ public class TestStreamingStatus {
    * Run another streaming job with the given script as reducer and validate.
    *
    * @param isEmptyInput Should the input to the script be empty ?
+   * @param script The content of the script that will run as the streaming task
    */
   private void testStreamJob(boolean isEmptyInput)
-      throws Exception {
+      throws IOException {
 
       createInputAndScript(isEmptyInput, script);
 
@@ -257,12 +249,11 @@ public class TestStreamingStatus {
   //     all "reporter:status" and "reporter:counter" lines. 
   // (4) Validate stderr of task of given task type.
   // (5) Validate job output
-  private void runStreamJob(TaskType type, boolean isEmptyInput)
-      throws Exception {
-    StreamJob job = new StreamJob();
-    int returnValue = job.run(genArgs(
-        mr.getConfig().get(JTConfig.JT_IPC_ADDRESS),
-        mr.getConfig().get(YarnConfiguration.RM_ADDRESS), map, reduce));
+  void runStreamJob(TaskType type, boolean isEmptyInput) throws IOException {
+    boolean mayExit = false;
+    StreamJob job = new StreamJob(genArgs(
+        mr.createJobConf().get(JTConfig.JT_IPC_ADDRESS), map, reduce), mayExit);
+    int returnValue = job.go();
     assertEquals(0, returnValue);
 
     // If input to reducer is empty, dummy reporter(which ignores all

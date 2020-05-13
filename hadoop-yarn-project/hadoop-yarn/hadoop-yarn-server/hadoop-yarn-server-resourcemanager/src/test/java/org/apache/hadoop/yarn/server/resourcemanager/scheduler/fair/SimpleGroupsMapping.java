@@ -33,9 +33,12 @@ public class SimpleGroupsMapping implements GroupMappingServiceProvider {
 
   @Override
   public void cacheGroupsRefresh() throws IOException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void cacheGroupsAdd(List<String> groups) throws IOException {
+    throw new UnsupportedOperationException();
   }
+
 }

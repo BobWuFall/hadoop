@@ -38,7 +38,7 @@ public class TestNativeAzureFileSystemMetricsSystem {
   /**
    * Tests that when we have multiple file systems created/destroyed 
    * metrics from each are published correctly.
-   * @throws Exception on a failure
+   * @throws Exception 
    */
   @Test
   public void testMetricsAcrossFileSystems()
@@ -46,37 +46,26 @@ public class TestNativeAzureFileSystemMetricsSystem {
     AzureBlobStorageTestAccount a1, a2, a3;
 
     a1 = AzureBlobStorageTestAccount.createMock();
-    assertFilesCreated(a1, "a1", 0);
+    assertEquals(0, getFilesCreated(a1));
     a2 = AzureBlobStorageTestAccount.createMock();
-    assertFilesCreated(a2, "a2", 0);
+    assertEquals(0, getFilesCreated(a2));
     a1.getFileSystem().create(new Path("/foo")).close();
     a1.getFileSystem().create(new Path("/bar")).close();
     a2.getFileSystem().create(new Path("/baz")).close();
-    assertFilesCreated(a1, "a1", 0);
-    assertFilesCreated(a2, "a2", 0);
+    assertEquals(0, getFilesCreated(a1));
+    assertEquals(0, getFilesCreated(a2));
     a1.closeFileSystem(); // Causes the file system to close, which publishes metrics
     a2.closeFileSystem();
-
-    assertFilesCreated(a1, "a1", 2);
-    assertFilesCreated(a2, "a2", 1);
+    
+    assertEquals(2, getFilesCreated(a1));
+    assertEquals(1, getFilesCreated(a2));
     a3 = AzureBlobStorageTestAccount.createMock();
-    assertFilesCreated(a3, "a3", 0);
+    assertEquals(0, getFilesCreated(a3));
     a3.closeFileSystem();
-    assertFilesCreated(a3, "a3", 0);
+    assertEquals(0, getFilesCreated(a3));
   }
 
-  /**
-   * Assert that a specific number of files were created.
-   * @param account account to examine
-   * @param name account name (for exception text)
-   * @param expected expected value
-   */
-  private void assertFilesCreated(AzureBlobStorageTestAccount account,
-      String name, int expected) {
-    assertEquals("Files created in account " + name,
-        expected, getFilesCreated(account));
-  }
-
+  
   @Test
   public void testMetricsSourceNames() {
     String name1 = NativeAzureFileSystem.newMetricsSourceName();
@@ -94,6 +83,6 @@ public class TestNativeAzureFileSystemMetricsSystem {
       NativeAzureFileSystem.SKIP_AZURE_METRICS_PROPERTY_NAME, true);
     a.getFileSystem().create(new Path("/foo")).close();
     a.closeFileSystem(); // Causes the file system to close, which publishes metrics
-    assertFilesCreated(a, "a", 0);
+    assertEquals(0, getFilesCreated(a));
   }
 }

@@ -31,7 +31,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.ACL;
 
-import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -55,33 +54,33 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
   protected static final Version CURRENT_VERSION_INFO = Version
       .newInstance(0, 1);
   private Configuration conf;
+  private LogMutation pendingMutation;
+
+  private String znodeParentPath;
 
   private static final String ZK_VERSION_PATH = "VERSION";
   private static final String LOGS_PATH = "LOGS";
   private static final String CONF_STORE_PATH = "CONF_STORE";
   private static final String FENCING_PATH = "FENCING";
-  private static final String CONF_VERSION_PATH = "CONF_VERSION";
 
   private String zkVersionPath;
   private String logsPath;
   private String confStorePath;
   private String fencingNodePath;
-  private String confVersionPath;
 
-  private ZKCuratorManager zkManager;
+  @VisibleForTesting
+  protected ZKCuratorManager zkManager;
   private List<ACL> zkAcl;
 
   @Override
   public void initialize(Configuration config, Configuration schedConf,
       RMContext rmContext) throws Exception {
     this.conf = config;
-
-    String znodeParentPath = conf.get(
-        YarnConfiguration.RM_SCHEDCONF_STORE_ZK_PARENT_PATH,
-        YarnConfiguration.DEFAULT_RM_SCHEDCONF_STORE_ZK_PARENT_PATH);
-
     this.maxLogs = conf.getLong(YarnConfiguration.RM_SCHEDCONF_MAX_LOGS,
         YarnConfiguration.DEFAULT_RM_SCHEDCONF_ZK_MAX_LOGS);
+    this.znodeParentPath =
+        conf.get(YarnConfiguration.RM_SCHEDCONF_STORE_ZK_PARENT_PATH,
+            YarnConfiguration.DEFAULT_RM_SCHEDCONF_STORE_ZK_PARENT_PATH);
     this.zkManager =
         rmContext.getResourceManager().createAndStartZKManager(conf);
     this.zkAcl = ZKCuratorManager.getZKAcls(conf);
@@ -90,36 +89,33 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
     this.logsPath = getNodePath(znodeParentPath, LOGS_PATH);
     this.confStorePath = getNodePath(znodeParentPath, CONF_STORE_PATH);
     this.fencingNodePath = getNodePath(znodeParentPath, FENCING_PATH);
-    this.confVersionPath = getNodePath(znodeParentPath, CONF_VERSION_PATH);
 
     zkManager.createRootDirRecursively(znodeParentPath, zkAcl);
     zkManager.delete(fencingNodePath);
 
-    if (createNewZkPath(logsPath)) {
-      setZkData(logsPath, new LinkedList<LogMutation>());
+    if (!zkManager.exists(logsPath)) {
+      zkManager.create(logsPath);
+      zkManager.setData(logsPath,
+          serializeObject(new LinkedList<LogMutation>()), -1);
     }
 
-    if (createNewZkPath(confVersionPath)) {
-      setZkData(confVersionPath, String.valueOf(0));
-    }
-
-    if (createNewZkPath(confStorePath)) {
+    if (!zkManager.exists(confStorePath)) {
+      zkManager.create(confStorePath);
       HashMap<String, String> mapSchedConf = new HashMap<>();
       for (Map.Entry<String, String> entry : schedConf) {
         mapSchedConf.put(entry.getKey(), entry.getValue());
       }
-      setZkData(confStorePath, mapSchedConf);
-      long configVersion = getConfigVersion() + 1L;
-      setZkData(confVersionPath, String.valueOf(configVersion));
+      zkManager.setData(confStorePath, serializeObject(mapSchedConf), -1);
     }
   }
 
   @VisibleForTesting
-  @Override
   protected LinkedList<LogMutation> getLogs() throws Exception {
-    return unsafeCast(deserializeObject(getZkData(logsPath)));
+    return (LinkedList<LogMutation>)
+        deserializeObject(zkManager.getData(logsPath));
   }
 
+  // TODO: following version-related code is taken from ZKRMStateStore
   @Override
   public Version getCurrentVersion() {
     return CURRENT_VERSION_INFO;
@@ -128,7 +124,7 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
   @Override
   public Version getConfStoreVersion() throws Exception {
     if (zkManager.exists(zkVersionPath)) {
-      byte[] data = getZkData(zkVersionPath);
+      byte[] data = zkManager.getData(zkVersionPath);
       return new VersionPBImpl(YarnServerCommonProtos.VersionProto
           .parseFrom(data));
     }
@@ -137,41 +133,37 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
   }
 
   @Override
-  public void format() throws Exception {
-    zkManager.delete(confStorePath);
-  }
-
-  @Override
   public synchronized void storeVersion() throws Exception {
     byte[] data =
         ((VersionPBImpl) CURRENT_VERSION_INFO).getProto().toByteArray();
 
     if (zkManager.exists(zkVersionPath)) {
-      safeSetZkData(zkVersionPath, data);
+      zkManager.safeSetData(zkVersionPath, data, -1, zkAcl, fencingNodePath);
     } else {
-      safeCreateZkData(zkVersionPath, data);
+      zkManager.safeCreate(zkVersionPath, data, zkAcl, CreateMode.PERSISTENT,
+          zkAcl, fencingNodePath);
     }
   }
 
   @Override
   public void logMutation(LogMutation logMutation) throws Exception {
-    if (maxLogs > 0) {
-      byte[] storedLogs = getZkData(logsPath);
-      LinkedList<LogMutation> logs = new LinkedList<>();
-      if (storedLogs != null) {
-        logs = unsafeCast(deserializeObject(storedLogs));
-      }
-      logs.add(logMutation);
-      if (logs.size() > maxLogs) {
-        logs.remove(logs.removeFirst());
-      }
-      safeSetZkData(logsPath, logs);
+    byte[] storedLogs = zkManager.getData(logsPath);
+    LinkedList<LogMutation> logs = new LinkedList<>();
+    if (storedLogs != null) {
+      logs = (LinkedList<LogMutation>) deserializeObject(storedLogs);
     }
+    logs.add(logMutation);
+    if (logs.size() > maxLogs) {
+      logs.remove(logs.removeFirst());
+    }
+    zkManager.safeSetData(logsPath, serializeObject(logs), -1, zkAcl,
+        fencingNodePath);
+    pendingMutation = logMutation;
   }
 
   @Override
-  public void confirmMutation(LogMutation pendingMutation,
-      boolean isValid) throws Exception {
+  public void confirmMutation(boolean isValid)
+      throws Exception {
     if (isValid) {
       Configuration storedConfigs = retrieve();
       Map<String, String> mapConf = new HashMap<>();
@@ -186,26 +178,25 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
           mapConf.put(confChange.getKey(), confChange.getValue());
         }
       }
-      safeSetZkData(confStorePath, mapConf);
-      long configVersion = getConfigVersion() + 1L;
-      setZkData(confVersionPath, String.valueOf(configVersion));
-
+      zkManager.safeSetData(confStorePath, serializeObject(mapConf), -1,
+          zkAcl, fencingNodePath);
     }
+    pendingMutation = null;
   }
 
   @Override
   public synchronized Configuration retrieve() {
     byte[] serializedSchedConf;
     try {
-      serializedSchedConf = getZkData(confStorePath);
+      serializedSchedConf = zkManager.getData(confStorePath);
     } catch (Exception e) {
       LOG.error("Failed to retrieve configuration from zookeeper store", e);
       return null;
     }
     try {
       Map<String, String> map =
-          unsafeCast(deserializeObject(serializedSchedConf));
-      Configuration c = new Configuration(false);
+          (HashMap<String, String>) deserializeObject(serializedSchedConf);
+      Configuration c = new Configuration();
       for (Map.Entry<String, String> e : map.entrySet()) {
         c.set(e.getKey(), e.getValue());
       }
@@ -218,69 +209,8 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
   }
 
   @Override
-  public long getConfigVersion() throws Exception {
-    String version = zkManager.getStringData(confVersionPath);
-    if (version == null) {
-      throw new IllegalStateException("Config version can not be properly " +
-          "serialized. Check Zookeeper config version path to locate " +
-          "the error!");
-    }
-
-    return Long.parseLong(version);
-  }
-
-  @Override
   public List<LogMutation> getConfirmedConfHistory(long fromId) {
     return null; // unimplemented
-  }
-
-  /**
-   * Creates a new path in Zookeeper only, if it does not already exist.
-   *
-   * @param path Value of the Zookeeper path
-   * @return <code>true</code>if the creation executed; <code>false</code>
-   * otherwise.
-   * @throws Exception
-   */
-  private boolean createNewZkPath(String path) throws Exception {
-    if (!zkManager.exists(path)) {
-      zkManager.create(path);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  @VisibleForTesting
-  protected byte[] getZkData(String path) throws Exception {
-    return zkManager.getData(path);
-  }
-
-  @VisibleForTesting
-  protected void setZkData(String path, byte[] data) throws Exception {
-    zkManager.setData(path, data, -1);
-  }
-
-  private void setZkData(String path, Object data) throws Exception {
-    setZkData(path, serializeObject(data));
-  }
-
-  private void setZkData(String path, String data) throws Exception {
-    zkManager.setData(path, data, -1);
-  }
-
-  private void safeSetZkData(String path, byte[] data) throws Exception {
-    zkManager.safeSetData(path, data, -1, zkAcl, fencingNodePath);
-  }
-
-  private void safeSetZkData(String path, Object data) throws Exception {
-    safeSetZkData(path, serializeObject(data));
-  }
-
-  @VisibleForTesting
-  protected void safeCreateZkData(String path, byte[] data) throws Exception {
-    zkManager.safeCreate(path, data, zkAcl, CreateMode.PERSISTENT,
-        zkAcl, fencingNodePath);
   }
 
   private static String getNodePath(String root, String nodeName) {
@@ -301,27 +231,6 @@ public class ZKConfigurationStore extends YarnConfigurationStore {
     try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         ObjectInputStream ois = new ObjectInputStream(bais);) {
       return ois.readObject();
-    }
-  }
-
-  /**
-   * Casts an object of type Object to type T. It is essential to emphasize,
-   * that it is an unsafe operation.
-   *
-   * @param o Object to be cast from
-   * @param <T> Type to cast to
-   * @return casted object of type T
-   * @throws ClassCastException
-   */
-  @SuppressWarnings("unchecked")
-  private static <T> T unsafeCast(Object o) throws ClassCastException {
-    return (T)o;
-  }
-
-  @Override
-  public void close() throws IOException {
-    if (zkManager  != null) {
-      zkManager.close();
     }
   }
 }

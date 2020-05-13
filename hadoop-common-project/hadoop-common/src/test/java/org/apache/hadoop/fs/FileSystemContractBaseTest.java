@@ -862,8 +862,7 @@ public abstract class FileSystemContractBaseTest {
                found);
   }
 
-  protected void assertListStatusFinds(Path dir, Path subdir)
-      throws IOException {
+  private void assertListStatusFinds(Path dir, Path subdir) throws IOException {
     FileStatus[] stats = fs.listStatus(dir);
     boolean found = false;
     StringBuilder builder = new StringBuilder();

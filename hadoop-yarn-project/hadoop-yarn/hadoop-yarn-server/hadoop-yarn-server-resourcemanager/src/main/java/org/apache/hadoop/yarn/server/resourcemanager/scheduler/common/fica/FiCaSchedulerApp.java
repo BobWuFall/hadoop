@@ -273,12 +273,7 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt {
           this.getApplicationAttemptId(), node.getNodeID(),
           appSchedulingInfo.getUser(), this.rmContext,
           ps.getPrimaryRequestedNodePartition());
-
-      String qn = this.getQueueName();
-      if (this.scheduler instanceof CapacityScheduler) {
-        qn = ((CapacityScheduler)this.scheduler).normalizeQueueName(qn);
-      }
-      ((RMContainerImpl) rmContainer).setQueueName(qn);
+      ((RMContainerImpl) rmContainer).setQueueName(this.getQueueName());
 
       // FIXME, should set when confirmed
       updateAMContainerDiagnostics(AMState.ASSIGNED, null);
@@ -826,7 +821,7 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt {
           currentContPreemption, Collections.singletonList(rr), updatedNMTokens,
           newlyIncreasedContainers, newlyDecreasedContainers,
           newlyPromotedContainers, newlyDemotedContainers,
-          previousAttemptContainers, appSchedulingInfo.getRejectedRequest());
+          previousAttemptContainers);
     } finally {
       writeLock.unlock();
     }

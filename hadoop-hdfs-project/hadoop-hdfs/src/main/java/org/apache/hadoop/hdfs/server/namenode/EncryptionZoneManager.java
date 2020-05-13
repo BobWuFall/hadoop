@@ -33,7 +33,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.hadoop.conf.Configuration;
@@ -187,11 +187,11 @@ public class EncryptionZoneManager {
       final int count) throws IOException {
     INodesInPath iip;
     final FSPermissionChecker pc = dir.getPermissionChecker();
-    dir.getFSNamesystem().readLock();
+    dir.readLock();
     try {
       iip = dir.resolvePath(pc, zone, DirOp.READ);
     } finally {
-      dir.getFSNamesystem().readUnlock();
+      dir.readUnlock();
     }
     reencryptionHandler
         .pauseForTestingAfterNthCheckpoint(iip.getLastINode().getId(), count);
@@ -280,11 +280,11 @@ public class EncryptionZoneManager {
     if (getProvider() == null || reencryptionHandler == null) {
       return;
     }
-    dir.getFSNamesystem().writeLock();
+    dir.writeLock();
     try {
       reencryptionHandler.stopThreads();
     } finally {
-      dir.getFSNamesystem().writeUnlock();
+      dir.writeUnlock();
     }
     if (reencryptHandlerExecutor != null) {
       reencryptHandlerExecutor.shutdownNow();

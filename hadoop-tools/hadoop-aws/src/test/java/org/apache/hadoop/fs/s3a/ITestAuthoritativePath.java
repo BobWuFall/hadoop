@@ -84,18 +84,14 @@ public class ITestAuthoritativePath extends AbstractS3ATestBase {
 
   private void cleanUpFS(S3AFileSystem fs) {
     // detach from the (shared) metadata store.
-    if (fs != null) {
-      fs.setMetadataStore(new NullMetadataStore());
-    }
+    fs.setMetadataStore(new NullMetadataStore());
 
     IOUtils.cleanupWithLogger(LOG, fs);
   }
 
   @Override
   public void teardown() throws Exception {
-    if (fullyAuthFS != null) {
-      fullyAuthFS.delete(testRoot, true);
-    }
+    fullyAuthFS.delete(testRoot, true);
 
     cleanUpFS(fullyAuthFS);
     cleanUpFS(rawFS);
@@ -225,28 +221,6 @@ public class ITestAuthoritativePath extends AbstractS3ATestBase {
     try {
       assertTrue("No S3Guard store for partially authoritative FS",
             fs.hasMetadataStore());
-
-      runTestInsidePath(fs, authPath);
-      runTestOutsidePath(fs, nonAuthPath);
-    } finally {
-      cleanUpFS(fs);
-    }
-  }
-
-  @Test
-  public void testAuthPathWithOtherBucket() throws Exception {
-    Path authPath;
-    Path nonAuthPath;
-    S3AFileSystem fs = null;
-    String landsat = "s3a://landsat-pds/data";
-    String decoy2 = "/decoy2";
-
-    try {
-      authPath = new Path(testRoot, "testMultiAuthPath-first");
-      nonAuthPath = new Path(testRoot, "nonAuth-1");
-      fs = createMultiPathAuthFS(authPath.toString(), landsat, decoy2);
-      assertTrue("No S3Guard store for partially authoritative FS",
-          fs.hasMetadataStore());
 
       runTestInsidePath(fs, authPath);
       runTestOutsidePath(fs, nonAuthPath);

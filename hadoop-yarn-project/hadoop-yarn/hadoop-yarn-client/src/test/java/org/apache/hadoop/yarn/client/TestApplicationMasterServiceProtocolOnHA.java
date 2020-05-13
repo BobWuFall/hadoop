@@ -21,7 +21,6 @@ package org.apache.hadoop.yarn.client;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
@@ -36,23 +35,18 @@ import org.apache.hadoop.yarn.api.records.ResourceBlacklistRequest;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 
 
 public class TestApplicationMasterServiceProtocolOnHA
     extends ApplicationMasterServiceProtoTestBase {
-  @Rule
-  public Timeout timeout = new Timeout(180, TimeUnit.SECONDS);
-
   @Before
   public void initialize() throws Exception {
     startHACluster(0, false, false, true);
     super.startupHAAndSetupClient();
   }
 
-  @Test
+  @Test(timeout = 15000)
   public void testRegisterApplicationMasterOnHA() throws YarnException,
       IOException {
     RegisterApplicationMasterRequest request =
@@ -63,7 +57,7 @@ public class TestApplicationMasterServiceProtocolOnHA
         this.cluster.createFakeRegisterApplicationMasterResponse());
   }
 
-  @Test
+  @Test(timeout = 15000)
   public void testFinishApplicationMasterOnHA() throws YarnException,
       IOException {
     FinishApplicationMasterRequest request =
@@ -75,7 +69,7 @@ public class TestApplicationMasterServiceProtocolOnHA
         this.cluster.createFakeFinishApplicationMasterResponse());
   }
 
-  @Test
+  @Test(timeout = 15000)
   public void testAllocateOnHA() throws YarnException, IOException {
     AllocateRequest request = AllocateRequest.newInstance(0, 50f,
         new ArrayList<ResourceRequest>(),

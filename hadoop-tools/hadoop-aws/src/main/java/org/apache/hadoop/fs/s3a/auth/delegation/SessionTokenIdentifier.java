@@ -73,8 +73,7 @@ public class SessionTokenIdentifier extends
   /**
    * Constructor.
    * @param kind token kind.
-   * @param owner token owner.
-   * @param renewer token renewer.
+   * @param owner token owner
    * @param uri filesystem URI.
    * @param marshalledCredentials credentials to marshall
    * @param encryptionSecrets encryption secrets
@@ -83,12 +82,11 @@ public class SessionTokenIdentifier extends
   public SessionTokenIdentifier(
       final Text kind,
       final Text owner,
-      final Text renewer,
       final URI uri,
       final MarshalledCredentials marshalledCredentials,
       final EncryptionSecrets encryptionSecrets,
       final String origin) {
-    super(kind, uri, owner, renewer, origin, encryptionSecrets);
+    super(kind, uri, owner, origin, encryptionSecrets);
     this.marshalledCredentials = marshalledCredentials;
   }
 

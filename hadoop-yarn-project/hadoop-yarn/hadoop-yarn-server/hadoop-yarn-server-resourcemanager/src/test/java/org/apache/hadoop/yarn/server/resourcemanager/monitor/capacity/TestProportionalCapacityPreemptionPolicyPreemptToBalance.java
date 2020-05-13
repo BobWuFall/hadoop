@@ -64,11 +64,11 @@ public class TestProportionalCapacityPreemptionPolicyPreemptToBalance
         new TestProportionalCapacityPreemptionPolicy.IsPreemptionRequestFor(
             getAppAttemptId(3))));
 
-    assertEquals(30, policy.getQueuePartitions().get("root.a")
+    assertEquals(30, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(35, policy.getQueuePartitions().get("root.b")
+    assertEquals(35, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(35, policy.getQueuePartitions().get("root.c")
+    assertEquals(35, policy.getQueuePartitions().get("c")
         .get("").getIdealAssigned().getMemorySize());
   }
 
@@ -106,11 +106,11 @@ public class TestProportionalCapacityPreemptionPolicyPreemptToBalance
         new TestProportionalCapacityPreemptionPolicy.IsPreemptionRequestFor(
             getAppAttemptId(3))));
 
-    assertEquals(33, policy.getQueuePartitions().get("root.a")
+    assertEquals(33, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(33, policy.getQueuePartitions().get("root.b")
+    assertEquals(33, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(33, policy.getQueuePartitions().get("root.c")
+    assertEquals(33, policy.getQueuePartitions().get("c")
         .get("").getIdealAssigned().getMemorySize());
   }
 
@@ -146,11 +146,11 @@ public class TestProportionalCapacityPreemptionPolicyPreemptToBalance
         new TestProportionalCapacityPreemptionPolicy.IsPreemptionRequestFor(
             getAppAttemptId(3))));
 
-    assertEquals(16, policy.getQueuePartitions().get("root.a")
+    assertEquals(16, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(42, policy.getQueuePartitions().get("root.b")
+    assertEquals(42, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(42, policy.getQueuePartitions().get("root.c")
+    assertEquals(42, policy.getQueuePartitions().get("c")
         .get("").getIdealAssigned().getMemorySize());
   }
 
@@ -182,13 +182,13 @@ public class TestProportionalCapacityPreemptionPolicyPreemptToBalance
         new TestProportionalCapacityPreemptionPolicy.
             IsPreemptionRequestFor(getAppAttemptId(2))));
 
-    assertEquals(60, policy.getQueuePartitions().get("root.a")
+    assertEquals(60, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(60, policy.getQueuePartitions().get("root.a")
+    assertEquals(60, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getVirtualCores());
-    assertEquals(40, policy.getQueuePartitions().get("root.b")
+    assertEquals(40, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(40, policy.getQueuePartitions().get("root.b")
+    assertEquals(40, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getVirtualCores());
   }
 
@@ -244,13 +244,13 @@ public class TestProportionalCapacityPreemptionPolicyPreemptToBalance
         new TestProportionalCapacityPreemptionPolicy.
             IsPreemptionRequestFor(getAppAttemptId(2))));
 
-    assertEquals(60, policy.getQueuePartitions().get("root.a")
+    assertEquals(60, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(60, policy.getQueuePartitions().get("root.a")
+    assertEquals(60, policy.getQueuePartitions().get("a")
         .get("").getIdealAssigned().getVirtualCores());
-    assertEquals(40, policy.getQueuePartitions().get("root.b")
+    assertEquals(40, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getMemorySize());
-    assertEquals(40, policy.getQueuePartitions().get("root.b")
+    assertEquals(40, policy.getQueuePartitions().get("b")
         .get("").getIdealAssigned().getVirtualCores());
   }
 }

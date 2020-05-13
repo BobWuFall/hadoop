@@ -44,13 +44,11 @@ public class TestConfigurationUtils {
   }
 
 
-  @Test
-  public void constructors3() throws Exception {
-    InputStream is = new ByteArrayInputStream(
-        "<xxx><property name=\"key1\" value=\"val1\"/></xxx>".getBytes());
+  @Test(expected = IOException.class)
+  public void constructorsFail3() throws Exception {
+    InputStream is = new ByteArrayInputStream("<xonfiguration></xonfiguration>".getBytes());
     Configuration conf = new Configuration(false);
     ConfigurationUtils.load(conf, is);
-    assertEquals("val1", conf.get("key1"));
   }
 
   @Test
@@ -126,16 +124,4 @@ public class TestConfigurationUtils {
     assertEquals(conf.get("user.name"), "foo");
   }
 
-  @Test
-  public void testCompactFormatProperty() throws IOException {
-    final String testfile = "test-compact-format-property.xml";
-    Configuration conf = new Configuration(false);
-    assertEquals(0, conf.size());
-    ConfigurationUtils.load(conf,
-        Thread.currentThread()
-            .getContextClassLoader().getResource(testfile).openStream());
-    assertEquals(2, conf.size());
-    assertEquals("val1", conf.get("key.1"));
-    assertEquals("val2", conf.get("key.2"));
-  }
 }

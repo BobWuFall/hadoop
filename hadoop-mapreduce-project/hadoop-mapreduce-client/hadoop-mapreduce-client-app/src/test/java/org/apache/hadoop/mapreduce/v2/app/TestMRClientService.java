@@ -285,7 +285,7 @@ public class TestMRClientService {
     Assert.assertEquals(1, amInfo.getContainerId().getApplicationAttemptId()
         .getAttemptId());
     Assert.assertTrue(amInfo.getStartTime() > 0);
-    Assert.assertFalse(jr.isUber());
+    Assert.assertEquals(false, jr.isUber());
   }
   
   private void verifyTaskAttemptReport(TaskAttemptReport tar) {

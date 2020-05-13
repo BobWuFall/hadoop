@@ -64,8 +64,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.apache.hadoop.yarn.service.exceptions.RestApiErrorMessages.ERROR_COMP_DOES_NOT_NEED_UPGRADE;
 import static org.apache.hadoop.yarn.service.exceptions.RestApiErrorMessages.ERROR_COMP_INSTANCE_DOES_NOT_NEED_UPGRADE;
@@ -248,16 +246,6 @@ public class ServiceApiUtil {
     }
   }
 
-  public static void validateJvmOpts(String jvmOpts)
-      throws IllegalArgumentException {
-    Pattern pattern = Pattern.compile("[!~#?@*&%${}()<>\\[\\]|\"\\/,`;]");
-    Matcher matcher = pattern.matcher(jvmOpts);
-    if (matcher.find()) {
-      throw new IllegalArgumentException(
-          RestApiErrorMessages.ERROR_JVM_OPTS);
-    }
-  }
-
   public static void validateKerberosPrincipal(
       KerberosPrincipal kerberosPrincipal) throws IOException {
     if (!StringUtils.isEmpty(kerberosPrincipal.getPrincipalName())) {
@@ -353,6 +341,19 @@ public class ServiceApiUtil {
               RestApiErrorMessages.ERROR_PLACEMENT_POLICY_CONSTRAINT_SCOPE_NULL,
               constraint.getName() == null ? "" : constraint.getName() + " ",
               comp.getName()));
+          }
+          if (constraint.getTargetTags().isEmpty()) {
+            throw new IllegalArgumentException(String.format(
+              RestApiErrorMessages.ERROR_PLACEMENT_POLICY_CONSTRAINT_TAGS_NULL,
+              constraint.getName() == null ? "" : constraint.getName() + " ",
+              comp.getName()));
+          }
+          for (String targetTag : constraint.getTargetTags()) {
+            if (!comp.getName().equals(targetTag)) {
+              throw new IllegalArgumentException(String.format(
+                  RestApiErrorMessages.ERROR_PLACEMENT_POLICY_TAG_NAME_NOT_SAME,
+                  targetTag, comp.getName(), comp.getName(), comp.getName()));
+            }
           }
         }
       }

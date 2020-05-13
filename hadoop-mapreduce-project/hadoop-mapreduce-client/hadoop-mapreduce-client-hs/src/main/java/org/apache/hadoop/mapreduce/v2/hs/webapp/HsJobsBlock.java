@@ -23,12 +23,12 @@ import java.util.Date;
 
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobACLsManager;
-import org.apache.hadoop.mapreduce.JobACL;
+import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.mapreduce.v2.app.AppContext;
 import org.apache.hadoop.mapreduce.v2.app.job.Job;
 import org.apache.hadoop.mapreduce.v2.hs.webapp.dao.JobInfo;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Times;
@@ -49,7 +49,8 @@ public class HsJobsBlock extends HtmlBlock {
     new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z");
   private UserGroupInformation ugi;
   private boolean isFilterAppListByUserEnabled;
-  private JobACLsManager aclsManager;
+  private boolean areAclsEnabled;
+  private AccessControlList adminAclList;
 
   @Inject
   HsJobsBlock(Configuration conf, AppContext appCtx, ViewContext ctx) {
@@ -57,7 +58,8 @@ public class HsJobsBlock extends HtmlBlock {
     appContext = appCtx;
     isFilterAppListByUserEnabled = conf
         .getBoolean(YarnConfiguration.FILTER_ENTITY_LIST_BY_USER, false);
-    aclsManager = new JobACLsManager(conf);
+    areAclsEnabled = conf.getBoolean(MRConfig.MR_ACLS_ENABLED, false);
+    adminAclList = new AccessControlList(conf.get(MRConfig.MR_ADMINS, " "));
   }
 
   /*
@@ -92,8 +94,8 @@ public class HsJobsBlock extends HtmlBlock {
       JobInfo job = new JobInfo(j);
       ugi = getCallerUGI();
       // Allow to list only per-user apps if incoming ugi has permission.
-      if (isFilterAppListByUserEnabled && ugi != null && !aclsManager
-          .checkAccess(ugi, JobACL.VIEW_JOB, job.getUserName(), null)) {
+      if (isFilterAppListByUserEnabled && ugi != null
+          && !checkAccess(job.getUserName())) {
         continue;
       }
       jobsTableData.append("[\"")
@@ -157,5 +159,22 @@ public class HsJobsBlock extends HtmlBlock {
         __().
         __().
         __();
+  }
+
+  private boolean checkAccess(String userName) {
+    if(!areAclsEnabled) {
+      return true;
+    }
+
+    // User could see its own job.
+    if (ugi.getShortUserName().equals(userName)) {
+      return true;
+    }
+
+    // Admin could also see all jobs
+    if (adminAclList != null && adminAclList.isUserAllowed(ugi)) {
+      return true;
+    }
+    return false;
   }
 }

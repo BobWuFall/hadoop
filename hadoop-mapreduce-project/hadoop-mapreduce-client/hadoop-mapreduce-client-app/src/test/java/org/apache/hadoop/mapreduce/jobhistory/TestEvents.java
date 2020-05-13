@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.mapreduce.jobhistory;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -60,16 +59,16 @@ public class TestEvents {
     TaskAttemptFinishedEvent test = new TaskAttemptFinishedEvent(taskAttemptId,
         TaskType.REDUCE, "TEST", 123L, "RAKNAME", "HOSTNAME", "STATUS",
         counters, 234);
-    assertThat(test.getAttemptId().toString())
-        .isEqualTo(taskAttemptId.toString());
-    assertThat(test.getCounters()).isEqualTo(counters);
-    assertThat(test.getFinishTime()).isEqualTo(123L);
-    assertThat(test.getHostname()).isEqualTo("HOSTNAME");
-    assertThat(test.getRackName()).isEqualTo("RAKNAME");
-    assertThat(test.getState()).isEqualTo("STATUS");
-    assertThat(test.getTaskId()).isEqualTo(tid);
-    assertThat(test.getTaskStatus()).isEqualTo("TEST");
-    assertThat(test.getTaskType()).isEqualTo(TaskType.REDUCE);
+    assertEquals(test.getAttemptId().toString(), taskAttemptId.toString());
+
+    assertEquals(test.getCounters(), counters);
+    assertEquals(test.getFinishTime(), 123L);
+    assertEquals(test.getHostname(), "HOSTNAME");
+    assertEquals(test.getRackName(), "RAKNAME");
+    assertEquals(test.getState(), "STATUS");
+    assertEquals(test.getTaskId(), tid);
+    assertEquals(test.getTaskStatus(), "TEST");
+    assertEquals(test.getTaskType(), TaskType.REDUCE);
     assertEquals(234, test.getStartTime());
   }
 
@@ -84,8 +83,8 @@ public class TestEvents {
     org.apache.hadoop.mapreduce.JobID jid = new JobID("001", 1);
     JobPriorityChangeEvent test = new JobPriorityChangeEvent(jid,
         JobPriority.LOW);
-    assertThat(test.getJobId().toString()).isEqualTo(jid.toString());
-    assertThat(test.getPriority()).isEqualTo(JobPriority.LOW);
+    assertEquals(test.getJobId().toString(), jid.toString());
+    assertEquals(test.getPriority(), JobPriority.LOW);
 
   }
   
@@ -94,8 +93,8 @@ public class TestEvents {
     org.apache.hadoop.mapreduce.JobID jid = new JobID("001", 1);
     JobQueueChangeEvent test = new JobQueueChangeEvent(jid,
         "newqueue");
-    assertThat(test.getJobId().toString()).isEqualTo(jid.toString());
-    assertThat(test.getJobQueueName()).isEqualTo("newqueue");
+    assertEquals(test.getJobId().toString(), jid.toString());
+    assertEquals(test.getJobQueueName(), "newqueue");
   }
 
   /**
@@ -108,8 +107,8 @@ public class TestEvents {
     JobID jid = new JobID("001", 1);
     TaskID tid = new TaskID(jid, TaskType.REDUCE, 2);
     TaskUpdatedEvent test = new TaskUpdatedEvent(tid, 1234L);
-    assertThat(test.getTaskId().toString()).isEqualTo(tid.toString());
-    assertThat(test.getFinishTime()).isEqualTo(1234L);
+    assertEquals(test.getTaskId().toString(), tid.toString());
+    assertEquals(test.getFinishTime(), 1234L);
 
   }
 

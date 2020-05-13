@@ -208,7 +208,7 @@ public class QueueManagementDynamicEditPolicy implements SchedulingEditPolicy {
               policyClazz.getClass().getName(), clock.getTime() - startTime);
           if (queueManagementChanges.size() > 0) {
             LOG.debug(" Updated queue management changes for parent queue" + " "
-                    + "{}: [{}]", parentQueue.getQueuePath(),
+                    + "{}: [{}]", parentQueue.getQueueName(),
                 queueManagementChanges.size() < 25 ?
                     queueManagementChanges.toString() :
                     queueManagementChanges.size());
@@ -218,7 +218,7 @@ public class QueueManagementDynamicEditPolicy implements SchedulingEditPolicy {
         LOG.error(
             "Could not compute child queue management updates for parent "
                 + "queue "
-                + parentQueue.getQueuePath(), e);
+                + parentQueue.getQueueName(), e);
       }
     } else{
       LOG.debug("Skipping queue management updates for parent queue {} "

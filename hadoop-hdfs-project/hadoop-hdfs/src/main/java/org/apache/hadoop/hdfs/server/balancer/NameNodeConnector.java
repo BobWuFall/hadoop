@@ -31,8 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.RateLimiter;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -125,7 +123,6 @@ public class NameNodeConnector implements Closeable {
 
   private final int maxNotChangedIterations;
   private int notChangedIterations = 0;
-  private final RateLimiter getBlocksRateLimiter;
 
   public NameNodeConnector(String name, URI nameNodeUri, Path idPath,
                            List<Path> targetPaths, Configuration conf,
@@ -136,16 +133,6 @@ public class NameNodeConnector implements Closeable {
     this.targetPaths = targetPaths == null || targetPaths.isEmpty() ? Arrays
         .asList(new Path("/")) : targetPaths;
     this.maxNotChangedIterations = maxNotChangedIterations;
-    int getBlocksMaxQps = conf.getInt(
-        DFSConfigKeys.DFS_NAMENODE_GETBLOCKS_MAX_QPS_KEY,
-        DFSConfigKeys.DFS_NAMENODE_GETBLOCKS_MAX_QPS_DEFAULT);
-    if (getBlocksMaxQps > 0) {
-      LOG.info("getBlocks calls for {} will be rate-limited to {} per second",
-          nameNodeUri, getBlocksMaxQps);
-      this.getBlocksRateLimiter = RateLimiter.create(getBlocksMaxQps);
-    } else {
-      this.getBlocksRateLimiter = null;
-    }
 
     this.namenode = NameNodeProxies.createProxy(conf, nameNodeUri,
         BalancerProtocols.class, fallbackToSimpleAuth).getProxy();
@@ -182,10 +169,8 @@ public class NameNodeConnector implements Closeable {
 
   /** @return blocks with locations. */
   public BlocksWithLocations getBlocks(DatanodeInfo datanode, long size, long
-      minBlockSize) throws IOException {
-    if (getBlocksRateLimiter != null) {
-      getBlocksRateLimiter.acquire();
-    }
+      minBlockSize)
+      throws IOException {
     return namenode.getBlocks(datanode, size, minBlockSize);
   }
 

@@ -57,15 +57,14 @@ public final class ResourceTypesTestHelper {
     Resource resource = RECORD_FACTORY.newRecordInstance(Resource.class);
     resource.setMemorySize(memory);
     resource.setVirtualCores(vCores);
-    if (customResources != null) {
-      for (Map.Entry<String, String> customResource :
-          customResources.entrySet()) {
-        String resourceName = customResource.getKey();
-        ResourceInformation resourceInformation =
-            createResourceInformation(resourceName,
-                customResource.getValue());
-        resource.setResourceInformation(resourceName, resourceInformation);
-      }
+
+    for (Map.Entry<String, String> customResource :
+            customResources.entrySet()) {
+      String resourceName = customResource.getKey();
+      ResourceInformation resourceInformation =
+              createResourceInformation(resourceName,
+                      customResource.getValue());
+      resource.setResourceInformation(resourceName, resourceInformation);
     }
     return resource;
   }
@@ -108,12 +107,7 @@ public final class ResourceTypesTestHelper {
   public static Map<String, String> extractCustomResourcesAsStrings(
       Resource res) {
     Map<String, Long> resValues = extractCustomResources(res);
-    return convertCustomResources(resValues);
-  }
-
-  public static Map<String, String> convertCustomResources(
-      Map<String, ? extends Number> customResources) {
-    return customResources.entrySet().stream()
+    return resValues.entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey, e -> String.valueOf(e.getValue())));
   }

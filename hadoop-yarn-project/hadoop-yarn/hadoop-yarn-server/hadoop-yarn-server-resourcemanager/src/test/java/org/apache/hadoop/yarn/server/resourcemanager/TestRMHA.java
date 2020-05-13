@@ -142,7 +142,7 @@ public class TestRMHA {
     try {
       rm.getNewAppId();
       nm = rm.registerNode("127.0.0.1:1", 2048);
-      app = MockRMAppSubmitter.submitWithMemory(1024, rm);
+      app = rm.submitApp(1024);
       attempt = app.getCurrentAppAttempt();
       rm.waitForState(attempt.getAppAttemptId(), RMAppAttemptState.SCHEDULED);
     } catch (Exception e) {

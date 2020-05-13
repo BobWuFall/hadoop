@@ -194,37 +194,6 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     return rm;
   }
 
-  private RMApp submitApp(MockRM rm, List<ResourceRequest> amResourceRequests,
-      String appNodeLabel) throws Exception {
-    int maxAttempts =
-        rm.getConfig().getInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS,
-            YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS);
-    MockRMAppSubmissionData data = MockRMAppSubmissionData.Builder.create()
-        .withAmResourceRequests(amResourceRequests)
-        .withAppName("app1")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue(null)
-        .withMaxAppAttempts(maxAttempts)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(false)
-        .withApplicationId(null)
-        .withAttemptFailuresValidityInterval(0)
-        .withLogAggregationContext(null)
-        .withCancelTokensWhenComplete(true)
-        .withAppPriority(amResourceRequests.get(0).getPriority())
-        .withAmLabel(amResourceRequests.get(0).getNodeLabelExpression())
-        .withApplicationTimeouts(null)
-        .withTokensConf(null)
-        .withApplicationTags(null)
-        .withAppNodeLabel(appNodeLabel)
-        .build();
-    return MockRMAppSubmitter.submit(rm, data);
-  }
-
   @Test (timeout=180000)
   public void testRMRestart() throws Exception {
     conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS,
@@ -248,7 +217,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm2.registerNode(); // nm2 will not heartbeat with RM1
     
     // create app that will finish and the final state should be saved.
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     RMAppAttempt attempt0 = app0.getCurrentAppAttempt();
     // spot check that app is saved
     Assert.assertEquals(1, rmAppState.size());
@@ -258,7 +227,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     finishApplicationMaster(app0, rm1, nm1, am0);
 
     // create app that gets launched and does allocate before RM restart
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app1 = rm1.submitApp(200);
     // assert app1 info is saved
     ApplicationStateData appState = rmAppState.get(app1.getApplicationId());
     Assert.assertNotNull(appState);
@@ -299,7 +268,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     }
     
     // create app that does not get launched by RM before RM restart
-    RMApp app2 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app2 = rm1.submitApp(200);
 
     // assert app2 info is saved
     appState = rmAppState.get(app2.getApplicationId());
@@ -310,18 +279,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
         .getApplicationId());
     
     // create unmanaged app
-    RMApp appUnmanaged = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("someApp")
-            .withUser("someUser")
-            .withAcls(null)
-            .withUnmanagedAM(true)
-            .withQueue(null)
-            .withMaxAppAttempts(
-                conf.getInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS,
-                YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS))
-            .withCredentials(null)
-            .build());
+    RMApp appUnmanaged = rm1.submitApp(200, "someApp", "someUser", null, true,
+        null, conf.getInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS,
+          YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS), null);
     ApplicationAttemptId unmanagedAttemptId = 
                         appUnmanaged.getCurrentAppAttempt().getAppAttemptId();
     // assert appUnmanaged info is saved
@@ -523,7 +483,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
             Resource.newInstance(200, 1), 1, true, amLabel.getName());
     ArrayList resReqs = new ArrayList<>();
     resReqs.add(amResourceRequest);
-    RMApp app0 = submitApp(rm1, resReqs, appLabel.getName());
+    RMApp app0 = rm1.submitApp(resReqs, appLabel.getName());
     rm1.killApp(app0.getApplicationId());
     rm1.waitForState(app0.getApplicationId(), RMAppState.KILLED);
     // start new RM
@@ -549,14 +509,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     rm1.start();
     // create app and launch the AM
     RMApp app0 =
-        MockRMAppSubmitter.submit(rm1,
-            MockRMAppSubmissionData.Builder.createWithResource(null, rm1)
-                .withAppName("name")
-                .withUser("user")
-                .withAcls(new HashMap<>())
-                .withUnmanagedAM(true)
-                .withQueue("default")
-                .build());
+        rm1.submitApp(null, "name", "user", new HashMap<>(), true, "default");
     rm1.killApp(app0.getApplicationId());
     rm1.waitForState(app0.getApplicationId(), RMAppState.KILLED);
     // start new RM
@@ -587,21 +540,10 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create app and launch the AM
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-        .withAppName("name")
-        .withUser("user")
-        .withAcls(new HashMap<ApplicationAccessType, String>())
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(-1)
-        .withCredentials(null)
-        .withAppType("MAPREDUCE")
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
     RMApp app0 =
-        MockRMAppSubmitter.submit(rm1, data);
+        rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", -1,
+          null, "MAPREDUCE", true, true);
     MockAM am0 = launchAM(app0, rm1, nm1);
 
     // fail the AM by sending CONTAINER_FINISHED event without registering.
@@ -656,7 +598,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // submitting app
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app1 = rm1.submitApp(200);
     rm1.waitForState(app1.getApplicationId(), RMAppState.ACCEPTED);
     MockAM am1 = launchAM(app1, rm1, nm1);
     nm1.nodeHeartbeat(am1.getApplicationAttemptId(), 1, ContainerState.COMPLETE);
@@ -764,7 +706,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     // It will be saved only when we launch AM.
 
     // submitting app but not starting AM for it.
-    RMApp app2 = MockRMAppSubmitter.submitWithMemory(200, rm3);
+    RMApp app2 = rm3.submitApp(200);
     rm3.waitForState(app2.getApplicationId(), RMAppState.ACCEPTED);
     Assert.assertEquals(1, app2.getAppAttempts().size());
     Assert.assertEquals(0,
@@ -812,14 +754,13 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
       @Override
       public void updateApplicationStateInternal(ApplicationId appId,
           ApplicationStateData appStateData) throws Exception {
-        if (count == 1) {
-          // Application state is updated on attempt launch.
-          // After that, do nothing; simulate app final state is not saved.
+        if (count == 0) {
+          // do nothing; simulate app final state is not saved.
           LOG.info(appId + " final state is not saved.");
+          count++;
         } else {
           super.updateApplicationStateInternal(appId, appStateData);
         }
-        count++;
       }
     };
     memStore.init(conf);
@@ -831,8 +772,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     MockRM rm1 = createMockRM(conf, memStore);
     rm1.start();
     MockNM nm1 = rm1.registerNode("127.0.0.1:1234", 15120);
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = MockRM.launchAndRegisterAM(app0, rm1, nm1);
+
     FinishApplicationMasterRequest req =
         FinishApplicationMasterRequest.newInstance(
           FinalApplicationStatus.SUCCEEDED, "", "");
@@ -872,7 +814,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create app and launch the AM
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = launchAM(app0, rm1, nm1);
 
     // fail the AM by sending CONTAINER_FINISHED event without registering.
@@ -920,7 +862,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create app and launch the AM
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = launchAM(app0, rm1, nm1);
 
     // kill the app.
@@ -976,18 +918,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     rm1.start();
     // create app
     RMApp app0 =
-        MockRMAppSubmitter.submit(rm1,
-            MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-                .withAppName("name")
-                .withUser("user")
-                .withAcls(new HashMap<ApplicationAccessType, String>())
-                .withUnmanagedAM(false)
-                .withQueue("default")
-                .withMaxAppAttempts(-1)
-                .withCredentials(null)
-                .withAppType("MAPREDUCE")
-                .withWaitForAppAcceptedState(false)
-                .build());
+        rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", -1,
+          null, "MAPREDUCE", false);
     // kill the app.
     rm1.killApp(app0.getApplicationId());
     rm1.waitForState(app0.getApplicationId(), RMAppState.KILLED);
@@ -1019,7 +952,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create an app and finish the app.
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = launchAM(app0, rm1, nm1);
 
     // unregister am
@@ -1070,32 +1003,14 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
         (MockMemoryRMStateStore) rm1.getRMStateStore();
 
     // a succeeded app.
-    RMApp app0 = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(null)
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(null)
-            .withAppType("myType")
-            .build());
+    RMApp app0 = rm1.submitApp(200, "name", "user", null,
+      false, "default", 1, null, "myType");
     MockAM am0 = launchAM(app0, rm1, nm1);
     finishApplicationMaster(app0, rm1, nm1, am0);
 
     // a failed app.
-    RMApp app1 = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(null)
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(null)
-            .withAppType("myType")
-            .build());
+    RMApp app1 = rm1.submitApp(200, "name", "user", null,
+      false, "default", 1, null, "myType");
     MockAM am1 = launchAM(app1, rm1, nm1);
     // fail the AM by sending CONTAINER_FINISHED event without registering.
     nm1.nodeHeartbeat(am1.getApplicationAttemptId(), 1, ContainerState.COMPLETE);
@@ -1103,17 +1018,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     rm1.waitForState(app1.getApplicationId(), RMAppState.FAILED);
 
     // a killed app.
-    RMApp app2 = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(null)
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(null)
-            .withAppType("myType")
-            .build());
+    RMApp app2 = rm1.submitApp(200, "name", "user", null,
+      false, "default", 1, null, "myType");
     MockAM am2 = launchAM(app2, rm1, nm1);
     rm1.killApp(app2.getApplicationId());
     rm1.waitForState(app2.getApplicationId(), RMAppState.KILLED);
@@ -1256,27 +1162,13 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // submit an app with maxAppAttempts equals to 1
-    RMApp app1 = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(null)
-            .build());
+    RMApp app1 = rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", 1,
+          null);
     // submit an app with maxAppAttempts equals to -1
-    RMApp app2 = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(-1)
-            .withCredentials(null)
-            .build());
+    RMApp app2 = rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", -1,
+          null);
 
     // assert app1 info is saved
     ApplicationStateData appState = rmAppState.get(app1.getApplicationId());
@@ -1340,16 +1232,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
       nm1.registerNode();
 
       // submit an app.
-      RMApp app = MockRMAppSubmitter.submit(rm1,
-          MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-              .withAppName("name")
-              .withUser("user")
-              .withAcls(new HashMap<ApplicationAccessType, String>())
-              .withUnmanagedAM(false)
-              .withQueue("default")
-              .withMaxAppAttempts(-1)
-              .withCredentials(null)
-              .build());
+      RMApp app = rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", -1,
+          null);
       // Check if app info has been saved.
       ApplicationStateData appState = rmAppState.get(app.getApplicationId());
       Assert.assertNotNull(appState);
@@ -1436,16 +1321,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     tokenSet.add(token2);
 
     // submit an app with customized credential
-    RMApp app = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(ts)
-            .build());
+    RMApp app = rm1.submitApp(200, "name", "user",
+        new HashMap<ApplicationAccessType, String>(), false, "default", 1, ts);
 
     // assert app info is saved
     ApplicationStateData appState = rmAppState.get(app.getApplicationId());
@@ -1512,16 +1389,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // submit an app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withQueue("default")
-            .withUnmanagedAM(false)
-            .build();
     RMApp app1 =
-        MockRMAppSubmitter.submit(rm1, data);
+        rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), "default");
 
     // assert app info is saved
     ApplicationStateData appState = rmAppState.get(app1.getApplicationId());
@@ -1622,16 +1492,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     tokenIdentSet.add(dtId1);
 
     // submit an app with customized credential
-    RMApp app = MockRMAppSubmitter.submit(rm1,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(ts)
-            .build());
+    RMApp app = rm1.submitApp(200, "name", "user",
+        new HashMap<ApplicationAccessType, String>(), false, "default", 1, ts);
 
     // assert app info is saved
     ApplicationStateData appState = rmAppState.get(app.getApplicationId());
@@ -1762,16 +1624,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     // submit an app with the old delegation token got from previous RM.
     Credentials ts = new Credentials();
     ts.addToken(token1.getService(), token1);
-    RMApp app = MockRMAppSubmitter.submit(rm2,
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm2)
-            .withAppName("name")
-            .withUser("user")
-            .withAcls(new HashMap<ApplicationAccessType, String>())
-            .withUnmanagedAM(false)
-            .withQueue("default")
-            .withMaxAppAttempts(1)
-            .withCredentials(ts)
-            .build());
+    RMApp app = rm2.submitApp(200, "name", "user",
+        new HashMap<ApplicationAccessType, String>(), false, "default", 1, ts);
     rm2.waitForState(app.getApplicationId(), RMAppState.ACCEPTED);
   }
 
@@ -1811,18 +1665,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     final int NUM_APPS = 5;
 
     for (int i = 0; i < NUM_APPS; i++) {
-      RMApp app = MockRMAppSubmitter.submit(rm1,
-          MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-              .withAppName("name")
-              .withUser("user")
-              .withAcls(new HashMap<ApplicationAccessType, String>())
-              .withUnmanagedAM(false)
-              .withQueue("default")
-              .withMaxAppAttempts(-1)
-              .withCredentials(null)
-              .withAppType("MAPREDUCE")
-              .withWaitForAppAcceptedState(false)
-              .build());
+      RMApp app = rm1.submitApp(200, "name", "user",
+            new HashMap<ApplicationAccessType, String>(), false,
+            "default", -1, null, "MAPREDUCE", false);
       appList.add(app);
       rm1.waitForState(app.getApplicationId(), RMAppState.NEW_SAVING);
     }
@@ -1865,7 +1710,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create an app and finish the app.
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = launchAM(app0, rm1, nm1);
     finishApplicationMaster(app0, rm1, nm1, am0);
 
@@ -1883,7 +1728,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     rm2.waitForState(app0.getApplicationId(), RMAppState.FINISHED);
 
     // create one more app and finish the app.
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(200, rm2);
+    RMApp app1 = rm2.submitApp(200);
     MockAM am1 = launchAM(app1, rm2, nm1);
     finishApplicationMaster(app1, rm2, nm1, am1);
     rm2.drainEvents();
@@ -1933,17 +1778,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     RMApp app1 =
-        MockRMAppSubmitter.submit(rm1,
-            MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-                .withAppName("name")
-                .withUser("user")
-                .withAcls(null)
-                .withUnmanagedAM(false)
-                .withQueue("default")
-                .withMaxAppAttempts(1)
-                .withCredentials(null)
-                .withAppType("myType")
-                .build());
+        rm1.submitApp(200, "name", "user", null, false, "default", 1, null,
+          "myType");
     MockAM am1 = launchAM(app1, rm1, nm1);
 
     KillApplicationResponse response;
@@ -1962,11 +1798,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
 
     rm1.waitForState(am1.getApplicationAttemptId(), RMAppAttemptState.KILLED);
     rm1.waitForState(app1.getApplicationId(), RMAppState.KILLED);
-    // count = 1 on storing RMApp launchTime
-    // count = 2 on storing attempt state on kill
-    // count = 3 on storing app state on kill
-    Assert.assertEquals(2, ((TestMemoryRMStateStore) memStore).updateAttempt);
-    Assert.assertEquals(3, ((TestMemoryRMStateStore) memStore).updateApp);
+    Assert.assertEquals(1, ((TestMemoryRMStateStore) memStore).updateAttempt);
+    Assert.assertEquals(2, ((TestMemoryRMStateStore) memStore).updateApp);
   }
 
   // Test Application that fails on submission is saved in state store.
@@ -1992,18 +1825,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
         (MockMemoryRMStateStore) rm1.getRMStateStore();
     RMApp app1 = null;
     try {
-      app1 = MockRMAppSubmitter.submit(rm1,
-          MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-              .withAppName("name")
-              .withUser("user")
-              .withAcls(new HashMap<ApplicationAccessType, String>())
-              .withUnmanagedAM(false)
-              .withQueue("default")
-              .withMaxAppAttempts(-1)
-              .withCredentials(null)
-              .withAppType("MAPREDUCE")
-              .withWaitForAppAcceptedState(false)
-              .build());
+       app1 = rm1.submitApp(200, "name", "user",
+          new HashMap<ApplicationAccessType, String>(), false, "default", -1,
+          null, "MAPREDUCE", false);
       Assert.fail();
     } catch (Exception e) {
 
@@ -2088,7 +1912,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     assertQueueMetrics(qm1, 0, 0, 0, 0);
 
     // create app that gets launched and does allocate before RM restart
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app1 = rm1.submitApp(200);
     // Need to wait first for AppAttempt to be started (RMAppState.ACCEPTED)
     // and then for it to reach RMAppAttemptState.SCHEDULED
     // inorder to ensure appsPending metric is incremented
@@ -2283,7 +2107,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     final MockNM nm1 =
         new MockNM("127.0.0.1:1234", 15120, rm1.getResourceTrackerService());
     nm1.registerNode();
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     final MockAM am0 = MockRM.launchAndRegisterAM(app0, rm1, nm1);
 
     MockRM rm2 = new TestSecurityMockRM(conf, rm1.getRMStateStore()) {
@@ -2540,7 +2364,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create app and launch the AM
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
     MockAM am0 = launchAM(app0, rm1, nm1);
 
     ApplicationId applicationId = app0.getApplicationId();
@@ -2669,7 +2493,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
     int CONTAINER_MEMORY = 1024;
     // create app and launch the AM
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(CONTAINER_MEMORY, rm1);
+    RMApp app0 = rm1.submitApp(CONTAINER_MEMORY);
     MockAM am0 = MockRM.launchAM(app0, rm1, nm1);
     nm1.nodeHeartbeat(am0.getApplicationAttemptId(), 1,
         ContainerState.COMPLETE);
@@ -2723,7 +2547,9 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     nm1.registerNode();
 
     // create an app and finish the app.
-    RMApp app0 = MockRMAppSubmitter.submitWithMemory(200, rm1);
+    RMApp app0 = rm1.submitApp(200);
+    ApplicationStateData app0State = memStore.getState().getApplicationState()
+        .get(app0.getApplicationId());
 
     MockAM am0 = launchAndFailAM(app0, rm1, nm1);
     MockAM am1 = launchAndFailAM(app0, rm1, nm1);
@@ -2732,8 +2558,6 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
 
     // am1 is missed from MemoryRMStateStore
     memStore.removeApplicationAttemptInternal(am1.getApplicationAttemptId());
-    ApplicationStateData app0State = memStore.getState().getApplicationState()
-        .get(app0.getApplicationId());
     ApplicationAttemptStateData am2State = app0State.getAttempt(
         am2.getApplicationAttemptId());
     // am2's state is not consistent: MemoryRMStateStore just saved its initial
@@ -2815,15 +2639,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     MockNM nm1 = rm1.registerNode("h1:1234", 8000); // label = x
 
     // submit an application with specifying am node label expression as "x"
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm1)
-            .withAppName("someApp")
-            .withUser("someUser")
-            .withAcls(null)
-            .withQueue("a1")
-            .withAmLabel("x")
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm1, data);
+    RMApp app1 = rm1.submitApp(200, "someApp", "someUser", null, "a1", "x");
     // check am container allocated with correct node label expression
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nm1);
     ContainerId  amContainerId1 =
@@ -2889,13 +2705,8 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
 
     // Submit an application
     Priority appPriority1 = Priority.newInstance(5);
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(2048, rm)
-            .withAppPriority(appPriority1)
-            .withCredentials(getCreds())
-            .withTokensConf(getTokensConf())
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app1 = rm.submitApp(2048, appPriority1,
+        getCreds(), getTokensConf());
 
     nm1.nodeHeartbeat(true);
     RMAppAttempt attempt1 = app1.getCurrentAppAttempt();
@@ -2967,7 +2778,7 @@ public class TestRMRestart extends ParameterizedSchedulerTestBase {
     // Register node1
     MockNM nm1 = rm.registerNode("127.0.0.1:1234", 6 * 1024);
 
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(2048, rm);
+    RMApp app1 = rm.submitApp(2048);
 
     nm1.nodeHeartbeat(true);
     RMAppAttempt attempt1 = app1.getCurrentAppAttempt();

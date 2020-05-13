@@ -39,11 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class NodeAllocation {
   private NodeId nodeId;
-  private long timestamp;
+  private long timeStamp;
   private ContainerId containerId = null;
   private AllocationState containerState = AllocationState.DEFAULT;
   private List<AllocationActivity> allocationOperations;
-  private String partition;
 
   private ActivityNode root = null;
 
@@ -56,10 +55,10 @@ public class NodeAllocation {
   }
 
   public void addAllocationActivity(String parentName, String childName,
-      Integer priority, ActivityState state, String diagnostic,
-      ActivityLevel level, NodeId nId, Long allocationRequestId) {
+      String priority, ActivityState state, String diagnostic, String type,
+      NodeId nId, String allocationRequestId) {
     AllocationActivity allocate = new AllocationActivity(parentName, childName,
-        priority, state, diagnostic, level, nId, allocationRequestId);
+        priority, state, diagnostic, type, nId, allocationRequestId);
     this.allocationOperations.add(allocate);
   }
 
@@ -114,12 +113,12 @@ public class NodeAllocation {
     }
   }
 
-  public void setTimestamp(long timestamp) {
-    this.timestamp = timestamp;
+  public void setTimeStamp(long timeStamp) {
+    this.timeStamp = timeStamp;
   }
 
-  public long getTimestamp() {
-    return this.timestamp;
+  public long getTimeStamp() {
+    return this.timeStamp;
   }
 
   public AllocationState getFinalAllocationState() {
@@ -138,13 +137,5 @@ public class NodeAllocation {
 
   public NodeId getNodeId() {
     return nodeId;
-  }
-
-  public String getPartition() {
-    return partition;
-  }
-
-  public void setPartition(String partition) {
-    this.partition = partition;
   }
 }

@@ -43,7 +43,7 @@ import org.apache.hadoop.yarn.server.api.protocolrecords.impl.pb.GetTimelineColl
 import org.apache.hadoop.yarn.server.api.protocolrecords.impl.pb.ReportNewCollectorInfoRequestPBImpl;
 import org.apache.hadoop.yarn.server.api.protocolrecords.impl.pb.ReportNewCollectorInfoResponsePBImpl;
 
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.ServiceException;
 
 public class CollectorNodemanagerProtocolPBClientImpl implements
     CollectorNodemanagerProtocol, Closeable {

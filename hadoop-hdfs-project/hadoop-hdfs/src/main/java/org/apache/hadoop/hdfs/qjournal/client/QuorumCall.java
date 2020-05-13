@@ -17,8 +17,6 @@
  */
 package org.apache.hadoop.hdfs.qjournal.client;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeoutException;
@@ -35,8 +33,8 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.apache.hadoop.thirdparty.protobuf.Message;
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
 
 
 /**
@@ -66,7 +64,6 @@ class QuorumCall<KEY, RESULT> {
   private static final float WAIT_PROGRESS_WARN_THRESHOLD = 0.7f;
   private final StopWatch quorumStopWatch;
   private final Timer timer;
-  private final List<ListenableFuture<RESULT>> allCalls;
   
   static <KEY, RESULT> QuorumCall<KEY, RESULT> create(
       Map<KEY, ? extends ListenableFuture<RESULT>> calls, Timer timer) {
@@ -74,7 +71,6 @@ class QuorumCall<KEY, RESULT> {
     for (final Entry<KEY, ? extends ListenableFuture<RESULT>> e : calls.entrySet()) {
       Preconditions.checkArgument(e.getValue() != null,
           "null future for key: " + e.getKey());
-      qr.addCall(e.getValue());
       Futures.addCallback(e.getValue(), new FutureCallback<RESULT>() {
         @Override
         public void onFailure(Throwable t) {
@@ -106,11 +102,6 @@ class QuorumCall<KEY, RESULT> {
     // Only instantiated from factory method above
     this.timer = timer;
     this.quorumStopWatch = new StopWatch(timer);
-    this.allCalls = new ArrayList<>();
-  }
-
-  private void addCall(ListenableFuture<RESULT> call) {
-    allCalls.add(call);
   }
 
   /**
@@ -217,15 +208,6 @@ class QuorumCall<KEY, RESULT> {
       if (timeoutIncrease > 0) {
         et += timeoutIncrease;
       }
-    }
-  }
-
-  /**
-   * Cancel any outstanding calls.
-   */
-  void cancelCalls() {
-    for (ListenableFuture<RESULT> call : allCalls) {
-      call.cancel(true);
     }
   }
 

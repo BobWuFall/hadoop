@@ -363,7 +363,6 @@ public class SingleConstraintAppPlacementAllocator<N extends SchedulerNode>
           placementConstraintManager, allocationTagsManager, dcOpt);
     } catch (InvalidAllocationTagsQueryException e) {
       LOG.warn("Failed to query node cardinality:", e);
-      this.incrementPlacementAttempt();
       return false;
     }
   }

@@ -35,13 +35,11 @@ public class RoleTokenIdentifier extends SessionTokenIdentifier {
 
   public RoleTokenIdentifier(final URI uri,
       final Text owner,
-      final Text renewer,
       final MarshalledCredentials marshalledCredentials,
       final EncryptionSecrets encryptionSecrets,
       final String origin) {
     super(DelegationConstants.ROLE_TOKEN_KIND,
         owner,
-        renewer,
         uri,
         marshalledCredentials,
         encryptionSecrets,

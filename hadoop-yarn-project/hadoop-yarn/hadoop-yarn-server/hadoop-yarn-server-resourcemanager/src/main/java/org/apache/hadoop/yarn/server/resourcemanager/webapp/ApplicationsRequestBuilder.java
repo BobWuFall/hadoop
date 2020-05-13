@@ -44,7 +44,6 @@ public class ApplicationsRequestBuilder {
   private long finishTimeEnd = Long.MAX_VALUE;
   private Set<String> appTypes = Sets.newHashSet();
   private Set<String> appTags = Sets.newHashSet();
-  private String name = null;
   private ResourceManager rm;
 
   private ApplicationsRequestBuilder() {
@@ -138,11 +137,6 @@ public class ApplicationsRequestBuilder {
     return this;
   }
 
-  public ApplicationsRequestBuilder withName(String applicationName) {
-    name = applicationName;
-    return this;
-  }
-
   private void validate() {
     queues.forEach(q -> validateQueueExists(rm, q));
     validateLimit();
@@ -230,9 +224,6 @@ public class ApplicationsRequestBuilder {
     }
     if (!appTags.isEmpty()) {
       request.setApplicationTags(appTags);
-    }
-    if (name != null) {
-      request.setName(name);
     }
 
     return request;

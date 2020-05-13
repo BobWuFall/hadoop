@@ -71,20 +71,10 @@ public class FileSystemBasedConfigurationProvider
   @Override
   public synchronized void initInternal(Configuration bootstrapConf)
       throws Exception {
-    Configuration conf = new Configuration(bootstrapConf);
     configDir =
-        new Path(conf.get(YarnConfiguration.FS_BASED_RM_CONF_STORE,
+        new Path(bootstrapConf.get(YarnConfiguration.FS_BASED_RM_CONF_STORE,
             YarnConfiguration.DEFAULT_FS_BASED_RM_CONF_STORE));
-    String scheme = configDir.toUri().getScheme();
-    if (scheme == null) {
-      scheme = FileSystem.getDefaultUri(conf).getScheme();
-    }
-    if (scheme != null) {
-      String disableCacheName = String.format("fs.%s.impl.disable.cache",
-          scheme);
-      conf.setBoolean(disableCacheName, true);
-    }
-    fs = configDir.getFileSystem(conf);
+    fs = configDir.getFileSystem(bootstrapConf);
     fs.mkdirs(configDir);
   }
 

@@ -32,7 +32,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.htrace.core.Span;
 import org.apache.htrace.core.Tracer;
 
-import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import com.google.protobuf.ByteString;
 
 public abstract class ProtoUtil {
 

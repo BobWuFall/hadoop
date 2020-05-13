@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -41,10 +40,7 @@ import com.google.common.collect.Lists;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedListEntries;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.hadoop.hdfs.DFSUtil;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.OpenFileEntry;
 import org.apache.hadoop.hdfs.protocol.OpenFilesIterator;
@@ -86,7 +82,7 @@ public class LeaseManager {
       .getName());
   private final FSNamesystem fsnamesystem;
   private long softLimit = HdfsConstants.LEASE_SOFTLIMIT_PERIOD;
-  private long hardLimit;
+  private long hardLimit = HdfsConstants.LEASE_HARDLIMIT_PERIOD;
   static final int INODE_FILTER_WORKER_COUNT_MAX = 4;
   static final int INODE_FILTER_WORKER_TASK_MIN = 512;
   private long lastHolderUpdateTime;
@@ -114,10 +110,7 @@ public class LeaseManager {
   private volatile boolean shouldRunMonitor;
 
   LeaseManager(FSNamesystem fsnamesystem) {
-    Configuration conf = new Configuration();
     this.fsnamesystem = fsnamesystem;
-    this.hardLimit = conf.getLong(DFSConfigKeys.DFS_LEASE_HARDLIMIT_KEY,
-        DFSConfigKeys.DFS_LEASE_HARDLIMIT_DEFAULT) * 1000;
     updateInternalLeaseHolder();
   }
 
@@ -309,9 +302,7 @@ public class LeaseManager {
 
     int count = 0;
     String fullPathName = null;
-    Iterator<Long> inodeIdIterator = inodeIds.iterator();
-    while (inodeIdIterator.hasNext()) {
-      Long inodeId = inodeIdIterator.next();
+    for (Long inodeId: inodeIds) {
       final INodeFile inodeFile =
           fsnamesystem.getFSDirectory().getInode(inodeId).asFile();
       if (!inodeFile.isUnderConstruction()) {
@@ -321,8 +312,7 @@ public class LeaseManager {
       }
 
       fullPathName = inodeFile.getFullPathName();
-      if (StringUtils.isEmpty(path) ||
-          DFSUtil.isParentEntry(fullPathName, path)) {
+      if (StringUtils.isEmpty(path) || fullPathName.startsWith(path)) {
         openFileEntries.add(new OpenFileEntry(inodeFile.getId(), fullPathName,
             inodeFile.getFileUnderConstructionFeature().getClientName(),
             inodeFile.getFileUnderConstructionFeature().getClientMachine()));
@@ -333,8 +323,7 @@ public class LeaseManager {
         break;
       }
     }
-    // avoid rescanning all leases when we have checked all leases already
-    boolean hasMore = inodeIdIterator.hasNext();
+    boolean hasMore = (numResponses < remainingLeases.size());
     return new BatchedListEntries<>(openFileEntries, hasMore);
   }
 

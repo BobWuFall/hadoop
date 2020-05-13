@@ -19,8 +19,7 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.io.IOException;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -28,7 +27,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.PathHandle;
-import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockProto;
 import org.apache.hadoop.hdfs.server.common.FileRegion;
@@ -54,36 +52,21 @@ public class TreePath {
   private final FileStatus stat;
   private final TreeWalk.TreeIterator i;
   private final FileSystem fs;
-  private final AclStatus acls;
 
-  @VisibleForTesting
-  public TreePath(FileStatus stat, long parentId, TreeWalk.TreeIterator i) {
-    this(stat, parentId, i, null, null);
-  }
-
-  public TreePath(FileStatus stat, long parentId, TreeWalk.TreeIterator i,
-      FileSystem fs, AclStatus acls) {
+  protected TreePath(FileStatus stat, long parentId, TreeWalk.TreeIterator i,
+      FileSystem fs) {
     this.i = i;
     this.stat = stat;
     this.parentId = parentId;
     this.fs = fs;
-    this.acls = acls;
   }
 
   public FileStatus getFileStatus() {
     return stat;
   }
 
-  public AclStatus getAclStatus() {
-    return acls;
-  }
-
   public long getParentId() {
     return parentId;
-  }
-
-  public TreeWalk.TreeIterator getIterator() {
-    return i;
   }
 
   public long getId() {
@@ -93,8 +76,8 @@ public class TreePath {
     return id;
   }
 
-  public void accept(long pathId) {
-    this.id = pathId;
+  void accept(long id) {
+    this.id = id;
     i.onAccept(this, id);
   }
 
@@ -138,14 +121,14 @@ public class TreePath {
   INode toFile(UGIResolver ugi, BlockResolver blk,
       BlockAliasMap.Writer<FileRegion> out) throws IOException {
     final FileStatus s = getFileStatus();
-    final AclStatus aclStatus = getAclStatus();
-    long permissions = ugi.getPermissionsProto(s, aclStatus);
+    ugi.addUser(s.getOwner());
+    ugi.addGroup(s.getGroup());
     INodeFile.Builder b = INodeFile.newBuilder()
         .setReplication(blk.getReplication(s))
         .setModificationTime(s.getModificationTime())
         .setAccessTime(s.getAccessTime())
         .setPreferredBlockSize(blk.preferredBlockSize(s))
-        .setPermission(permissions)
+        .setPermission(ugi.resolve(s))
         .setStoragePolicyID(HdfsConstants.PROVIDED_STORAGE_POLICY_ID);
 
     // pathhandle allows match as long as the file matches exactly.
@@ -158,11 +141,7 @@ public class TreePath {
             "Exact path handle not supported by filesystem " + fs.toString());
       }
     }
-    if (aclStatus != null) {
-      throw new UnsupportedOperationException(
-          "ACLs not supported by ImageWriter");
-    }
-    //TODO: storage policy should be configurable per path; use BlockResolver
+    // TODO: storage policy should be configurable per path; use BlockResolver
     long off = 0L;
     for (BlockProto block : blk.resolve(s)) {
       b.addBlocks(block);
@@ -180,17 +159,13 @@ public class TreePath {
 
   INode toDirectory(UGIResolver ugi) {
     final FileStatus s = getFileStatus();
-    final AclStatus aclStatus = getAclStatus();
-    long permissions = ugi.getPermissionsProto(s, aclStatus);
+    ugi.addUser(s.getOwner());
+    ugi.addGroup(s.getGroup());
     INodeDirectory.Builder b = INodeDirectory.newBuilder()
         .setModificationTime(s.getModificationTime())
         .setNsQuota(DEFAULT_NAMESPACE_QUOTA)
         .setDsQuota(DEFAULT_STORAGE_SPACE_QUOTA)
-        .setPermission(permissions);
-    if (aclStatus != null) {
-      throw new UnsupportedOperationException(
-          "ACLs not supported by ImageWriter");
-    }
+        .setPermission(ugi.resolve(s));
     INode.Builder ib = INode.newBuilder()
         .setType(INode.Type.DIRECTORY)
         .setId(id)

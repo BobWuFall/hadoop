@@ -84,12 +84,10 @@ public class NodesListManager extends CompositeService implements
   private Resolver resolver;
   private Timer removalTimer;
   private int nodeRemovalCheckInterval;
-  private Set<RMNode> gracefulDecommissionableNodes;
 
   public NodesListManager(RMContext rmContext) {
     super(NodesListManager.class.getName());
     this.rmContext = rmContext;
-    this.gracefulDecommissionableNodes = ConcurrentHashMap.newKeySet();
   }
 
   @Override
@@ -117,7 +115,7 @@ public class NodesListManager extends CompositeService implements
       this.hostsReader =
           createHostsFileReader(this.includesFile, this.excludesFile);
       setDecommissionedNMs();
-      printConfiguredHosts(false);
+      printConfiguredHosts();
     } catch (YarnException ex) {
       disableHostsFileReader(ex);
     } catch (IOException ioe) {
@@ -189,7 +187,7 @@ public class NodesListManager extends CompositeService implements
     removalTimer.cancel();
   }
 
-  private void printConfiguredHosts(boolean graceful) {
+  private void printConfiguredHosts() {
     if (!LOG.isDebugEnabled()) {
       return;
     }
@@ -200,12 +198,7 @@ public class NodesListManager extends CompositeService implements
         conf.get(YarnConfiguration.RM_NODES_EXCLUDE_FILE_PATH,
             YarnConfiguration.DEFAULT_RM_NODES_EXCLUDE_FILE_PATH));
 
-    HostDetails hostDetails;
-    if (graceful) {
-      hostDetails = hostsReader.getLazyLoadedHostDetails();
-    } else {
-      hostDetails = hostsReader.getHostDetails();
-    }
+    HostDetails hostDetails = hostsReader.getHostDetails();
     for (String include : hostDetails.getIncludedHosts()) {
       LOG.debug("include: " + include);
     }
@@ -242,15 +235,8 @@ public class NodesListManager extends CompositeService implements
         yarnConf.get(YarnConfiguration.RM_NODES_EXCLUDE_FILE_PATH,
             YarnConfiguration.DEFAULT_RM_NODES_EXCLUDE_FILE_PATH);
     LOG.info("refreshNodes excludesFile " + excludesFile);
-
-    if (graceful) {
-      // update hosts, but don't make it visible just yet
-      hostsReader.lazyRefresh(includesFile, excludesFile);
-    } else {
-      hostsReader.refresh(includesFile, excludesFile);
-    }
-
-    printConfiguredHosts(graceful);
+    hostsReader.refresh(includesFile, excludesFile);
+    printConfiguredHosts();
 
     LOG.info("hostsReader include:{" +
         StringUtils.join(",", hostsReader.getHosts()) +
@@ -284,14 +270,7 @@ public class NodesListManager extends CompositeService implements
     // Nodes need to be decommissioned (graceful or forceful);
     List<RMNode> nodesToDecom = new ArrayList<RMNode>();
 
-    HostDetails hostDetails;
-    gracefulDecommissionableNodes.clear();
-    if (graceful) {
-      hostDetails = hostsReader.getLazyLoadedHostDetails();
-    } else {
-      hostDetails = hostsReader.getHostDetails();
-    }
-
+    HostDetails hostDetails = hostsReader.getHostDetails();
     Set<String> includes = hostDetails.getIncludedHosts();
     Map<String, Integer> excludes = hostDetails.getExcludedMap();
 
@@ -319,13 +298,11 @@ public class NodesListManager extends CompositeService implements
               s != NodeState.DECOMMISSIONING) {
             LOG.info("Gracefully decommission " + nodeStr);
             nodesToDecom.add(n);
-            gracefulDecommissionableNodes.add(n);
           } else if (s == NodeState.DECOMMISSIONING &&
                      !Objects.equals(n.getDecommissioningTimeout(),
                          timeoutToUse)) {
             LOG.info("Update " + nodeStr + " timeout to be " + timeoutToUse);
             nodesToDecom.add(n);
-            gracefulDecommissionableNodes.add(n);
           } else {
             LOG.info("No action for " + nodeStr);
           }
@@ -336,10 +313,6 @@ public class NodesListManager extends CompositeService implements
           }
         }
       }
-    }
-
-    if (graceful) {
-      hostsReader.finishRefresh();
     }
 
     for (RMNode n : nodesToRecom) {
@@ -491,10 +464,6 @@ public class NodesListManager extends CompositeService implements
     HostDetails hostDetails = hostsReader.getHostDetails();
     return isValidNode(hostName, hostDetails.getIncludedHosts(),
         hostDetails.getExcludedHosts());
-  }
-
-  boolean isGracefullyDecommissionableNode(RMNode node) {
-    return gracefulDecommissionableNodes.contains(node);
   }
 
   private boolean isValidNode(

@@ -18,19 +18,6 @@
 
 import AbstractAdapter from './abstract';
 
-function createEmptyContainerLogInfo(location) {
-  return {
-    containerLogsInfo: {
-      containerLogInfo: [{
-        fileName: "",
-        fileSize: "",
-        lastModifiedTime: "",
-        redirectedUrl: location
-      }]
-    }
-  };
-}
-
 export default AbstractAdapter.extend({
   address: "timelineWebAddress",
   restNameSpace: "timelineV2Log",
@@ -41,15 +28,6 @@ export default AbstractAdapter.extend({
     var containerId = query['containerId'];
     var clusterId = this.get("env.app.clusterId");
     delete query.containerId;
-    return url + '/containers/' + containerId + '/logs' + '?clusterid=' + clusterId + '?manual_redirection=true';
-  },
-
-  handleResponse(status, headers, payload, requestData) {
-    if (headers['location'] !== undefined && headers['location'] !== null) {
-      return createEmptyContainerLogInfo(headers['location']);
-    } else {
-      return payload;
-    }
+    return url + '/containers/' + containerId + '/logs' + '?clusterid=' + clusterId;
   }
-
 });

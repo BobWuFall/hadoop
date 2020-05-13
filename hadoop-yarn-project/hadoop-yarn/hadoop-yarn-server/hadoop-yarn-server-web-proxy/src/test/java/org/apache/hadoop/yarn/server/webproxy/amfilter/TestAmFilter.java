@@ -169,7 +169,7 @@ public class TestAmFilter {
 
   private String startHttpServer() throws Exception {
     Server server = new Server(0);
-    ((QueuedThreadPool)server.getThreadPool()).setMaxThreads(20);
+    ((QueuedThreadPool)server.getThreadPool()).setMaxThreads(10);
     ServletContextHandler context = new ServletContextHandler();
     context.setContextPath("/foo");
     server.setHandler(context);

@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.fs.slive;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -180,7 +179,7 @@ public class TestSlive {
       op.run(fs);
       types.add(op.getType());
     }
-    assertThat(types.size()).isEqualTo(expected);
+    assertEquals(types.size(), expected);
   }
 
   // gets the config merged with the arguments
@@ -232,31 +231,24 @@ public class TestSlive {
     ConfigExtractor extractor = getTestConfig(true);
     assertEquals(extractor.getOpCount().intValue(), Constants.OperationType
         .values().length);
-    assertThat(extractor.getMapAmount().intValue()).isEqualTo(2);
-    assertThat(extractor.getReducerAmount().intValue()).isEqualTo(2);
+    assertEquals(extractor.getMapAmount().intValue(), 2);
+    assertEquals(extractor.getReducerAmount().intValue(), 2);
     Range<Long> apRange = extractor.getAppendSize();
-    assertThat(apRange.getLower().intValue()).isEqualTo(
-        Constants.MEGABYTES * 1);
-    assertThat(apRange.getUpper().intValue()).isEqualTo(
-        Constants.MEGABYTES * 2);
+    assertEquals(apRange.getLower().intValue(), Constants.MEGABYTES * 1);
+    assertEquals(apRange.getUpper().intValue(), Constants.MEGABYTES * 2);
     Range<Long> wRange = extractor.getWriteSize();
-    assertThat(wRange.getLower().intValue()).isEqualTo(
-        Constants.MEGABYTES * 1);
-    assertThat(wRange.getUpper().intValue()).isEqualTo(
-        Constants.MEGABYTES * 2);
+    assertEquals(wRange.getLower().intValue(), Constants.MEGABYTES * 1);
+    assertEquals(wRange.getUpper().intValue(), Constants.MEGABYTES * 2);
     Range<Long> trRange = extractor.getTruncateSize();
-    assertThat(trRange.getLower().intValue()).isZero();
-    assertThat(trRange.getUpper().intValue()).isEqualTo(
-        Constants.MEGABYTES * 1);
+    assertEquals(trRange.getLower().intValue(), 0);
+    assertEquals(trRange.getUpper().intValue(), Constants.MEGABYTES * 1);
     Range<Long> bRange = extractor.getBlockSize();
-    assertThat(bRange.getLower().intValue()).isEqualTo(
-        Constants.MEGABYTES * 1);
-    assertThat(bRange.getUpper().intValue()).isEqualTo(
-        Constants.MEGABYTES * 2);
+    assertEquals(bRange.getLower().intValue(), Constants.MEGABYTES * 1);
+    assertEquals(bRange.getUpper().intValue(), Constants.MEGABYTES * 2);
     String resfile = extractor.getResultFile();
     assertEquals(resfile, getResultFile().toString());
     int durationMs = extractor.getDurationMilliseconds();
-    assertThat(durationMs).isEqualTo(10 * 1000);
+    assertEquals(durationMs, 10 * 1000);
   }
 
   @Test
@@ -281,8 +273,8 @@ public class TestSlive {
   @Test
   public void testRange() {
     Range<Long> r = new Range<Long>(10L, 20L);
-    assertThat(r.getLower().longValue()).isEqualTo(10L);
-    assertThat(r.getUpper().longValue()).isEqualTo(20L);
+    assertEquals(r.getLower().longValue(), 10L);
+    assertEquals(r.getUpper().longValue(), 20L);
   }
 
   @Test

@@ -19,7 +19,6 @@
 package org.apache.hadoop.yarn.server.router.clientrm;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,10 +28,8 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
@@ -111,7 +108,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
-import org.apache.hadoop.yarn.server.router.security.authorize.RouterPolicyProvider;
 import org.apache.hadoop.yarn.util.LRUCacheHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,12 +171,6 @@ public class RouterClientRMService extends AbstractService
     this.server = rpc.getServer(ApplicationClientProtocol.class, this,
         listenerEndpoint, serverConf, null, numWorkerThreads);
 
-    // Enable service authorization?
-    if (conf.getBoolean(
-        CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
-      refreshServiceAcls(conf, RouterPolicyProvider.getInstance());
-    }
-
     this.server.start();
     LOG.info("Router ClientRMService listening on address: "
         + this.server.getListenerAddress());
@@ -195,11 +185,6 @@ public class RouterClientRMService extends AbstractService
     }
     userPipelineMap.clear();
     super.serviceStop();
-  }
-
-  @VisibleForTesting
-  public Server getServer() {
-    return this.server;
   }
 
   /**
@@ -482,11 +467,6 @@ public class RouterClientRMService extends AbstractService
       return chain;
     }
     return initializePipeline(user);
-  }
-
-  void refreshServiceAcls(Configuration configuration,
-      PolicyProvider policyProvider) {
-    this.server.refreshServiceAcl(configuration, policyProvider);
   }
 
   /**

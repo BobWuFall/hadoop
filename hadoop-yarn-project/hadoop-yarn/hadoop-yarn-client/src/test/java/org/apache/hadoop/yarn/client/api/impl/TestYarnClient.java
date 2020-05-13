@@ -68,8 +68,6 @@ import org.apache.hadoop.yarn.exceptions.ContainerNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.ParameterizedSchedulerTestBase;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
@@ -370,7 +368,7 @@ public class TestYarnClient extends ParameterizedSchedulerTestBase {
   public void testKillApplication() throws Exception {
     MockRM rm = new MockRM();
     rm.start();
-    RMApp app = MockRMAppSubmitter.submitWithMemory(2000, rm);
+    RMApp app = rm.submitApp(2000);
 
     @SuppressWarnings("resource")
     final YarnClient client = new MockYarnClient();
@@ -387,19 +385,11 @@ public class TestYarnClient extends ParameterizedSchedulerTestBase {
     GenericTestUtils.setRootLogLevel(Level.DEBUG);
     MockRM rm = new MockRM();
     rm.start();
-    RMApp app = MockRMAppSubmitter.submitWithMemory(2000, rm);
+    RMApp app = rm.submitApp(2000);
     RMApp app1 =
-        MockRMAppSubmitter.submit(rm,
-            MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-                .withAppName("name")
-                .withUser("user")
-                .withAcls(new HashMap<>())
-                .withUnmanagedAM(false)
-                .withQueue("default")
-                .withMaxAppAttempts(-1)
-                .withCredentials(null)
-                .withAppType("MAPREDUCE")
-                .build());
+        rm.submitApp(200, "name", "user",
+                new HashMap<>(), false, "default", -1,
+          null, "MAPREDUCE");
     Assert.assertEquals("YARN", app.getApplicationType());
     Assert.assertEquals("MAPREDUCE", app1.getApplicationType());
     rm.stop();
@@ -411,17 +401,9 @@ public class TestYarnClient extends ParameterizedSchedulerTestBase {
     MockRM rm = new MockRM();
     rm.start();
     RMApp app1 =
-        MockRMAppSubmitter.submit(rm,
-            MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-                .withAppName("name")
-                .withUser("user")
-                .withAcls(new HashMap<>())
-                .withUnmanagedAM(false)
-                .withQueue("default")
-                .withMaxAppAttempts(-1)
-                .withCredentials(null)
-                .withAppType("MAPREDUCE-LENGTH-IS-20")
-                .build());
+        rm.submitApp(200, "name", "user",
+                new HashMap<>(), false, "default", -1,
+          null, "MAPREDUCE-LENGTH-IS-20");
     Assert.assertEquals("MAPREDUCE-LENGTH-IS-", app1.getApplicationType());
     rm.stop();
   }

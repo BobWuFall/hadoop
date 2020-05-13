@@ -38,27 +38,27 @@ import java.util.stream.Collectors;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AppAllocationInfo {
   private String nodeId;
-  private Long timestamp;
-  private String dateTime;
   private String queueName;
-  private Integer appPriority;
+  private String appPriority;
+  private long timestamp;
+  private String dateTime;
   private String allocationState;
   private String diagnostic;
-  private List<AppRequestAllocationInfo> children;
+  private List<AppRequestAllocationInfo> requestAllocation;
 
   AppAllocationInfo() {
   }
 
   AppAllocationInfo(AppAllocation allocation,
       RMWSConsts.ActivitiesGroupBy groupBy) {
-    this.children = new ArrayList<>();
+    this.requestAllocation = new ArrayList<>();
     this.nodeId = allocation.getNodeId();
     this.queueName = allocation.getQueueName();
     this.appPriority = allocation.getPriority() == null ?
-        null : allocation.getPriority().getPriority();
+        null : allocation.getPriority().toString();
     this.timestamp = allocation.getTime();
     this.dateTime = new Date(allocation.getTime()).toString();
-    this.allocationState = allocation.getActivityState().name();
+    this.allocationState = allocation.getAppState().name();
     this.diagnostic = allocation.getDiagnostic();
     Map<String, List<ActivityNode>> requestToActivityNodes =
         allocation.getAllocationAttempts().stream().collect(Collectors
@@ -68,7 +68,7 @@ public class AppAllocationInfo {
         .values()) {
       AppRequestAllocationInfo requestAllocationInfo =
           new AppRequestAllocationInfo(requestActivityNodes, groupBy);
-      this.children.add(requestAllocationInfo);
+      this.requestAllocation.add(requestAllocationInfo);
     }
   }
 
@@ -80,11 +80,11 @@ public class AppAllocationInfo {
     return queueName;
   }
 
-  public Integer getAppPriority() {
+  public String getAppPriority() {
     return appPriority;
   }
 
-  public Long getTimestamp() {
+  public long getTimestamp() {
     return timestamp;
   }
 
@@ -96,8 +96,8 @@ public class AppAllocationInfo {
     return allocationState;
   }
 
-  public List<AppRequestAllocationInfo> getChildren() {
-    return children;
+  public List<AppRequestAllocationInfo> getRequestAllocation() {
+    return requestAllocation;
   }
 
   public String getDiagnostic() {

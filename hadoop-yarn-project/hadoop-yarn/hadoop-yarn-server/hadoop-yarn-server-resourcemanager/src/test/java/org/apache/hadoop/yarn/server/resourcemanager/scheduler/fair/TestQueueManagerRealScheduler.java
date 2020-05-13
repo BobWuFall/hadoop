@@ -18,16 +18,14 @@
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair;
 
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair
-    .allocationfile.AllocationFileQueue;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair
-    .allocationfile.AllocationFileWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,7 +38,7 @@ public class TestQueueManagerRealScheduler extends FairSchedulerTestBase {
   @Before
   public void setup() throws IOException {
     createConfiguration();
-    writeAllocFile(30);
+    writeAllocFile(30, 40);
     conf.set(FairSchedulerConfiguration.ALLOCATION_FILE,
         ALLOC_FILE.getAbsolutePath());
 
@@ -58,20 +56,32 @@ public class TestQueueManagerRealScheduler extends FairSchedulerTestBase {
     }
   }
 
-  private void writeAllocFile(int defaultFairShareTimeout) {
-    AllocationFileWriter.create()
-        .addQueue(new AllocationFileQueue.Builder("default")
-            .build())
-        .addQueue(new AllocationFileQueue.Builder("queueA").build())
-        .addQueue(new AllocationFileQueue.Builder("queueB")
-            .subQueue(new AllocationFileQueue.Builder("queueB1")
-              .minSharePreemptionTimeout(5).build())
-            .subQueue(new AllocationFileQueue.Builder("queueB2").build())
-            .build())
-        .addQueue(new AllocationFileQueue.Builder("queueC").build())
-        .defaultMinSharePreemptionTimeout(15)
-        .defaultFairSharePreemptionTimeout(defaultFairShareTimeout)
-        .writeToFile(ALLOC_FILE.getAbsolutePath());
+  private void writeAllocFile(int defaultFairShareTimeout,
+      int fairShareTimeout) throws IOException {
+    PrintWriter out = new PrintWriter(new FileWriter(ALLOC_FILE));
+    out.println("<?xml version=\"1.0\"?>");
+    out.println("<allocations>");
+    out.println("<queue name=\"default\">");
+    out.println("</queue>");
+    out.println("<queue name=\"queueA\">");
+    out.println("</queue>");
+    out.println("<queue name=\"queueB\">");
+    out.println("<queue name=\"queueB1\">");
+    out.println("<minSharePreemptionTimeout>5</minSharePreemptionTimeout>");
+    out.println("</queue>");
+    out.println("<queue name=\"queueB2\">");
+    out.println("</queue>");
+    out.println("</queue>");
+    out.println("<queue name=\"queueC\">");
+    out.println("</queue>");
+    out.println("<defaultMinSharePreemptionTimeout>15"
+        + "</defaultMinSharePreemptionTimeout>");
+    out.println("<defaultFairSharePreemptionTimeout>" +
+        + defaultFairShareTimeout + "</defaultFairSharePreemptionTimeout>");
+    out.println("<fairSharePreemptionTimeout>"
+        + fairShareTimeout + "</fairSharePreemptionTimeout>");
+    out.println("</allocations>");
+    out.close();
   }
 
   @Test
@@ -110,7 +120,7 @@ public class TestQueueManagerRealScheduler extends FairSchedulerTestBase {
 
     // Lower the fairshare preemption timeouts and verify it is picked
     // correctly.
-    writeAllocFile(25);
+    writeAllocFile(25, 30);
     scheduler.reinitialize(conf, resourceManager.getRMContext());
     assertEquals(25000, queueMgr.getQueue("root")
         .getFairSharePreemptionTimeout());

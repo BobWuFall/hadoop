@@ -77,8 +77,7 @@ public class PassthroughCodec
    * This default extension is here so that if no extension has been defined,
    * some value is still returned: {@value}..
    */
-  public static final String DEFAULT_EXTENSION =
-      CodecConstants.PASSTHROUGH_CODEC_EXTENSION;
+  public static final String DEFAULT_EXTENSION = ".passthrough";
 
   private Configuration conf;
 

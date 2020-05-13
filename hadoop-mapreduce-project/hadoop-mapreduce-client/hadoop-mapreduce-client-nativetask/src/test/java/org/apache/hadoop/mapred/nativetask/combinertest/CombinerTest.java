@@ -17,13 +17,15 @@
  */
 package org.apache.hadoop.mapred.nativetask.combinertest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.Task;
 import org.apache.hadoop.mapred.nativetask.NativeRuntime;
 import org.apache.hadoop.mapred.nativetask.combinertest.WordCount.IntSumReducer;
 import org.apache.hadoop.mapred.nativetask.combinertest.WordCount.TokenizerMapper;
@@ -31,6 +33,7 @@ import org.apache.hadoop.mapred.nativetask.kvtest.TestInputFile;
 import org.apache.hadoop.mapred.nativetask.testutil.ResultVerifier;
 import org.apache.hadoop.mapred.nativetask.testutil.ScenarioConfiguration;
 import org.apache.hadoop.mapred.nativetask.testutil.TestConstants;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -59,10 +62,9 @@ public class CombinerTest {
     commonConf.addResource(TestConstants.COMBINER_CONF_PATH);
     final Job normaljob = getJob("normalwordcount", commonConf, inputpath, hadoopoutputpath);
 
-    assertThat(nativejob.waitForCompletion(true)).isTrue();
-    assertThat(normaljob.waitForCompletion(true)).isTrue();
-    assertThat(ResultVerifier.verify(nativeoutputpath, hadoopoutputpath))
-        .isTrue();
+    assertTrue(nativejob.waitForCompletion(true));
+    assertTrue(normaljob.waitForCompletion(true));
+    assertEquals(true, ResultVerifier.verify(nativeoutputpath, hadoopoutputpath));
     ResultVerifier.verifyCounters(normaljob, nativejob, true);
   }
 

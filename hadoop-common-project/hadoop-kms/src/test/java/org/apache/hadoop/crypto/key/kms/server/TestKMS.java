@@ -38,7 +38,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.MultipleIOException;
 import org.apache.hadoop.minikdc.MiniKdc;
-import org.apache.hadoop.security.AuthenticationFilterInitializer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -615,18 +614,7 @@ public class TestKMS {
 
   @Test
   public void testStartStopHttpPseudo() throws Exception {
-    // Make sure bogus errors don't get emitted.
-    GenericTestUtils.LogCapturer logs =
-        GenericTestUtils.LogCapturer.captureLogs(LoggerFactory.getLogger(
-            "com.sun.jersey.server.wadl.generators.AbstractWadlGeneratorGrammarGenerator"));
-    try {
-      testStartStop(false, false);
-    } finally {
-      logs.stopCapturing();
-    }
-    assertFalse(logs.getOutput().contains(
-        "Couldn't find grammar element for class"));
-
+    testStartStop(false, false);
   }
 
   @Test
@@ -3076,47 +3064,6 @@ public class TestKMS {
         }
         LOG.info("jmx returned: " + sb.toString());
         assertTrue(sb.toString().contains("JvmMetrics"));
-        return null;
-      }
-    });
-  }
-
-  @Test
-  public void testFilterInitializer() throws Exception {
-    Configuration conf = new Configuration();
-    File testDir = getTestDir();
-    conf = createBaseKMSConf(testDir, conf);
-    conf.set("hadoop.security.authentication", "kerberos");
-    conf.set("hadoop.kms.authentication.token.validity", "1");
-    conf.set("hadoop.kms.authentication.type", "kerberos");
-    conf.set("hadoop.kms.authentication.kerberos.keytab",
-        keytab.getAbsolutePath());
-    conf.set("hadoop.kms.authentication.kerberos.principal", "HTTP/localhost");
-    conf.set("hadoop.kms.authentication.kerberos.name.rules", "DEFAULT");
-    conf.set("hadoop.http.filter.initializers",
-        AuthenticationFilterInitializer.class.getName());
-    conf.set("hadoop.http.authentication.type", "kerberos");
-    conf.set("hadoop.http.authentication.kerberos.principal", "HTTP/localhost");
-    conf.set("hadoop.http.authentication.kerberos.keytab",
-        keytab.getAbsolutePath());
-
-    writeConf(testDir, conf);
-
-    runServer(null, null, testDir, new KMSCallable<Void>() {
-      @Override
-      public Void call() throws Exception {
-        final Configuration conf = new Configuration();
-        URL url = getKMSUrl();
-        final URI uri = createKMSUri(getKMSUrl());
-
-        doAs("client", new PrivilegedExceptionAction<Void>() {
-          @Override
-          public Void run() throws Exception {
-            final KeyProvider kp = createProvider(uri, conf);
-            Assert.assertTrue(kp.getKeys().isEmpty());
-            return null;
-          }
-        });
         return null;
       }
     });

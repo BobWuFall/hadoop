@@ -55,7 +55,7 @@ import org.apache.hadoop.util.DataChecksum;
 import org.apache.htrace.core.SpanId;
 import org.apache.htrace.core.Tracer;
 
-import org.apache.hadoop.thirdparty.protobuf.Message;
+import com.google.protobuf.Message;
 
 /** Sender */
 @InterfaceAudience.Private

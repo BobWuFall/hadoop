@@ -356,8 +356,7 @@ public class StripedBlockUtil {
         cells);
 
     // Step 3: merge into stripes
-    AlignedStripe[] stripes = mergeRangesForInternalBlocks(ecPolicy, ranges,
-        blockGroup, cellSize);
+    AlignedStripe[] stripes = mergeRangesForInternalBlocks(ecPolicy, ranges);
 
     // Step 4: calculate each chunk's position in destination buffer. Since the
     // whole read range is within a single stripe, the logic is simpler here.
@@ -418,8 +417,7 @@ public class StripedBlockUtil {
         cells);
 
     // Step 3: merge into at most 5 stripes
-    AlignedStripe[] stripes = mergeRangesForInternalBlocks(ecPolicy, ranges,
-        blockGroup, cellSize);
+    AlignedStripe[] stripes = mergeRangesForInternalBlocks(ecPolicy, ranges);
 
     // Step 4: calculate each chunk's position in destination buffer
     calcualteChunkPositionsInBuf(cellSize, stripes, cells, buf);
@@ -515,8 +513,7 @@ public class StripedBlockUtil {
    * {@link AlignedStripe} instances.
    */
   private static AlignedStripe[] mergeRangesForInternalBlocks(
-      ErasureCodingPolicy ecPolicy, VerticalRange[] ranges,
-      LocatedStripedBlock blockGroup, int cellSize) {
+      ErasureCodingPolicy ecPolicy, VerticalRange[] ranges) {
     int dataBlkNum = ecPolicy.getNumDataUnits();
     int parityBlkNum = ecPolicy.getNumParityUnits();
     List<AlignedStripe> stripes = new ArrayList<>();
@@ -526,17 +523,6 @@ public class StripedBlockUtil {
         stripePoints.add(r.offsetInBlock);
         stripePoints.add(r.offsetInBlock + r.spanInBlock);
       }
-    }
-
-    // Add block group last cell offset in stripePoints if it is fall in to read
-    // offset range.
-    int lastCellIdxInBG = (int) (blockGroup.getBlockSize() / cellSize);
-    int idxInInternalBlk = lastCellIdxInBG / ecPolicy.getNumDataUnits();
-    long lastCellEndOffset = (idxInInternalBlk * (long)cellSize)
-        + (blockGroup.getBlockSize() % cellSize);
-    if (stripePoints.first() < lastCellEndOffset
-        && stripePoints.last() > lastCellEndOffset) {
-      stripePoints.add(lastCellEndOffset);
     }
 
     long prev = -1;

@@ -77,7 +77,7 @@ import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * ZooKeeper implementation of {@link FederationStateStore}.
@@ -422,10 +422,6 @@ public class ZookeeperFederationStateStore implements FederationStateStore {
     try {
       for (String child : zkManager.getChildren(policiesZNode)) {
         SubClusterPolicyConfiguration policy = getPolicy(child);
-        if (policy == null) {
-          LOG.warn("Policy for queue: {} does not exist.", child);
-          continue;
-        }
         result.add(policy);
       }
     } catch (Exception e) {

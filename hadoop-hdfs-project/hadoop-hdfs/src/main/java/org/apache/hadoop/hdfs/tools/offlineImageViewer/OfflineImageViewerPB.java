@@ -79,7 +79,6 @@ public class OfflineImageViewerPB {
       + "    to both inodes and inodes-under-construction, separated by a\n"
       + "    delimiter. The default delimiter is \\t, though this may be\n"
       + "    changed via the -delimiter argument.\n"
-      + "    -sp print storage policy, used by delimiter only.\n"
       + "  * DetectCorruption: Detect potential corruption of the image by\n"
       + "    selectively loading parts of it and actively searching for\n"
       + "    inconsistencies. Outputs a summary of the found corruptions\n"
@@ -130,7 +129,6 @@ public class OfflineImageViewerPB {
     options.addOption("format", false, "");
     options.addOption("addr", true, "");
     options.addOption("delimiter", true, "");
-    options.addOption("sp", false, "");
     options.addOption("t", "temp", true, "");
 
     return options;
@@ -224,10 +222,8 @@ public class OfflineImageViewerPB {
         }
         break;
       case "DELIMITED":
-        boolean printStoragePolicy = cmd.hasOption("sp");
         try (PBImageDelimitedTextWriter writer =
-            new PBImageDelimitedTextWriter(out, delimiter,
-                tempPath, printStoragePolicy);
+            new PBImageDelimitedTextWriter(out, delimiter, tempPath);
             RandomAccessFile r = new RandomAccessFile(inputFile, "r")) {
           writer.visit(r);
         }

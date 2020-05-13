@@ -17,7 +17,8 @@
  */
 package org.apache.hadoop.mapred.nativetask.kvtest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -126,9 +127,7 @@ public class KVTest {
     nativekvtestconf.set(TestConstants.NATIVETASK_KVTEST_CREATEFILE, "true");
     final KVJob nativeJob = new KVJob(jobName, nativekvtestconf, keyclass,
         valueclass, inputPath, nativeOutputPath);
-    assertThat(nativeJob.runJob())
-        .withFailMessage("job should complete successfully")
-        .isTrue();
+    assertTrue("job should complete successfully", nativeJob.runJob());
 
     final String normalOutputPath = TestConstants.NATIVETASK_KVTEST_NORMAL_OUTPUTDIR
         + "/" + keyclass.getName() + "/" + valueclass.getName();
@@ -137,13 +136,11 @@ public class KVTest {
     hadoopkvtestconf.set(TestConstants.NATIVETASK_KVTEST_CREATEFILE, "false");
     final KVJob normalJob = new KVJob(jobName, hadoopkvtestconf, keyclass,
         valueclass, inputPath, normalOutputPath);
-    assertThat(normalJob.runJob())
-        .withFailMessage("job should complete successfully")
-        .isTrue();
+    assertTrue("job should complete successfully", normalJob.runJob());
 
     final boolean compareRet = ResultVerifier.verify(normalOutputPath,
         nativeOutputPath);
-    assertThat(compareRet).withFailMessage("job output not the same").isTrue();
+    assertEquals("job output not the same", true, compareRet);
     ResultVerifier.verifyCounters(normalJob.job, nativeJob.job);
     fs.close();
   }

@@ -65,7 +65,7 @@ public class TestDecommissioningNodesWatcher {
 
     rm.waitForState(id1, NodeState.RUNNING);
 
-    RMApp app = MockRMAppSubmitter.submitWithMemory(2000, rm);
+    RMApp app = rm.submitApp(2000);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
 
     NodeStatus nodeStatus = createNodeStatus(id1, app, 3);
@@ -125,8 +125,7 @@ public class TestDecommissioningNodesWatcher {
 
     rm.waitForState(id1, NodeState.RUNNING);
 
-    RMApp app = MockRMAppSubmitter.submit(rm,
-        MockRMAppSubmissionData.Builder.createWithMemory(2000, rm).build());
+    RMApp app = rm.submitApp(2000);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
 
     NodeStatus nodeStatus = createNodeStatus(id1, app, 3);

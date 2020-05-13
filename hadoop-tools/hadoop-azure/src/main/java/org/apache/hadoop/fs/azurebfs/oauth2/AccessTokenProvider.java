@@ -72,7 +72,7 @@ public abstract class AccessTokenProvider {
    *
    * @return true if the token is expiring in next 5 minutes
    */
-  protected boolean isTokenAboutToExpire() {
+  private boolean isTokenAboutToExpire() {
     if (token == null) {
       LOG.debug("AADToken: no token. Returning expiring=true");
       return true;   // no token should have same response as expired token

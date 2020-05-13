@@ -77,8 +77,8 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 
-import org.apache.hadoop.thirdparty.protobuf.RpcController;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,12 +324,10 @@ public class ClientDatanodeProtocolTranslatorPB implements
   public void triggerBlockReport(BlockReportOptions options)
       throws IOException {
     try {
-      TriggerBlockReportRequestProto.Builder builder = TriggerBlockReportRequestProto.newBuilder().
-          setIncremental(options.isIncremental());
-      if (options.getNamenodeAddr() != null) {
-        builder.setNnAddress(NetUtils.getHostPortString(options.getNamenodeAddr()));
-      }
-      rpcProxy.triggerBlockReport(NULL_CONTROLLER, builder.build());
+      rpcProxy.triggerBlockReport(NULL_CONTROLLER,
+          TriggerBlockReportRequestProto.newBuilder().
+              setIncremental(options.isIncremental()).
+              build());
     } catch (ServiceException e) {
       throw ProtobufHelper.getRemoteException(e);
     }

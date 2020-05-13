@@ -26,12 +26,13 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.http.JettyUtils;
+import org.apache.hadoop.util.NodeHealthScriptRunner;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.LocalDirsHandlerService;
+import org.apache.hadoop.yarn.server.nodemanager.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.ResourceView;
-import org.apache.hadoop.yarn.server.nodemanager.health.NodeHealthCheckerService;
 import org.apache.hadoop.yarn.server.security.ApplicationACLsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -53,9 +54,12 @@ public class TestNMWebTerminal {
   private WebServer server;
   private int port;
 
-  private NodeHealthCheckerService createNodeHealthCheckerService() {
+  private NodeHealthCheckerService createNodeHealthCheckerService(
+      Configuration conf) {
+    NodeHealthScriptRunner scriptRunner = NodeManager
+        .getNodeHealthScriptRunner(conf);
     LocalDirsHandlerService dirsHandler = new LocalDirsHandlerService();
-    return new NodeHealthCheckerService(dirsHandler);
+    return new NodeHealthCheckerService(scriptRunner, dirsHandler);
   }
 
   private int startNMWebAppServer(String webAddr) {
@@ -86,7 +90,7 @@ public class TestNMWebTerminal {
     };
     conf.set(YarnConfiguration.NM_LOCAL_DIRS, TESTROOTDIR.getAbsolutePath());
     conf.set(YarnConfiguration.NM_LOG_DIRS, TESTLOGDIR.getAbsolutePath());
-    healthChecker = createNodeHealthCheckerService();
+    healthChecker = createNodeHealthCheckerService(conf);
     healthChecker.init(conf);
     LocalDirsHandlerService dirsHandler = healthChecker.getDiskHandler();
     conf.set(YarnConfiguration.NM_WEBAPP_ADDRESS, webAddr);

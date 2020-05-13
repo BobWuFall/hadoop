@@ -64,7 +64,7 @@ import org.apache.hadoop.yarn.webapp.BadRequestException;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.hadoop.yarn.webapp.NotFoundException;
 
-public class WebServices implements AppInfoProvider {
+public class WebServices {
 
   protected ApplicationBaseProtocol appBaseProt;
 
@@ -75,7 +75,7 @@ public class WebServices implements AppInfoProvider {
   public AppsInfo getApps(HttpServletRequest req, HttpServletResponse res,
       String stateQuery, Set<String> statesQuery, String finalStatusQuery,
       String userQuery, String queueQuery, String count, String startedBegin,
-      String startedEnd, String finishBegin, String finishEnd, String nameQuery,
+      String startedEnd, String finishBegin, String finishEnd,
       Set<String> applicationTypes) {
     UserGroupInformation callerUGI = getUser(req);
     boolean checkEnd = false;
@@ -207,11 +207,6 @@ public class WebServices implements AppInfoProvider {
           && (appReport.getFinishTime() < fBegin || appReport.getFinishTime() > fEnd)) {
         continue;
       }
-
-      if (nameQuery != null && !nameQuery.equals(appReport.getName())) {
-        continue;
-      }
-
       AppInfo app = new AppInfo(appReport);
 
       allApps.add(app);
@@ -219,18 +214,8 @@ public class WebServices implements AppInfoProvider {
     return allApps;
   }
 
-  public AppInfo getApp(HttpServletRequest req,
-      HttpServletResponse res, String appId) {
-    return getApp(req, appId);
-  }
-
-  @Override
-  public BasicAppInfo getApp(HttpServletRequest req, String appId,
-      String clusterId) {
-    return BasicAppInfo.fromAppInfo(getApp(req, appId));
-  }
-
-  public AppInfo getApp(HttpServletRequest req, String appId) {
+  public AppInfo getApp(HttpServletRequest req, HttpServletResponse res,
+      String appId) {
     UserGroupInformation callerUGI = getUser(req);
     final ApplicationId id = parseApplicationId(appId);
     ApplicationReport app = null;
@@ -366,17 +351,8 @@ public class WebServices implements AppInfoProvider {
     return containersInfo;
   }
 
-  @Override
-  public String getNodeHttpAddress(HttpServletRequest req,
-      String appId, String appAttemptId,
-      String containerId, String clusterId) {
-    ContainerInfo containerInfo = getContainer(req, appId,
-        appAttemptId, containerId);
-    return containerInfo.getNodeHttpAddress();
-  }
-
   public ContainerInfo getContainer(HttpServletRequest req,
-      String appId, String appAttemptId,
+      HttpServletResponse res, String appId, String appAttemptId,
       String containerId) {
     UserGroupInformation callerUGI = getUser(req);
     ApplicationId aid = parseApplicationId(appId);
@@ -409,12 +385,6 @@ public class WebServices implements AppInfoProvider {
           + " not found");
     }
     return new ContainerInfo(container);
-  }
-
-  public ContainerInfo getContainer(HttpServletRequest req,
-      HttpServletResponse res, String appId, String appAttemptId,
-      String containerId) {
-    return getContainer(req, appId, appAttemptId, containerId);
   }
 
   protected void initForReadableEndpoints(HttpServletResponse response) {

@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.util.Daemon;
@@ -81,7 +80,7 @@ class PendingReconstructionBlocks {
    * @param block The corresponding block
    * @param targets The DataNodes where replicas of the block should be placed
    */
-  void increment(BlockInfo block, DatanodeStorageInfo... targets) {
+  void increment(BlockInfo block, DatanodeDescriptor... targets) {
     synchronized (pendingReconstructions) {
       PendingBlockInfo found = pendingReconstructions.get(block);
       if (found == null) {
@@ -101,7 +100,7 @@ class PendingReconstructionBlocks {
    * @param dn The DataNode that finishes the reconstruction
    * @return true if the block is decremented to 0 and got removed.
    */
-  boolean decrement(BlockInfo block, DatanodeStorageInfo dn) {
+  boolean decrement(BlockInfo block, DatanodeDescriptor dn) {
     boolean removed = false;
     synchronized (pendingReconstructions) {
       PendingBlockInfo found = pendingReconstructions.get(block);
@@ -124,9 +123,9 @@ class PendingReconstructionBlocks {
    *          The given block whose pending reconstruction requests need to be
    *          removed
    */
-  PendingBlockInfo remove(BlockInfo block) {
+  void remove(BlockInfo block) {
     synchronized (pendingReconstructions) {
-      return pendingReconstructions.remove(block);
+      pendingReconstructions.remove(block);
     }
   }
 
@@ -200,11 +199,11 @@ class PendingReconstructionBlocks {
    */
   static class PendingBlockInfo {
     private long timeStamp;
-    private final List<DatanodeStorageInfo> targets;
+    private final List<DatanodeDescriptor> targets;
 
-    PendingBlockInfo(DatanodeStorageInfo[] targets) {
+    PendingBlockInfo(DatanodeDescriptor[] targets) {
       this.timeStamp = monotonicNow();
-      this.targets = targets == null ? new ArrayList<DatanodeStorageInfo>()
+      this.targets = targets == null ? new ArrayList<DatanodeDescriptor>()
           : new ArrayList<>(Arrays.asList(targets));
     }
 
@@ -216,9 +215,9 @@ class PendingReconstructionBlocks {
       timeStamp = monotonicNow();
     }
 
-    void incrementReplicas(DatanodeStorageInfo... newTargets) {
+    void incrementReplicas(DatanodeDescriptor... newTargets) {
       if (newTargets != null) {
-        for (DatanodeStorageInfo newTarget : newTargets) {
+        for (DatanodeDescriptor newTarget : newTargets) {
           if (!targets.contains(newTarget)) {
             targets.add(newTarget);
           }
@@ -226,22 +225,12 @@ class PendingReconstructionBlocks {
       }
     }
 
-    void decrementReplicas(DatanodeStorageInfo dn) {
-      Iterator<DatanodeStorageInfo> iterator = targets.iterator();
-      while (iterator.hasNext()) {
-        DatanodeStorageInfo next = iterator.next();
-        if (next.getDatanodeDescriptor() == dn.getDatanodeDescriptor()) {
-          iterator.remove();
-        }
-      }
+    void decrementReplicas(DatanodeDescriptor dn) {
+      targets.remove(dn);
     }
 
     int getNumReplicas() {
       return targets.size();
-    }
-
-    List<DatanodeStorageInfo> getTargets() {
-      return targets;
     }
   }
 
@@ -289,13 +278,6 @@ class PendingReconstructionBlocks {
     }
   }
 
-  /**
-   * @return timer thread.
-   */
-  @VisibleForTesting
-  public Daemon getTimerThread() {
-    return timerThread;
-  }
   /*
    * Shuts down the pending reconstruction monitor thread.
    * Waits for the thread to exit.
@@ -327,15 +309,5 @@ class PendingReconstructionBlocks {
             pendingBlock.getNumReplicas());
       }
     }
-  }
-
-  List<DatanodeStorageInfo> getTargets(BlockInfo block) {
-    synchronized (pendingReconstructions) {
-      PendingBlockInfo found = pendingReconstructions.get(block);
-      if (found != null) {
-        return found.targets;
-      }
-    }
-    return null;
   }
 }

@@ -18,8 +18,6 @@
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
 import org.apache.hadoop.net.Node;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +30,6 @@ import java.util.Set;
  * Reconstruction is done by transferring data from srcNodes to targets
  */
 abstract class BlockReconstructionWork {
-
-  public static final Logger LOG =
-      LoggerFactory.getLogger(BlockReconstructionWork.class);
-
   private final BlockInfo block;
 
   private final String srcPath;

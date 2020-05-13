@@ -270,13 +270,7 @@ public class TestAMAuthorization {
     Map<ApplicationAccessType, String> acls =
         new HashMap<ApplicationAccessType, String>(2);
     acls.put(ApplicationAccessType.VIEW_APP, "*");
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1024, rm)
-            .withAppName("appname")
-            .withUser("appuser")
-            .withAcls(acls)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(1024, "appname", "appuser", acls);
 
     nm1.nodeHeartbeat(true);
 
@@ -334,7 +328,7 @@ public class TestAMAuthorization {
 
     MockNM nm1 = rm.registerNode("localhost:1234", 5120);
 
-    RMApp app = MockRMAppSubmitter.submitWithMemory(1024, rm);
+    RMApp app = rm.submitApp(1024);
 
     nm1.nodeHeartbeat(true);
 

@@ -22,6 +22,9 @@ import org.junit.BeforeClass;
 
 import java.io.IOException;
 
+import static org.apache.hadoop.fs.contract.router.SecurityConfUtil.initSecurity;
+
+
 /**
  * Test secure set times operations on the Router-based FS.
  */
@@ -30,7 +33,7 @@ public class TestRouterHDFSContractSetTimesSecure
 
   @BeforeClass
   public static void createCluster() throws Exception {
-    RouterHDFSContract.createCluster(true);
+    RouterHDFSContract.createCluster(initSecurity());
   }
 
   @AfterClass

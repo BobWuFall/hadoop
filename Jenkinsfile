@@ -35,7 +35,7 @@ pipeline {
         DOCKERFILE = "${SOURCEDIR}/dev-support/docker/Dockerfile"
         YETUS='yetus'
         // Branch or tag name.  Yetus release tags are 'rel/X.Y.Z'
-        YETUS_VERSION='rel/0.12.0'
+        YETUS_VERSION='rel/0.10.0'
     }
 
     parameters {
@@ -61,7 +61,7 @@ pipeline {
             steps {
                 withCredentials(
                     [usernamePassword(credentialsId: 'apache-hadoop-at-github.com',
-                                  passwordVariable: 'GITHUB_TOKEN',
+                                  passwordVariable: 'GITHUB_PASSWORD',
                                   usernameVariable: 'GITHUB_USER'),
                     usernamePassword(credentialsId: 'hadoopqa-at-asf-jira',
                                         passwordVariable: 'JIRA_PASSWORD',
@@ -105,7 +105,8 @@ pipeline {
                         YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
 
                         # enable writing back to Github
-                        YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
+                        YETUS_ARGS+=(--github-password="${GITHUB_PASSWORD}")
+                        YETUS_ARGS+=(--github-user=${GITHUB_USER})
 
                         # enable writing back to ASF JIRA
                         YETUS_ARGS+=(--jira-password="${JIRA_PASSWORD}")
@@ -146,13 +147,10 @@ pipeline {
                         YETUS_ARGS+=("--dockerfile=${DOCKERFILE}")
 
                         # effectively treat dev-suport as a custom maven module
-                        YETUS_ARGS+=("--skip-dirs=dev-support")
+                        YETUS_ARGS+=("--skip-dir=dev-support")
 
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
-
-                        # use emoji vote so it is easier to find the broken line
-                        YETUS_ARGS+=("--github-use-emoji-vote")
 
                         "${TESTPATCHBIN}" "${YETUS_ARGS[@]}"
                         '''

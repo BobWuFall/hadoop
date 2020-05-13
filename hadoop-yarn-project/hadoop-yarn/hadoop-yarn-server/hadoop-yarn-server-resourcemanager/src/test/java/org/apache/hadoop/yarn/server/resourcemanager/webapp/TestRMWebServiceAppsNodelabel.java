@@ -35,8 +35,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
@@ -147,7 +145,7 @@ public class TestRMWebServiceAppsNodelabel extends JerseyTestBase {
     rm.start();
     MockNM amNodeManager = rm.registerNode("127.0.0.1:1234", 2048);
     amNodeManager.nodeHeartbeat(true);
-    RMApp killedApp = MockRMAppSubmitter.submitWithMemory(AM_CONTAINER_MB, rm);
+    RMApp killedApp = rm.submitApp(AM_CONTAINER_MB);
     rm.killApp(killedApp.getApplicationId());
     WebResource r = resource();
     ClientResponse response =
@@ -175,15 +173,7 @@ public class TestRMWebServiceAppsNodelabel extends JerseyTestBase {
     nodeLabelManager.addLabelsToNode(
         ImmutableMap.of(NodeId.newInstance("h2", 1235), toSet("X")));
 
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(AM_CONTAINER_MB, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("default")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app1 = rm.submitApp(AM_CONTAINER_MB, "app", "user", null, "default");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
     nm1.nodeHeartbeat(true);
 

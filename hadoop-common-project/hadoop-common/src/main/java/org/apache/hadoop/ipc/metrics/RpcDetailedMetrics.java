@@ -61,7 +61,7 @@ public class RpcDetailedMetrics {
    */
   public void init(Class<?> protocol) {
     rates.init(protocol);
-    deferredRpcRates.init(protocol, "Deferred");
+    deferredRpcRates.init(protocol);
   }
 
   /**
@@ -82,7 +82,5 @@ public class RpcDetailedMetrics {
    * Shutdown the instrumentation for the process
    */
   //@Override // some instrumentation interface
-  public void shutdown() {
-    DefaultMetricsSystem.instance().unregisterSource(name);
-  }
+  public void shutdown() {}
 }

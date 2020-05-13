@@ -56,14 +56,13 @@ public class Count extends FsCommand {
   //return the quota, namespace count and disk space usage.
   private static final String OPTION_QUOTA_AND_USAGE = "u";
   private static final String OPTION_ECPOLICY = "e";
-  private static final String OPTION_SNAPSHOT_COUNT = "s";
 
   public static final String NAME = "count";
   public static final String USAGE =
       "[-" + OPTION_QUOTA + "] [-" + OPTION_HUMAN + "] [-" + OPTION_HEADER
           + "] [-" + OPTION_TYPE + " [<storage type>]] [-" +
           OPTION_QUOTA_AND_USAGE + "] [-" + OPTION_EXCLUDE_SNAPSHOT
-          + "] [-" + OPTION_ECPOLICY + "] [-" + OPTION_SNAPSHOT_COUNT
+          + "] [-" + OPTION_ECPOLICY
           + "] <path> ...";
   public static final String DESCRIPTION =
       "Count the number of directories, files and bytes under the paths\n" +
@@ -94,8 +93,7 @@ public class Count extends FsCommand {
           "the storage types.\n" +
           "The -" + OPTION_QUOTA_AND_USAGE + " option shows the quota and \n" +
           "the usage against the quota without the detailed content summary."+
-          "The -" + OPTION_ECPOLICY + " option shows the erasure coding policy."
-          + "The -" + OPTION_SNAPSHOT_COUNT + " option shows snapshot counts.";
+          "The -"+ OPTION_ECPOLICY +" option shows the erasure coding policy.";
 
   private boolean showQuotas;
   private boolean humanReadable;
@@ -104,7 +102,6 @@ public class Count extends FsCommand {
   private boolean showQuotasAndUsageOnly;
   private boolean excludeSnapshots;
   private boolean displayECPolicy;
-  private boolean showSnapshot;
 
   /** Constructor */
   public Count() {}
@@ -126,7 +123,7 @@ public class Count extends FsCommand {
     CommandFormat cf = new CommandFormat(1, Integer.MAX_VALUE,
         OPTION_QUOTA, OPTION_HUMAN, OPTION_HEADER, OPTION_QUOTA_AND_USAGE,
         OPTION_EXCLUDE_SNAPSHOT,
-        OPTION_ECPOLICY, OPTION_SNAPSHOT_COUNT);
+        OPTION_ECPOLICY);
     cf.addOptionWithValue(OPTION_TYPE);
     cf.parse(args);
     if (args.isEmpty()) { // default path is the current working directory
@@ -137,7 +134,6 @@ public class Count extends FsCommand {
     showQuotasAndUsageOnly = cf.getOpt(OPTION_QUOTA_AND_USAGE);
     excludeSnapshots = cf.getOpt(OPTION_EXCLUDE_SNAPSHOT);
     displayECPolicy = cf.getOpt(OPTION_ECPOLICY);
-    showSnapshot = cf.getOpt(OPTION_SNAPSHOT_COUNT);
 
     if (showQuotas || showQuotasAndUsageOnly) {
       String types = cf.getOptValue(OPTION_TYPE);
@@ -168,9 +164,6 @@ public class Count extends FsCommand {
       }
       if(displayECPolicy){
         headString.append("ERASURECODING_POLICY ");
-      }
-      if (showSnapshot) {
-        headString.append(ContentSummary.getSnapshotHeader());
       }
       headString.append("PATHNAME");
       out.println(headString.toString());
@@ -211,10 +204,6 @@ public class Count extends FsCommand {
       }
       outputString.append(summary.getErasureCodingPolicy())
           .append(" ");
-    }
-    if (showSnapshot) {
-      ContentSummary summary = src.fs.getContentSummary(src.path);
-      outputString.append(summary.toSnapshot(isHumanReadable()));
     }
     outputString.append(src);
     out.println(outputString.toString());

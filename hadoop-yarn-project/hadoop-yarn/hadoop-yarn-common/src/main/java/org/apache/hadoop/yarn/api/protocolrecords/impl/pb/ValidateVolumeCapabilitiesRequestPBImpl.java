@@ -68,9 +68,9 @@ public class ValidateVolumeCapabilitiesRequestPBImpl extends
     CsiAdaptorProtos.VolumeCapability vc =
         CsiAdaptorProtos.VolumeCapability.newBuilder()
             .setAccessMode(CsiAdaptorProtos.VolumeCapability.AccessMode
-                .forNumber(volumeCapability.getAccessMode().ordinal()))
+                .valueOf(volumeCapability.getAccessMode().ordinal()))
             .setVolumeType(CsiAdaptorProtos.VolumeCapability.VolumeType
-                .forNumber(volumeCapability.getVolumeType().ordinal()))
+                .valueOf(volumeCapability.getVolumeType().ordinal()))
             .addAllMountFlags(volumeCapability.getMountFlags())
             .build();
     builder.addVolumeCapabilities(vc);

@@ -25,9 +25,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
-import org.apache.hadoop.thirdparty.protobuf.BlockingService;
-import org.apache.hadoop.thirdparty.protobuf.RpcController;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.BlockingService;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.CallerContext;
 import org.apache.hadoop.ipc.ClientId;
@@ -293,17 +293,16 @@ public class TestRMAuditLogger {
       ApplicationAttemptId attemptId, ContainerId containerId,
       CallerContext callerContext, Resource resource) {
     testFailureLogFormatHelper(checkIP, appId, attemptId, containerId,
-        callerContext, resource, null, null, null);
+        callerContext, resource, null);
   }
 
   private void testFailureLogFormatHelper(boolean checkIP, ApplicationId appId,
         ApplicationAttemptId attemptId, ContainerId containerId,
         CallerContext callerContext, Resource resource,
-        String queueName, String partition, RMAuditLogger.ArgsBuilder args) {
+        RMAuditLogger.ArgsBuilder args) {
     String fLog = args == null ?
       RMAuditLogger.createFailureLog(USER, OPERATION, PERM, TARGET, DESC,
-          appId, attemptId, containerId, resource, callerContext,
-          queueName, partition) :
+          appId, attemptId, containerId, resource, callerContext, null) :
         RMAuditLogger.createFailureLog(USER, OPERATION, PERM, TARGET, DESC,
             args);
     StringBuilder expLog = new StringBuilder();
@@ -335,12 +334,6 @@ public class TestRMAuditLogger {
         expLog.append("\tCALLERSIGNATURE=signature");
       }
     }
-    if (queueName != null) {
-      expLog.append("\tQUEUENAME=" + QUEUE);
-    }
-    if (partition != null) {
-      expLog.append("\tNODELABEL=" + PARTITION);
-    }
     if (args != null) {
       expLog.append("\tQUEUENAME=root");
       expLog.append("\tRECURSIVE=true");
@@ -371,16 +364,10 @@ public class TestRMAuditLogger {
     testFailureLogFormatHelper(checkIP, APPID, ATTEMPTID, CONTAINERID,
         new CallerContext.Builder(CALLER_CONTEXT).setSignature(CALLER_SIGNATURE)
             .build(), RESOURCE);
-    testFailureLogFormatHelper(checkIP, APPID, ATTEMPTID, CONTAINERID,
-        new CallerContext.Builder(CALLER_CONTEXT).setSignature(CALLER_SIGNATURE)
-            .build(), RESOURCE, QUEUE, null, null);
-    testFailureLogFormatHelper(checkIP, APPID, ATTEMPTID, CONTAINERID,
-        new CallerContext.Builder(CALLER_CONTEXT).setSignature(CALLER_SIGNATURE)
-            .build(), RESOURCE, QUEUE, PARTITION, null);
     RMAuditLogger.ArgsBuilder args = new RMAuditLogger.ArgsBuilder()
         .append(Keys.QUEUENAME, QUEUE).append(Keys.RECURSIVE, "true");
     testFailureLogFormatHelper(checkIP, null, null, null, null, null,
-        null, null, args);
+        args);
   }
 
   /**

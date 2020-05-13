@@ -45,8 +45,6 @@ import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProt
 import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProtos.RemoveMountTableEntryResponseProto;
 import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProtos.UpdateMountTableEntryRequestProto;
 import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProtos.UpdateMountTableEntryResponseProto;
-import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProtos.RefreshSuperUserGroupsConfigurationRequestProto;
-import org.apache.hadoop.hdfs.federation.protocol.proto.HdfsServerFederationProtos.RefreshSuperUserGroupsConfigurationResponseProto;
 import org.apache.hadoop.hdfs.server.federation.router.RouterAdminServer;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.AddMountTableEntryRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.AddMountTableEntryResponse;
@@ -56,7 +54,6 @@ import org.apache.hadoop.hdfs.server.federation.store.protocol.EnableNameservice
 import org.apache.hadoop.hdfs.server.federation.store.protocol.EnableNameserviceResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.EnterSafeModeRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.EnterSafeModeResponse;
-import org.apache.hadoop.hdfs.server.federation.store.protocol.RefreshSuperUserGroupsConfigurationResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDisabledNameservicesRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDisabledNameservicesResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDestinationRequest;
@@ -93,14 +90,13 @@ import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.LeaveSafe
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.LeaveSafeModeResponsePBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.RefreshMountTableEntriesRequestPBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.RefreshMountTableEntriesResponsePBImpl;
-import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.RefreshSuperUserGroupsConfigurationResponsePBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.RemoveMountTableEntryRequestPBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.RemoveMountTableEntryResponsePBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.UpdateMountTableEntryRequestPBImpl;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.impl.pb.UpdateMountTableEntryResponsePBImpl;
 
-import org.apache.hadoop.thirdparty.protobuf.RpcController;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
 /**
  * This class is used on the server side. Calls come across the wire for the for
@@ -200,28 +196,6 @@ public class RouterAdminProtocolServerSideTranslatorPB implements
       throw new ServiceException(e);
     }
   }
-
-  /**
-   * Refresh superuser proxy groups mappings.
-   */
-  @Override
-  public RefreshSuperUserGroupsConfigurationResponseProto
-      refreshSuperUserGroupsConfiguration(
-      RpcController controller,
-      RefreshSuperUserGroupsConfigurationRequestProto request)
-      throws ServiceException {
-    try {
-      boolean result = server.refreshSuperUserGroupsConfiguration();
-      RefreshSuperUserGroupsConfigurationResponse response =
-          RefreshSuperUserGroupsConfigurationResponsePBImpl.newInstance(result);
-      RefreshSuperUserGroupsConfigurationResponsePBImpl responsePB =
-          (RefreshSuperUserGroupsConfigurationResponsePBImpl) response;
-      return responsePB.getProto();
-    } catch (IOException e) {
-      throw new ServiceException(e);
-    }
-  }
-
 
   @Override
   public EnterSafeModeResponseProto enterSafeMode(RpcController controller,

@@ -33,7 +33,7 @@ import org.apache.hadoop.tracing.TraceAdminPB.ConfigPair;
 import org.apache.hadoop.tracing.TraceAdminPB.RemoveSpanReceiverRequestProto;
 import org.apache.hadoop.tracing.TraceAdminPB.SpanReceiverListInfo;
 import org.apache.hadoop.tracing.SpanReceiverInfo.ConfigurationPair;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.ServiceException;
 
 @InterfaceAudience.Private
 public class TraceAdminProtocolTranslatorPB implements

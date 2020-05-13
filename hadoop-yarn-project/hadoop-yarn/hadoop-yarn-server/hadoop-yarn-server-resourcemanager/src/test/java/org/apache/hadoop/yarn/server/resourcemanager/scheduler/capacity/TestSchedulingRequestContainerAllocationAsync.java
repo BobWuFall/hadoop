@@ -28,8 +28,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.NullRMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
@@ -113,15 +111,7 @@ public class TestSchedulingRequestContainerAllocationAsync {
     }
 
     // app1 -> c
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm1)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("c")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm1, data);
+    RMApp app1 = rm1.submitApp(1 * GB, "app", "user", null, "c");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nms[0]);
 
     // app1 asks for 1000 anti-affinity containers for the same app. It should

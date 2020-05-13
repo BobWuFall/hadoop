@@ -17,8 +17,6 @@
  */
 package org.apache.hadoop.test;
 
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -61,7 +59,7 @@ public abstract class HadoopTestBase extends Assert {
    * property is not defined.
    * @return the recommended timeout for tests
    */
-  protected Timeout retrieveTestTimeout() {
+  public static Timeout retrieveTestTimeout() {
     String propval = System.getProperty(PROPERTY_TEST_DEFAULT_TIMEOUT,
                                          Integer.toString(
                                            TEST_DEFAULT_TIMEOUT_VALUE));
@@ -72,7 +70,7 @@ public abstract class HadoopTestBase extends Assert {
       //fall back to the default value, as the property cannot be parsed
       millis = TEST_DEFAULT_TIMEOUT_VALUE;
     }
-    return new Timeout(millis, TimeUnit.MILLISECONDS);
+    return new Timeout(millis);
   }
 
   /**

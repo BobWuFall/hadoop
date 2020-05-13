@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
 
 /** The class represents a cluster of computer with a tree hierarchical
  * network topology.
@@ -147,8 +146,10 @@ public class NetworkTopology {
         if (rack == null) {
           incrementRacks();
         }
-        if (depthOfAllLeaves == -1) {
-          depthOfAllLeaves = node.getLevel();
+        if (!(node instanceof InnerNode)) {
+          if (depthOfAllLeaves == -1) {
+            depthOfAllLeaves = node.getLevel();
+          }
         }
       }
       LOG.debug("NetworkTopology became:\n{}", this);
@@ -294,12 +295,22 @@ public class NetworkTopology {
   
   /** @return the total number of racks */
   public int getNumOfRacks() {
-    return numOfRacks;
+    netlock.readLock().lock();
+    try {
+      return numOfRacks;
+    } finally {
+      netlock.readLock().unlock();
+    }
   }
 
   /** @return the total number of leaf nodes */
   public int getNumOfLeaves() {
-    return clusterMap.getNumOfLeaves();
+    netlock.readLock().lock();
+    try {
+      return clusterMap.getNumOfLeaves();
+    } finally {
+      netlock.readLock().unlock();
+    }
   }
 
   /** Return the distance between two nodes
@@ -487,10 +498,10 @@ public class NetworkTopology {
   protected Node chooseRandom(final String scope, String excludedScope,
       final Collection<Node> excludedNodes) {
     if (excludedScope != null) {
-      if (isChildScope(scope, excludedScope)) {
+      if (scope.startsWith(excludedScope)) {
         return null;
       }
-      if (!isChildScope(excludedScope, scope)) {
+      if (!excludedScope.startsWith(scope)) {
         excludedScope = null;
       }
     }
@@ -668,12 +679,9 @@ public class NetworkTopology {
           if (node == null) {
             continue;
           }
-          if (isNodeInScope(node, scope)) {
-            if (node instanceof InnerNode) {
-              excludedCountInScope += ((InnerNode) node).getNumOfLeaves();
-            } else {
-              excludedCountInScope++;
-            }
+          if ((NodeBase.getPath(node) + NodeBase.PATH_SEPARATOR_STR)
+              .startsWith(scope + NodeBase.PATH_SEPARATOR_STR)) {
+            excludedCountInScope++;
           } else {
             excludedCountOffScope++;
           }
@@ -878,33 +886,11 @@ public class NetworkTopology {
      * This method is called if the reader is a datanode,
      * so nonDataNodeReader flag is set to false.
      */
-    sortByDistance(reader, nodes, activeLen, list -> Collections.shuffle(list));
+    sortByDistance(reader, nodes, activeLen, false);
   }
 
   /**
-   * Sort nodes array by network distance to <i>reader</i> with secondary sort.
-   * <p>
-   * In a three-level topology, a node can be either local, on the same rack,
-   * or on a different rack from the reader. Sorting the nodes based on network
-   * distance from the reader reduces network traffic and improves
-   * performance.
-   * <p>
-   * As an additional twist, we also randomize the nodes at each network
-   * distance. This helps with load balancing when there is data skew.
-   *
-   * @param reader    Node where data will be read
-   * @param nodes     Available replicas with the requested data
-   * @param activeLen Number of active nodes at the front of the array
-   * @param secondarySort a secondary sorting strategy which can inject into
-   *     that point from outside to help sort the same distance.
-   */
-  public <T extends Node> void sortByDistance(Node reader, T[] nodes,
-      int activeLen, Consumer<List<T>> secondarySort){
-    sortByDistance(reader, nodes, activeLen, secondarySort, false);
-  }
-
-  /**
-   * Sort nodes array by network distance to <i>reader</i> with secondary sort.
+   * Sort nodes array by network distance to <i>reader</i>.
    * <p> using network location. This is used when the reader
    * is not a datanode. Sorting the nodes based on network distance
    * from the reader reduces network traffic and improves
@@ -921,27 +907,7 @@ public class NetworkTopology {
      * This method is called if the reader is not a datanode,
      * so nonDataNodeReader flag is set to true.
      */
-    sortByDistanceUsingNetworkLocation(reader, nodes, activeLen,
-        list -> Collections.shuffle(list));
-  }
-
-  /**
-   * Sort nodes array by network distance to <i>reader</i>.
-   * <p> using network location. This is used when the reader
-   * is not a datanode. Sorting the nodes based on network distance
-   * from the reader reduces network traffic and improves
-   * performance.
-   * <p>
-   *
-   * @param reader    Node where data will be read
-   * @param nodes     Available replicas with the requested data
-   * @param activeLen Number of active nodes at the front of the array
-   * @param secondarySort a secondary sorting strategy which can inject into
-   *     that point from outside to help sort the same distance.
-   */
-  public <T extends Node> void sortByDistanceUsingNetworkLocation(Node reader,
-      T[] nodes, int activeLen, Consumer<List<T>> secondarySort) {
-    sortByDistance(reader, nodes, activeLen, secondarySort, true);
+    sortByDistance(reader, nodes, activeLen, true);
   }
 
   /**
@@ -949,15 +915,13 @@ public class NetworkTopology {
    * <p>
    * As an additional twist, we also randomize the nodes at each network
    * distance. This helps with load balancing when there is data skew.
-   * And it helps choose node with more fast storage type.
    *
    * @param reader    Node where data will be read
    * @param nodes     Available replicas with the requested data
    * @param activeLen Number of active nodes at the front of the array
    * @param nonDataNodeReader True if the reader is not a datanode
    */
-  private <T extends Node> void sortByDistance(Node reader, T[] nodes,
-      int activeLen, Consumer<List<T>> secondarySort,
+  private void sortByDistance(Node reader, Node[] nodes, int activeLen,
       boolean nonDataNodeReader) {
     /** Sort weights for the nodes array */
     int[] weights = new int[activeLen];
@@ -969,26 +933,23 @@ public class NetworkTopology {
       }
     }
     // Add weight/node pairs to a TreeMap to sort
-    TreeMap<Integer, List<T>> tree = new TreeMap<>();
+    TreeMap<Integer, List<Node>> tree = new TreeMap<Integer, List<Node>>();
     for (int i=0; i<activeLen; i++) {
       int weight = weights[i];
-      T node = nodes[i];
-      List<T> list = tree.get(weight);
+      Node node = nodes[i];
+      List<Node> list = tree.get(weight);
       if (list == null) {
         list = Lists.newArrayListWithExpectedSize(1);
         tree.put(weight, list);
       }
       list.add(node);
     }
-    // Sort nodes which have the same weight using secondarySort.
+
     int idx = 0;
-    for (List<T> list: tree.values()) {
+    for (List<Node> list: tree.values()) {
       if (list != null) {
         Collections.shuffle(list, r);
-        if (secondarySort != null) {
-          secondarySort.accept(list);
-        }
-        for (T n: list) {
+        for (Node n: list) {
           nodes[idx] = n;
           idx++;
         }
@@ -996,34 +957,5 @@ public class NetworkTopology {
     }
     Preconditions.checkState(idx == activeLen,
         "Sorted the wrong number of nodes!");
-  }
-
-  /**
-   * Checks whether one scope is contained in the other scope.
-   * @param parentScope the parent scope to check
-   * @param childScope  the child scope which needs to be checked.
-   * @return true if childScope is contained within the parentScope
-   */
-  protected static boolean isChildScope(final String parentScope,
-      final String childScope) {
-    String pScope = parentScope.endsWith(NodeBase.PATH_SEPARATOR_STR) ?
-        parentScope :  parentScope + NodeBase.PATH_SEPARATOR_STR;
-    String cScope = childScope.endsWith(NodeBase.PATH_SEPARATOR_STR) ?
-        childScope :  childScope + NodeBase.PATH_SEPARATOR_STR;
-    return pScope.startsWith(cScope);
-  }
-
-  /**
-   * Checks whether a node belongs to the scope.
-   * @param node  the node to check.
-   * @param scope scope to check.
-   * @return true if node lies within the scope
-   */
-  protected static boolean isNodeInScope(Node node, String scope) {
-    if (!scope.endsWith(NodeBase.PATH_SEPARATOR_STR)) {
-      scope += NodeBase.PATH_SEPARATOR_STR;
-    }
-    String nodeLocation = NodeBase.getPath(node) + NodeBase.PATH_SEPARATOR_STR;
-    return nodeLocation.startsWith(scope);
   }
 }

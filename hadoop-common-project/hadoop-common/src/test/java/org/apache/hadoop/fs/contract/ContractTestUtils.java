@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathCapabilities;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.io.IOUtils;
@@ -418,9 +417,8 @@ public class ContractTestUtils extends Assert {
   public static void rename(FileSystem fileSystem, Path src, Path dst)
       throws IOException {
     rejectRootOperation(src, false);
-    assertTrue("rename(" + src + ", " + dst + ") failed",
-        fileSystem.rename(src, dst));
-    assertPathDoesNotExist(fileSystem, "renamed source dir", src);
+    assertTrue(fileSystem.rename(src, dst));
+    assertPathDoesNotExist(fileSystem, "renamed", src);
   }
 
   /**
@@ -560,8 +558,7 @@ public class ContractTestUtils extends Assert {
    */
   public static void assertIsDirectory(FileSystem fs,
                                        Path path) throws IOException {
-    FileStatus fileStatus = verifyPathExists(fs,
-        "Expected to find a directory", path);
+    FileStatus fileStatus = fs.getFileStatus(path);
     assertIsDirectory(fileStatus);
   }
 
@@ -677,8 +674,7 @@ public class ContractTestUtils extends Assert {
   /**
    * Delete a file/dir and assert that delete() returned true
    * <i>and</i> that the path no longer exists. This variant rejects
-   * all operations on root directories and requires the target path
-   * to exist before the deletion operation.
+   * all operations on root directories.
    * @param fs filesystem
    * @param file path to delete
    * @param recursive flag to enable recursive delete
@@ -692,9 +688,8 @@ public class ContractTestUtils extends Assert {
 
   /**
    * Delete a file/dir and assert that delete() returned true
-   * <i>and</i> that the path no longer exists.
-   * This variant requires the target path
-   * to exist before the deletion operation.
+   * <i>and</i> that the path no longer exists. This variant rejects
+   * all operations on root directories
    * @param fs filesystem
    * @param file path to delete
    * @param recursive flag to enable recursive delete
@@ -703,30 +698,10 @@ public class ContractTestUtils extends Assert {
    */
   public static void assertDeleted(FileSystem fs,
       Path file,
-      boolean recursive,
-      boolean allowRootOperations) throws IOException {
-    assertDeleted(fs, file, true, recursive, allowRootOperations);
-  }
-
-  /**
-   * Delete a file/dir and assert that delete() returned true
-   * <i>and</i> that the path no longer exists.
-   * @param fs filesystem
-   * @param file path to delete
-   * @param requirePathToExist check for the path existing first?
-   * @param recursive flag to enable recursive delete
-   * @param allowRootOperations can the root dir be deleted?
-   * @throws IOException IO problems
-   */
-  public static void assertDeleted(FileSystem fs,
-      Path file,
-      boolean requirePathToExist,
       boolean recursive,
       boolean allowRootOperations) throws IOException {
     rejectRootOperation(file, allowRootOperations);
-    if (requirePathToExist) {
-      assertPathExists(fs, "about to be deleted file", file);
-    }
+    assertPathExists(fs, "about to be deleted file", file);
     boolean deleted = fs.delete(file, recursive);
     String dir = ls(fs, file.getParent());
     assertTrue("Delete failed on " + file + ": " + dir, deleted);
@@ -1493,58 +1468,19 @@ public class ContractTestUtils extends Assert {
     assertTrue("Stream should be instanceof StreamCapabilities",
         stream instanceof StreamCapabilities);
 
-    StreamCapabilities source = (StreamCapabilities) stream;
-    if (shouldHaveCapabilities != null) {
+    if (shouldHaveCapabilities!=null) {
       for (String shouldHaveCapability : shouldHaveCapabilities) {
         assertTrue("Should have capability: " + shouldHaveCapability,
-            source.hasCapability(shouldHaveCapability));
+            ((StreamCapabilities) stream).hasCapability(shouldHaveCapability));
       }
     }
 
-    if (shouldNotHaveCapabilities != null) {
+    if (shouldNotHaveCapabilities!=null) {
       for (String shouldNotHaveCapability : shouldNotHaveCapabilities) {
         assertFalse("Should not have capability: " + shouldNotHaveCapability,
-            source.hasCapability(shouldNotHaveCapability));
+            ((StreamCapabilities) stream)
+                .hasCapability(shouldNotHaveCapability));
       }
-    }
-  }
-
-  /**
-   * Custom assert to test {@link PathCapabilities}.
-   *
-   * @param source source (FS, FC, etc)
-   * @param path path to check
-   * @param capabilities The array of unexpected capabilities
-   */
-  public static void assertHasPathCapabilities(
-      final PathCapabilities source,
-      final Path path,
-      final String...capabilities) throws IOException {
-
-    for (String shouldHaveCapability: capabilities) {
-      assertTrue("Should have capability: " + shouldHaveCapability
-              + " under " + path,
-          source.hasPathCapability(path, shouldHaveCapability));
-    }
-  }
-
-  /**
-   * Custom assert to test that the named {@link PathCapabilities}
-   * are not supported.
-   *
-   * @param source source (FS, FC, etc)
-   * @param path path to check
-   * @param capabilities The array of unexpected capabilities
-   */
-  public static void assertLacksPathCapabilities(
-      final PathCapabilities source,
-      final Path path,
-      final String...capabilities) throws IOException {
-
-    for (String shouldHaveCapability: capabilities) {
-      assertFalse("Path  must not support capability: " + shouldHaveCapability
-              + " under " + path,
-          source.hasPathCapability(path, shouldHaveCapability));
     }
   }
 
@@ -1670,22 +1606,6 @@ public class ContractTestUtils extends Assert {
     }
 
     /**
-     * Dump the files and directories to a multi-line string for error
-     * messages and assertions.
-     * @return a dump of the internal state
-     */
-    private String dump() {
-      StringBuilder sb = new StringBuilder(toString());
-      sb.append("\nFiles:");
-      directories.forEach(p ->
-          sb.append("\n  \"").append(p.toString()));
-      sb.append("\nDirectories:");
-      files.forEach(p ->
-          sb.append("\n  \"").append(p.toString()));
-      return sb.toString();
-    }
-
-    /**
      * Equality check compares files and directory counts.
      * As these are non-final fields, this class cannot be used in
      * hash tables.
@@ -1725,7 +1645,7 @@ public class ContractTestUtils extends Assert {
      * @param o expected other entries.
      */
     public void assertSizeEquals(String text, long f, long d, long o) {
-      String self = dump();
+      String self = toString();
       Assert.assertEquals(text + ": file count in " + self,
           f, getFileCount());
       Assert.assertEquals(text + ": directory count in " + self,

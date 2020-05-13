@@ -30,7 +30,6 @@ import org.apache.hadoop.hdfs.server.protocol.ReplicaRecoveryInfo;
  */
 public class FinalizedReplica extends LocalReplica {
   private byte[] lastPartialChunkChecksum;
-  private int metaLength = -1;
   /**
    * Constructor.
    * @param blockId block id
@@ -143,14 +142,6 @@ public class FinalizedReplica extends LocalReplica {
   public ReplicaRecoveryInfo createInfo() {
     throw new UnsupportedOperationException("Replica of type " + getState() +
         " does not support createInfo");
-  }
-
-  @Override
-  public long getMetadataLength() {
-    if (metaLength < 0) {
-      metaLength = (int)super.getMetadataLength();
-    }
-    return metaLength;
   }
 
   public byte[] getLastPartialChunkChecksum() {

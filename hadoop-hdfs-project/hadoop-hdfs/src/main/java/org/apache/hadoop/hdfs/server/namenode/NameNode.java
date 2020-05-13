@@ -96,8 +96,6 @@ import org.apache.hadoop.util.JvmPauseMonitor;
 import org.apache.hadoop.util.ServicePlugin;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.Time;
-import org.apache.hadoop.util.GcTimeMonitor;
-import org.apache.hadoop.util.GcTimeMonitor.Builder;
 import org.apache.htrace.core.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +111,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -178,14 +175,6 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_REPLICATION_STRE
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION_DEFAULT;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_SLEEP_INTERVAL_MS;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_SLEEP_INTERVAL_MS_DEFAULT;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_OBSERVATION_WINDOW_MS;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_OBSERVATION_WINDOW_MS_DEFAULT;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_ENABLE;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_GC_TIME_MONITOR_ENABLE_DEFAULT;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_REPLICATOR_CLASSNAME_KEY;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_PLACEMENT_EC_CLASSNAME_KEY;
 
 import static org.apache.hadoop.util.ExitUtil.terminate;
 import static org.apache.hadoop.util.ToolRunner.confirmPrompt;
@@ -324,9 +313,7 @@ public class NameNode extends ReconfigurableBase implements
           DFS_STORAGE_POLICY_SATISFIER_MODE_KEY,
           DFS_NAMENODE_REPLICATION_MAX_STREAMS_KEY,
           DFS_NAMENODE_REPLICATION_STREAMS_HARD_LIMIT_KEY,
-          DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION,
-          DFS_BLOCK_REPLICATOR_CLASSNAME_KEY,
-          DFS_BLOCK_PLACEMENT_EC_CLASSNAME_KEY));
+          DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION));
 
   private static final String USAGE = "Usage: hdfs namenode ["
       + StartupOption.BACKUP.getName() + "] | \n\t["
@@ -423,7 +410,6 @@ public class NameNode extends ReconfigurableBase implements
   private NameNodeRpcServer rpcServer;
 
   private JvmPauseMonitor pauseMonitor;
-  private GcTimeMonitor gcTimeMonitor;
   private ObjectName nameNodeStatusBeanName;
   protected final Tracer tracer;
   protected final TracerConfigurationManager tracerConfigurationManager;
@@ -696,10 +682,6 @@ public class NameNode extends ReconfigurableBase implements
   @Override
   public void verifyToken(DelegationTokenIdentifier id, byte[] password)
       throws IOException {
-    // during startup namesystem is null, let client retry
-    if (namesystem == null) {
-      throw new RetriableException("Namenode is in startup mode");
-    }
     namesystem.verifyToken(id, password);
   }
 
@@ -736,22 +718,6 @@ public class NameNode extends ReconfigurableBase implements
     pauseMonitor.init(conf);
     pauseMonitor.start();
     metrics.getJvmMetrics().setPauseMonitor(pauseMonitor);
-
-    if (conf.getBoolean(DFS_NAMENODE_GC_TIME_MONITOR_ENABLE,
-        DFS_NAMENODE_GC_TIME_MONITOR_ENABLE_DEFAULT)) {
-      long observationWindow = conf.getTimeDuration(
-          DFS_NAMENODE_GC_TIME_MONITOR_OBSERVATION_WINDOW_MS,
-          DFS_NAMENODE_GC_TIME_MONITOR_OBSERVATION_WINDOW_MS_DEFAULT,
-          TimeUnit.MILLISECONDS);
-      long sleepInterval = conf.getTimeDuration(
-          DFS_NAMENODE_GC_TIME_MONITOR_SLEEP_INTERVAL_MS,
-          DFS_NAMENODE_GC_TIME_MONITOR_SLEEP_INTERVAL_MS_DEFAULT,
-          TimeUnit.MILLISECONDS);
-      gcTimeMonitor = new Builder().observationWindowMs(observationWindow)
-          .sleepIntervalMs(sleepInterval).build();
-      gcTimeMonitor.start();
-      metrics.getJvmMetrics().setGcTimeMonitor(gcTimeMonitor);
-    }
 
     if (NamenodeRole.NAMENODE == role) {
       startHttpServer(conf);
@@ -1012,9 +978,9 @@ public class NameNode extends ReconfigurableBase implements
     try {
       initializeGenericKeys(conf, nsId, namenodeId);
       initialize(getConf());
-      state.prepareToEnterState(haContext);
       try {
         haContext.writeLock();
+        state.prepareToEnterState(haContext);
         state.enterState(haContext);
       } finally {
         haContext.writeUnlock();
@@ -1064,7 +1030,7 @@ public class NameNode extends ReconfigurableBase implements
     try {
       rpcServer.join();
     } catch (InterruptedException ie) {
-      LOG.info("Caught interrupted exception", ie);
+      LOG.info("Caught interrupted exception ", ie);
     }
   }
 
@@ -1082,7 +1048,7 @@ public class NameNode extends ReconfigurableBase implements
         state.exitState(haContext);
       }
     } catch (ServiceFailedException e) {
-      LOG.warn("Encountered exception while exiting state", e);
+      LOG.warn("Encountered exception while exiting state ", e);
     } finally {
       stopMetricsLogger();
       stopCommonServices();
@@ -1241,8 +1207,7 @@ public class NameNode extends ReconfigurableBase implements
       //Generate a new cluster id
       clusterId = NNStorage.newClusterID();
     }
-
-    LOG.info("Formatting using clusterid: {}", clusterId);
+    System.out.println("Formatting using clusterid: " + clusterId);
     
     FSImage fsImage = new FSImage(conf, nameDirsToFormat, editDirsToFormat);
     try {
@@ -1270,7 +1235,7 @@ public class NameNode extends ReconfigurableBase implements
 
       fsImage.format(fsn, clusterId, force);
     } catch (IOException ioe) {
-      LOG.warn("Encountered exception during format", ioe);
+      LOG.warn("Encountered exception during format: ", ioe);
       fsImage.close();
       throw ioe;
     }
@@ -1431,11 +1396,13 @@ public class NameNode extends ReconfigurableBase implements
 
       // Copy all edits after last CheckpointTxId to shared edits dir
       for (EditLogInputStream stream : streams) {
-        LOG.debug("Beginning to copy stream {} to shared edits", stream);
+        LOG.debug("Beginning to copy stream " + stream + " to shared edits");
         FSEditLogOp op;
         boolean segmentOpen = false;
         while ((op = stream.readOp()) != null) {
-          LOG.trace("copying op: {}", op);
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("copying op: " + op);
+          }
           if (!segmentOpen) {
             newSharedEditLog.startLogSegment(op.txid, false,
                 fsns.getEffectiveLayoutVersion());
@@ -1446,15 +1413,14 @@ public class NameNode extends ReconfigurableBase implements
 
           if (op.opCode == FSEditLogOpCodes.OP_END_LOG_SEGMENT) {
             newSharedEditLog.endCurrentLogSegment(false);
-            LOG.debug("ending log segment because of END_LOG_SEGMENT op in {}",
-                stream);
+            LOG.debug("ending log segment because of END_LOG_SEGMENT op in "
+                + stream);
             segmentOpen = false;
           }
         }
 
         if (segmentOpen) {
-          LOG.debug("ending log segment because of end of stream in {}",
-              stream);
+          LOG.debug("ending log segment because of end of stream in " + stream);
           newSharedEditLog.logSync();
           newSharedEditLog.endCurrentLogSegment(false);
           segmentOpen = false;
@@ -1571,7 +1537,7 @@ public class NameNode extends ReconfigurableBase implements
               i += 1;
             }
           } else {
-            LOG.error("Unknown upgrade flag: {}", flag);
+            LOG.error("Unknown upgrade flag " + flag);
             return null;
           }
         }
@@ -1715,8 +1681,8 @@ public class NameNode extends ReconfigurableBase implements
       terminate(aborted ? 1 : 0);
       return null; // avoid javac warning
     case GENCLUSTERID:
-      String clusterID = NNStorage.newClusterID();
-      LOG.info("Generated new cluster id: {}", clusterID);
+      System.err.println("Generating new cluster id:");
+      System.out.println(NNStorage.newClusterID());
       terminate(0);
       return null;
     case ROLLBACK:
@@ -1797,7 +1763,9 @@ public class NameNode extends ReconfigurableBase implements
       URI defaultUri = URI.create(HdfsConstants.HDFS_URI_SCHEME + "://"
           + conf.get(DFS_NAMENODE_RPC_ADDRESS_KEY));
       conf.set(FS_DEFAULT_NAME_KEY, defaultUri.toString());
-      LOG.debug("Setting {} to {}", FS_DEFAULT_NAME_KEY, defaultUri);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Setting " + FS_DEFAULT_NAME_KEY + " to " + defaultUri.toString());
+      }
     }
   }
     
@@ -1934,14 +1902,22 @@ public class NameNode extends ReconfigurableBase implements
 
   @Override // NameNodeStatusMXBean
   public String getNNRole() {
+    String roleStr = "";
     NamenodeRole role = getRole();
-    return Objects.toString(role, "");
+    if (null != role) {
+      roleStr = role.toString();
+    }
+    return roleStr;
   }
 
   @Override // NameNodeStatusMXBean
   public String getState() {
+    String servStateStr = "";
     HAServiceState servState = getServiceState();
-    return Objects.toString(servState, "");
+    if (null != servState) {
+      servStateStr = servState.toString();
+    }
+    return servStateStr;
   }
 
   @Override // NameNodeStatusMXBean
@@ -1987,9 +1963,10 @@ public class NameNode extends ReconfigurableBase implements
    */
   protected synchronized void doImmediateShutdown(Throwable t)
       throws ExitException {
+    String message = "Error encountered requiring NN shutdown. " +
+        "Shutting down immediately.";
     try {
-      LOG.error("Error encountered requiring NN shutdown. " +
-          "Shutting down immediately.", t);
+      LOG.error(message, t);
     } catch (Throwable ignored) {
       // This is unlikely to happen, but there's nothing we can do if it does.
     }
@@ -2183,10 +2160,6 @@ public class NameNode extends ReconfigurableBase implements
         || property.equals(
             DFS_NAMENODE_REPLICATION_WORK_MULTIPLIER_PER_ITERATION)) {
       return reconfReplicationParameters(newVal, property);
-    } else if (property.equals(DFS_BLOCK_REPLICATOR_CLASSNAME_KEY) || property
-        .equals(DFS_BLOCK_PLACEMENT_EC_CLASSNAME_KEY)) {
-      reconfBlockPlacementPolicy();
-      return newVal;
     } else {
       throw new ReconfigurationException(property, newVal, getConf().get(
           property));
@@ -2229,11 +2202,6 @@ public class NameNode extends ReconfigurableBase implements
     } finally {
       namesystem.writeUnlock();
     }
-  }
-
-  private void reconfBlockPlacementPolicy() {
-    getNamesystem().getBlockManager()
-        .refreshBlockPlacementPolicy(getNewConf());
   }
 
   private int adjustNewVal(int defaultVal, String newVal) {

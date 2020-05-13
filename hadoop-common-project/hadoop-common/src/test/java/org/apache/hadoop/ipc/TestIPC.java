@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -104,8 +105,6 @@ import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for IPC. */
 public class TestIPC {
@@ -1275,7 +1274,7 @@ public class TestIPC {
       retryProxy.dummyRun();
     } finally {
       // Check if dummyRun called only once
-      assertThat(handler.invocations).isOne();
+      Assert.assertEquals(handler.invocations, 1);
       Client.setCallIdAndRetryCount(0, 0, null);
       client.stop();
       server.stop();
@@ -1456,7 +1455,7 @@ public class TestIPC {
   @Test
   public void testClientGetTimeout() throws IOException {
     Configuration config = new Configuration();
-    assertThat(Client.getTimeout(config)).isEqualTo(-1);
+    assertEquals(Client.getTimeout(config), -1);
   }
 
   @Test(timeout=60000)
@@ -1583,10 +1582,11 @@ public class TestIPC {
     try {
       call(client, 0, addr, conf);
     } catch (IOException ioe) {
-      Assert.assertNotNull(ioe);
-      Assert.assertEquals(RpcException.class, ioe.getClass());
+      Throwable t = ioe.getCause();
+      Assert.assertNotNull(t);
+      Assert.assertEquals(RpcException.class, t.getClass());
       Assert.assertEquals("RPC response exceeds maximum data length",
-          ioe.getMessage());
+          t.getMessage());
       return;
     }
     Assert.fail("didn't get limit exceeded");

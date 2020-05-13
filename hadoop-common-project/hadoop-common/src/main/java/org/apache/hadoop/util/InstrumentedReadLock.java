@@ -75,7 +75,7 @@ public class InstrumentedReadLock extends InstrumentedLock {
     getLock().unlock();
     if (needReport) {
       readLockHeldTimeStamp.remove();
-      check(localLockAcquireTime, localLockReleaseTime, true);
+      check(localLockAcquireTime, localLockReleaseTime);
     }
   }
 

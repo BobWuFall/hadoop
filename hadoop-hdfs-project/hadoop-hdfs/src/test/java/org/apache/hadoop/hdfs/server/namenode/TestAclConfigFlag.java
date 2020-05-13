@@ -160,7 +160,10 @@ public class TestAclConfigFlag {
   private void initCluster(boolean format, boolean aclsEnabled)
       throws Exception {
     Configuration conf = new Configuration();
-    conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_ACLS_ENABLED_KEY, aclsEnabled);
+    // not explicitly setting to false, should be false by default
+    if (aclsEnabled) {
+      conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_ACLS_ENABLED_KEY, true);
+    }
     cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).format(format)
       .build();
     cluster.waitActive();

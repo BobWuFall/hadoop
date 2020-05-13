@@ -151,15 +151,15 @@ public class DataNodeVolumeMetrics {
 
   // Based on writeIoRate
   public long getWriteIoSampleCount() {
-    return writeIoRate.lastStat().numSamples();
+    return syncIoRate.lastStat().numSamples();
   }
 
   public double getWriteIoMean() {
-    return writeIoRate.lastStat().mean();
+    return syncIoRate.lastStat().mean();
   }
 
   public double getWriteIoStdDev() {
-    return writeIoRate.lastStat().stddev();
+    return syncIoRate.lastStat().stddev();
   }
 
   public long getTotalFileIoErrors() {

@@ -68,7 +68,7 @@ public class TestBpServiceActorScheduler {
   public void testScheduleBlockReportImmediate() {
     for (final long now : getTimestamps()) {
       Scheduler scheduler = makeMockScheduler(now);
-      scheduler.scheduleBlockReport(0, true);
+      scheduler.scheduleBlockReport(0);
       assertTrue(scheduler.resetBlockReportTime);
       assertThat(scheduler.nextBlockReportTime, is(now));
     }
@@ -79,7 +79,7 @@ public class TestBpServiceActorScheduler {
     for (final long now : getTimestamps()) {
       Scheduler scheduler = makeMockScheduler(now);
       final long delayMs = 10;
-      scheduler.scheduleBlockReport(delayMs, true);
+      scheduler.scheduleBlockReport(delayMs);
       assertTrue(scheduler.resetBlockReportTime);
       assertTrue(scheduler.nextBlockReportTime - now >= 0);
       assertTrue(scheduler.nextBlockReportTime - (now + delayMs) < 0);

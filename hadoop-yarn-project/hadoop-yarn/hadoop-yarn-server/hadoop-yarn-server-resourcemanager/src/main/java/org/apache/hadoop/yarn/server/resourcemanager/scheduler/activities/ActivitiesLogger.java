@@ -30,11 +30,10 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
 import org.apache.hadoop.yarn.server.scheduler.SchedulerRequestKey;
 
-import java.util.function.Supplier;
-
 /**
  * Utility for logging scheduler activities
  */
+// FIXME: make sure CandidateNodeSet works with this class
 public class ActivitiesLogger {
   private static final Logger LOG =
       LoggerFactory.getLogger(ActivitiesLogger.class);
@@ -53,9 +52,9 @@ public class ActivitiesLogger {
         ActivitiesManager activitiesManager, SchedulerNode node,
         SchedulerApplicationAttempt application,
         SchedulerRequestKey requestKey,
-        String diagnostic, ActivityLevel level) {
+        String diagnostic) {
       recordAppActivityWithoutAllocation(activitiesManager, node, application,
-          requestKey, diagnostic, ActivityState.SKIPPED, level);
+          requestKey, diagnostic, ActivityState.SKIPPED);
     }
 
     /*
@@ -73,7 +72,7 @@ public class ActivitiesLogger {
       if (activitiesManager.shouldRecordThisNode(nodeId)) {
         recordActivity(activitiesManager, nodeId, application.getQueueName(),
             application.getApplicationId().toString(), priority,
-            ActivityState.REJECTED, diagnostic, ActivityLevel.APP);
+            ActivityState.REJECTED, diagnostic, "app");
       }
       finishSkippedAppAllocationRecording(activitiesManager,
           application.getApplicationId(), ActivityState.REJECTED, diagnostic);
@@ -88,55 +87,50 @@ public class ActivitiesLogger {
         ActivitiesManager activitiesManager, SchedulerNode node,
         SchedulerApplicationAttempt application,
         SchedulerRequestKey schedulerKey,
-        String diagnostic, ActivityState appState, ActivityLevel level) {
+        String diagnostic, ActivityState appState) {
       if (activitiesManager == null) {
         return;
       }
       NodeId nodeId = getRecordingNodeId(activitiesManager, node);
       if (activitiesManager.shouldRecordThisNode(nodeId)) {
-        String requestName = null;
-        Integer priority = null;
-        Long allocationRequestId = null;
-        if (level == ActivityLevel.NODE || level == ActivityLevel.REQUEST) {
-          if (schedulerKey == null) {
-            LOG.warn("Request key should not be null at " + level + " level.");
-            return;
-          }
-          priority = getPriority(schedulerKey);
-          allocationRequestId = schedulerKey.getAllocationRequestId();
-          requestName = getRequestName(priority, allocationRequestId);
+        if (schedulerKey != null) {
+          String allocationRequestId =
+              String.valueOf(schedulerKey.getAllocationRequestId());
+          String priorityStr = getPriorityStr(schedulerKey);
+          String requestName = getRequestName(priorityStr, allocationRequestId);
+          String type = "container";
+          // Add application-container activity into specific node allocation.
+          activitiesManager.addSchedulingActivityForNode(nodeId,
+              requestName, null,
+              priorityStr, appState, diagnostic, type,
+              null);
+          type = "request";
+          // Add application-container activity into specific node allocation.
+          activitiesManager.addSchedulingActivityForNode(nodeId,
+              application.getApplicationId().toString(), requestName,
+              priorityStr, appState,
+              ActivityDiagnosticConstant.EMPTY, type, allocationRequestId);
         }
-        switch (level) {
-        case NODE:
-          recordSchedulerActivityAtNodeLevel(activitiesManager, application,
-              requestName, priority, allocationRequestId, null, nodeId,
-              appState, diagnostic);
-          break;
-        case REQUEST:
-          recordSchedulerActivityAtRequestLevel(activitiesManager, application,
-              requestName, priority, allocationRequestId, nodeId, appState,
-              diagnostic);
-          break;
-        case APP:
-          recordSchedulerActivityAtAppLevel(activitiesManager, application,
-              nodeId, appState, diagnostic);
-          break;
-        default:
-          LOG.warn("Doesn't handle app activities at " + level + " level.");
-          break;
-        }
+        // Add queue-application activity into specific node allocation.
+        activitiesManager.addSchedulingActivityForNode(nodeId,
+            application.getQueueName(),
+            application.getApplicationId().toString(),
+            application.getPriority().toString(), appState,
+            schedulerKey != null ? ActivityDiagnosticConstant.EMPTY :
+                diagnostic, "app", null);
       }
       // Add application-container activity into specific application allocation
       // Under this condition, it fails to allocate a container to this
       // application, so containerId is null.
       if (activitiesManager.shouldRecordThisApp(
           application.getApplicationId())) {
+        String type = "container";
         activitiesManager.addSchedulingActivityForApp(
             application.getApplicationId(), null,
-            getPriority(schedulerKey), appState,
-            diagnostic, level, nodeId,
+            getPriorityStr(schedulerKey), appState,
+            diagnostic, type, nodeId,
             schedulerKey == null ?
-                null : schedulerKey.getAllocationRequestId());
+                null : String.valueOf(schedulerKey.getAllocationRequestId()));
       }
     }
 
@@ -156,66 +150,47 @@ public class ActivitiesLogger {
         nodeId = updatedContainer.getNodeId();
       }
       if (activitiesManager.shouldRecordThisNode(nodeId)) {
-        Integer containerPriority =
-            updatedContainer.getContainer().getPriority().getPriority();
-        Long allocationRequestId =
-            updatedContainer.getContainer().getAllocationRequestId();
+        String containerPriorityStr =
+            updatedContainer.getContainer().getPriority().toString();
+        String allocationRequestId = String
+            .valueOf(updatedContainer.getContainer().getAllocationRequestId());
         String requestName =
-            getRequestName(containerPriority, allocationRequestId);
-        // Add node,request,app level activities into scheduler activities.
-        recordSchedulerActivityAtNodeLevel(activitiesManager, application,
-            requestName, containerPriority, allocationRequestId,
-            updatedContainer.getContainer().toString(), nodeId, activityState,
-            ActivityDiagnosticConstant.EMPTY);
+            getRequestName(containerPriorityStr, allocationRequestId);
+        String type = "container";
+
+        // Add application-container activity into specific node allocation.
+        activitiesManager.addSchedulingActivityForNode(nodeId,
+            requestName,
+            updatedContainer.getContainer().toString(),
+            containerPriorityStr,
+            activityState, ActivityDiagnosticConstant.EMPTY, type, null);
+        type = "request";
+        // Add application-container activity into specific node allocation.
+        activitiesManager.addSchedulingActivityForNode(nodeId,
+            application.getApplicationId().toString(),
+            requestName, containerPriorityStr,
+            activityState, ActivityDiagnosticConstant.EMPTY, type,
+            allocationRequestId);
+        type = "app";
+        // Add queue-application activity into specific node allocation.
+        activitiesManager.addSchedulingActivityForNode(nodeId,
+            application.getQueueName(),
+            application.getApplicationId().toString(),
+            application.getPriority().toString(), ActivityState.ACCEPTED,
+            ActivityDiagnosticConstant.EMPTY, type, null);
       }
       // Add application-container activity into specific application allocation
       if (activitiesManager.shouldRecordThisApp(
           application.getApplicationId())) {
+        String type = "container";
         activitiesManager.addSchedulingActivityForApp(
             application.getApplicationId(),
             updatedContainer.getContainerId(),
-            updatedContainer.getContainer().getPriority().getPriority(),
-            activityState, ActivityDiagnosticConstant.EMPTY,
-            ActivityLevel.NODE, nodeId,
-            updatedContainer.getContainer().getAllocationRequestId());
+            updatedContainer.getContainer().getPriority().toString(),
+            activityState, ActivityDiagnosticConstant.EMPTY, type, nodeId,
+            String.valueOf(
+                updatedContainer.getContainer().getAllocationRequestId()));
       }
-    }
-
-    @SuppressWarnings("parameternumber")
-    private static void recordSchedulerActivityAtNodeLevel(
-        ActivitiesManager activitiesManager, SchedulerApplicationAttempt app,
-        String requestName, Integer priority, Long allocationRequestId,
-        String containerId, NodeId nodeId, ActivityState state,
-        String diagnostic) {
-      activitiesManager
-          .addSchedulingActivityForNode(nodeId, requestName, containerId, null,
-              state, diagnostic, ActivityLevel.NODE, null);
-      // Record request level activity additionally.
-      recordSchedulerActivityAtRequestLevel(activitiesManager, app, requestName,
-          priority, allocationRequestId, nodeId, state,
-          ActivityDiagnosticConstant.EMPTY);
-    }
-
-    @SuppressWarnings("parameternumber")
-    private static void recordSchedulerActivityAtRequestLevel(
-        ActivitiesManager activitiesManager, SchedulerApplicationAttempt app,
-        String requestName, Integer priority, Long allocationRequestId,
-        NodeId nodeId, ActivityState state, String diagnostic) {
-      activitiesManager.addSchedulingActivityForNode(nodeId,
-          app.getApplicationId().toString(), requestName, priority,
-          state, diagnostic, ActivityLevel.REQUEST,
-          allocationRequestId);
-      // Record app level activity additionally.
-      recordSchedulerActivityAtAppLevel(activitiesManager, app, nodeId, state,
-          ActivityDiagnosticConstant.EMPTY);
-    }
-
-    private static void recordSchedulerActivityAtAppLevel(
-        ActivitiesManager activitiesManager, SchedulerApplicationAttempt app,
-        NodeId nodeId, ActivityState state, String diagnostic) {
-      activitiesManager.addSchedulingActivityForNode(nodeId, app.getQueueName(),
-          app.getApplicationId().toString(), app.getPriority().getPriority(),
-          state, diagnostic, ActivityLevel.APP, null);
     }
 
     /*
@@ -277,20 +252,13 @@ public class ActivitiesLogger {
     public static void recordQueueActivity(ActivitiesManager activitiesManager,
         SchedulerNode node, String parentQueueName, String queueName,
         ActivityState state, String diagnostic) {
-      recordQueueActivity(activitiesManager, node, parentQueueName, queueName,
-          state, () -> diagnostic);
-    }
-
-    public static void recordQueueActivity(ActivitiesManager activitiesManager,
-        SchedulerNode node, String parentQueueName, String queueName,
-        ActivityState state, Supplier<String> diagnosticSupplier) {
       if (activitiesManager == null) {
         return;
       }
       NodeId nodeId = getRecordingNodeId(activitiesManager, node);
       if (activitiesManager.shouldRecordThisNode(nodeId)) {
         recordActivity(activitiesManager, nodeId, parentQueueName, queueName,
-            null, state, diagnosticSupplier.get(), ActivityLevel.QUEUE);
+            null, state, diagnostic, null);
       }
     }
   }
@@ -331,11 +299,11 @@ public class ActivitiesLogger {
      * Invoked when node heartbeat finishes
      */
     public static void finishNodeUpdateRecording(
-        ActivitiesManager activitiesManager, NodeId nodeID, String partition) {
+        ActivitiesManager activitiesManager, NodeId nodeID) {
       if (activitiesManager == null) {
         return;
       }
-      activitiesManager.finishNodeUpdateRecording(nodeID, partition);
+      activitiesManager.finishNodeUpdateRecording(nodeID);
     }
 
     /*
@@ -352,11 +320,11 @@ public class ActivitiesLogger {
 
   // Add queue, application or container activity into specific node allocation.
   private static void recordActivity(ActivitiesManager activitiesManager,
-      NodeId nodeId, String parentName, String childName, Priority priority,
-      ActivityState state, String diagnostic, ActivityLevel level) {
+      NodeId nodeId, String parentName, String childName,
+      Priority priority, ActivityState state, String diagnostic, String type) {
     activitiesManager.addSchedulingActivityForNode(nodeId, parentName,
-        childName, priority != null ? priority.getPriority() : null, state,
-        diagnostic, level, null);
+        childName, priority != null ? priority.toString() : null, state,
+        diagnostic, type, null);
   }
 
   private static NodeId getRecordingNodeId(ActivitiesManager activitiesManager,
@@ -365,16 +333,16 @@ public class ActivitiesLogger {
         activitiesManager.getRecordingNodeId(node);
   }
 
-  private static String getRequestName(Integer priority,
-      Long allocationRequestId) {
+  private static String getRequestName(String priority,
+      String allocationRequestId) {
     return "request_"
         + (priority == null ? "" : priority)
         + "_" + (allocationRequestId == null ? "" : allocationRequestId);
   }
 
-  private static Integer getPriority(SchedulerRequestKey schedulerKey) {
+  private static String getPriorityStr(SchedulerRequestKey schedulerKey) {
     Priority priority = schedulerKey == null ?
         null : schedulerKey.getPriority();
-    return priority == null ? null : priority.getPriority();
+    return priority == null ? null : priority.toString();
   }
 }

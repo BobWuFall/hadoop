@@ -412,25 +412,6 @@ public class TestCount {
   }
 
   @Test
-  public void processPathWithSnapshotHeader() throws Exception {
-    Path path = new Path("mockfs:/test");
-    when(mockFs.getFileStatus(eq(path))).thenReturn(fileStat);
-    PrintStream out = mock(PrintStream.class);
-    Count count = new Count();
-    count.out = out;
-    LinkedList<String> options = new LinkedList<String>();
-    options.add("-s");
-    options.add("-v");
-    options.add("dummy");
-    count.processOptions(options);
-    String withSnapshotHeader = "   DIR_COUNT   FILE_COUNT       CONTENT_SIZE "
-        + "   SNAPSHOT_LENGTH      SNAPSHOT_FILE_COUNT      "
-        + " SNAPSHOT_DIR_COUNT      SNAPSHOT_SPACE_CONSUMED PATHNAME";
-    verify(out).println(withSnapshotHeader);
-    verifyNoMoreInteractions(out);
-  }
-
-  @Test
   public void getCommandName() {
     Count count = new Count();
     String actual = count.getCommandName();
@@ -467,8 +448,7 @@ public class TestCount {
     Count count = new Count();
     String actual = count.getUsage();
     String expected =
-        "-count [-q] [-h] [-v] [-t [<storage type>]]"
-        + " [-u] [-x] [-e] [-s] <path> ...";
+        "-count [-q] [-h] [-v] [-t [<storage type>]] [-u] [-x] [-e] <path> ...";
     assertEquals("Count.getUsage", expected, actual);
   }
 
@@ -500,8 +480,7 @@ public class TestCount {
         + "storage types.\n"
         + "The -u option shows the quota and \n"
         + "the usage against the quota without the detailed content summary."
-        + "The -e option shows the erasure coding policy."
-        + "The -s option shows snapshot counts.";
+        + "The -e option shows the erasure coding policy.";
 
     assertEquals("Count.getDescription", expected, actual);
   }

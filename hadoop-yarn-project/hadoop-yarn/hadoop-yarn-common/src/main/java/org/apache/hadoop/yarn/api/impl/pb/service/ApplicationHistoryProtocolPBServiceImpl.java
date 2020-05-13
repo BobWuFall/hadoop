@@ -70,8 +70,8 @@ import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetContainerReportResponse
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetContainersRequestProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetContainersResponseProto;
 
-import org.apache.hadoop.thirdparty.protobuf.RpcController;
-import org.apache.hadoop.thirdparty.protobuf.ServiceException;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
 @Private
 public class ApplicationHistoryProtocolPBServiceImpl implements

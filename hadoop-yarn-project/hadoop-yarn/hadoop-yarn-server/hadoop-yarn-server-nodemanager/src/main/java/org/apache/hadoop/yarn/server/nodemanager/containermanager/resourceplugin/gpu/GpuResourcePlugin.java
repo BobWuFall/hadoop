@@ -18,14 +18,9 @@
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin.gpu;
 
-import java.util.List;
-
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.server.nodemanager.ContainerExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
-import org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.privileged.PrivilegedOperationExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.CGroupsHandler;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.resources.ResourceHandler;
@@ -37,6 +32,8 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.resourceplugin
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.NMResourceInfo;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.gpu.GpuDeviceInformation;
 import org.apache.hadoop.yarn.server.nodemanager.webapp.dao.gpu.NMGpuResourceInfo;
+
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,10 +44,6 @@ public class GpuResourcePlugin implements ResourcePlugin {
 
   private final GpuNodeResourceUpdateHandler resourceDiscoverHandler;
   private final GpuDiscoverer gpuDiscoverer;
-  public static final int MAX_REPEATED_ERROR_ALLOWED = 10;
-
-  private int numOfErrorExecutionSinceLastSucceed = 0;
-
   private GpuResourceHandlerImpl gpuResourceHandler = null;
   private DockerCommandPlugin dockerCommandPlugin = null;
 
@@ -61,28 +54,15 @@ public class GpuResourcePlugin implements ResourcePlugin {
   }
 
   @Override
-  public void initialize(Context context) throws YarnException {
-    validateExecutorConfig(context.getConf());
-    this.gpuDiscoverer.initialize(context.getConf(),
-        new NvidiaBinaryHelper());
+  public synchronized void initialize(Context context) throws YarnException {
+    this.gpuDiscoverer.initialize(context.getConf());
     this.dockerCommandPlugin =
         GpuDockerCommandPluginFactory.createGpuDockerCommandPlugin(
             context.getConf());
   }
 
-  private void validateExecutorConfig(Configuration conf) {
-    Class<? extends ContainerExecutor> executorClass = conf.getClass(
-        YarnConfiguration.NM_CONTAINER_EXECUTOR, DefaultContainerExecutor.class,
-        ContainerExecutor.class);
-
-    if (executorClass.equals(DefaultContainerExecutor.class)) {
-      LOG.warn("Using GPU plugin with disabled LinuxContainerExecutor" +
-          " is considered to be unsafe.");
-    }
-  }
-
   @Override
-  public ResourceHandler createResourceHandler(
+  public synchronized ResourceHandler createResourceHandler(
       Context context, CGroupsHandler cGroupsHandler,
       PrivilegedOperationExecutor privilegedOperationExecutor) {
     if (gpuResourceHandler == null) {
@@ -94,7 +74,7 @@ public class GpuResourcePlugin implements ResourcePlugin {
   }
 
   @Override
-  public NodeResourceUpdaterPlugin getNodeResourceHandlerInstance() {
+  public synchronized NodeResourceUpdaterPlugin getNodeResourceHandlerInstance() {
     return resourceDiscoverHandler;
   }
 
@@ -109,29 +89,18 @@ public class GpuResourcePlugin implements ResourcePlugin {
 
   @Override
   public synchronized NMResourceInfo getNMResourceInfo() throws YarnException {
-    final GpuDeviceInformation gpuDeviceInformation;
+    GpuDeviceInformation gpuDeviceInformation =
+        gpuDiscoverer.getGpuDeviceInformation();
 
-    if (gpuDiscoverer.isAutoDiscoveryEnabled()) {
-      //At this point the gpu plugin is already enabled
-      checkGpuResourceHandler();
+    //At this point the gpu plugin is already enabled
+    checkGpuResourceHandler();
 
-      checkErrorCount();
-      try{
-        gpuDeviceInformation = gpuDiscoverer.getGpuDeviceInformation();
-        numOfErrorExecutionSinceLastSucceed = 0;
-      } catch (YarnException e) {
-        LOG.error(e.getMessage(), e);
-        numOfErrorExecutionSinceLastSucceed++;
-        throw e;
-      }
-    } else {
-      gpuDeviceInformation = null;
-    }
     GpuResourceAllocator gpuResourceAllocator =
         gpuResourceHandler.getGpuAllocator();
-    List<GpuDevice> totalGpus = gpuResourceAllocator.getAllowedGpus();
+    List<GpuDevice> totalGpus = gpuResourceAllocator.getAllowedGpusCopy();
     List<AssignedGpuDevice> assignedGpuDevices =
-        gpuResourceAllocator.getAssignedGpus();
+        gpuResourceAllocator.getAssignedGpusCopy();
+
     return new NMGpuResourceInfo(gpuDeviceInformation, totalGpus,
         assignedGpuDevices);
   }
@@ -144,17 +113,6 @@ public class GpuResourcePlugin implements ResourcePlugin {
               + YarnConfiguration.NM_CONTAINER_EXECUTOR + " properly.";
       LOG.warn(errorMsg);
       throw new YarnException(errorMsg);
-    }
-  }
-
-  private void checkErrorCount() throws YarnException {
-    if (numOfErrorExecutionSinceLastSucceed == MAX_REPEATED_ERROR_ALLOWED) {
-      String msg =
-          "Failed to execute GPU device information detection script for "
-              + MAX_REPEATED_ERROR_ALLOWED
-              + " times, skip following executions.";
-      LOG.error(msg);
-      throw new YarnException(msg);
     }
   }
 

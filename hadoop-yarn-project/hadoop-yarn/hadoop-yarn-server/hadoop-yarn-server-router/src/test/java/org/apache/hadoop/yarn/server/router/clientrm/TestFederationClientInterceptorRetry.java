@@ -18,21 +18,16 @@
 
 package org.apache.hadoop.yarn.server.router.clientrm;
 
-import static org.mockito.Mockito.mock;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.hadoop.yarn.MockApps;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.SubmitApplicationRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.federation.policies.FederationPolicyUtils;
@@ -42,8 +37,6 @@ import org.apache.hadoop.yarn.server.federation.store.records.GetApplicationHome
 import org.apache.hadoop.yarn.server.federation.store.records.SubClusterId;
 import org.apache.hadoop.yarn.server.federation.utils.FederationStateStoreFacade;
 import org.apache.hadoop.yarn.server.federation.utils.FederationStateStoreTestUtil;
-import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
-import org.apache.hadoop.yarn.util.resource.Resources;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -80,7 +73,7 @@ public class TestFederationClientInterceptorRetry
   private static List<SubClusterId> scs = new ArrayList<SubClusterId>();
 
   @Override
-  public void setUp() throws IOException {
+  public void setUp() {
     super.setUpConfig();
     interceptor = new TestableFederationClientInterceptor();
 
@@ -211,7 +204,7 @@ public class TestFederationClientInterceptorRetry
     } catch (Exception e) {
       Assert.fail();
     }
-    Assert.assertEquals(ResourceManager.getClusterTimeStamp(),
+    Assert.assertEquals(Integer.parseInt(good.getId()),
         response.getApplicationId().getClusterTimestamp());
   }
 
@@ -229,30 +222,18 @@ public class TestFederationClientInterceptorRetry
     final ApplicationId appId =
         ApplicationId.newInstance(System.currentTimeMillis(), 1);
 
-    final SubmitApplicationRequest request = mockSubmitApplicationRequest(
-        appId);
+    ApplicationSubmissionContext context = ApplicationSubmissionContext
+        .newInstance(appId, "", "", null, null, false, false, -1, null, null);
+    final SubmitApplicationRequest request =
+        SubmitApplicationRequest.newInstance(context);
     try {
       interceptor.submitApplication(request);
       Assert.fail();
     } catch (Exception e) {
-      System.out.println(e);
+      System.out.println(e.toString());
       Assert.assertTrue(e.getMessage()
           .equals(FederationPolicyUtils.NO_ACTIVE_SUBCLUSTER_AVAILABLE));
     }
-  }
-
-  private SubmitApplicationRequest mockSubmitApplicationRequest(
-      ApplicationId appId) {
-    ContainerLaunchContext amContainerSpec = mock(ContainerLaunchContext.class);
-    ApplicationSubmissionContext context = ApplicationSubmissionContext
-        .newInstance(appId, MockApps.newAppName(), "q1",
-            Priority.newInstance(0), amContainerSpec, false, false, -1,
-            Resources.createResource(
-                YarnConfiguration.DEFAULT_RM_SCHEDULER_MINIMUM_ALLOCATION_MB),
-            "MockApp");
-    SubmitApplicationRequest request = SubmitApplicationRequest
-        .newInstance(context);
-    return request;
   }
 
   /**
@@ -268,8 +249,10 @@ public class TestFederationClientInterceptorRetry
     final ApplicationId appId =
         ApplicationId.newInstance(System.currentTimeMillis(), 1);
 
-    final SubmitApplicationRequest request = mockSubmitApplicationRequest(
-        appId);
+    ApplicationSubmissionContext context = ApplicationSubmissionContext
+        .newInstance(appId, "", "", null, null, false, false, -1, null, null);
+    final SubmitApplicationRequest request =
+        SubmitApplicationRequest.newInstance(context);
     try {
       interceptor.submitApplication(request);
       Assert.fail();
@@ -293,8 +276,10 @@ public class TestFederationClientInterceptorRetry
     final ApplicationId appId =
         ApplicationId.newInstance(System.currentTimeMillis(), 1);
 
-    final SubmitApplicationRequest request = mockSubmitApplicationRequest(
-        appId);
+    ApplicationSubmissionContext context = ApplicationSubmissionContext
+        .newInstance(appId, "", "", null, null, false, false, -1, null, null);
+    final SubmitApplicationRequest request =
+        SubmitApplicationRequest.newInstance(context);
     try {
       interceptor.submitApplication(request);
     } catch (Exception e) {

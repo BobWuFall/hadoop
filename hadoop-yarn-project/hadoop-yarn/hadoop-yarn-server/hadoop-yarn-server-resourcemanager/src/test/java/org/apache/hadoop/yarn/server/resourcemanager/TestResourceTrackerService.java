@@ -424,7 +424,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     rm.waitForState(id3, NodeState.RUNNING);
 
     // Create an app and launch two containers on host1.
-    RMApp app = MockRMAppSubmitter.submitWithMemory(2000, rm);
+    RMApp app = rm.submitApp(2000);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     ApplicationAttemptId aaid = app.getCurrentAppAttempt().getAppAttemptId();
     nm1.nodeHeartbeat(aaid, 2, ContainerState.RUNNING);
@@ -1622,13 +1622,13 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     RMNodeImpl node2 =
         (RMNodeImpl) rm.getRMContext().getRMNodes().get(nm2.getNodeId());
 
-    RMAppImpl app1 = (RMAppImpl) MockRMAppSubmitter.submitWithMemory(1024, rm);
+    RMAppImpl app1 = (RMAppImpl) rm.submitApp(1024);
     String collectorAddr1 = "1.2.3.4:5";
     app1.setCollectorData(AppCollectorData.newInstance(
         app1.getApplicationId(), collectorAddr1));
 
     String collectorAddr2 = "5.4.3.2:1";
-    RMAppImpl app2 = (RMAppImpl) MockRMAppSubmitter.submitWithMemory(1024, rm);
+    RMAppImpl app2 = (RMAppImpl) rm.submitApp(1024);
     app2.setCollectorData(AppCollectorData.newInstance(
         app2.getApplicationId(), collectorAddr2));
 
@@ -1752,11 +1752,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
         spy(rm.getRMContext().getDispatcher().getEventHandler());
 
     // Case 1: Unmanaged AM
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1024, rm)
-            .withUnmanagedAM(true)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(1024, true);
 
     // Case 1.1: AppAttemptId is null
     NMContainerStatus report =
@@ -1780,7 +1776,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     verify(handler, never()).handle((Event)any());
 
     // Case 2: Managed AM
-    app = MockRMAppSubmitter.submitWithMemory(1024, rm);
+    app = rm.submitApp(1024);
 
     // Case 2.1: AppAttemptId is null
     report = NMContainerStatus.newInstance(
@@ -2210,7 +2206,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
                 DEFAULT_RM_NODEMANAGER_UNTRACKED_REMOVAL_TIMEOUT_MSEC);
     int nodeRemovalInterval =
         rmContext.getNodesListManager().getNodeRemovalCheckInterval();
-    long maxThreadSleeptime = nodeRemovalInterval + nodeRemovalTimeout + 100;
+    long maxThreadSleeptime = nodeRemovalInterval + nodeRemovalTimeout;
     latch.await(maxThreadSleeptime, TimeUnit.MILLISECONDS);
 
     rmNode = rmContext.getInactiveRMNodes().get(nm2.getNodeId());
@@ -2684,11 +2680,7 @@ public class TestResourceTrackerService extends NodeLabelTestBase {
     };
 
     rm.start();
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1024, rm)
-            .withUnmanagedAM(true)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(1024, true);
     ApplicationAttemptId appAttemptId = app.getCurrentAppAttempt()
         .getAppAttemptId();
 

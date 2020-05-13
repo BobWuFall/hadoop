@@ -33,12 +33,11 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.NullRMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
+import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttemptState;
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainer;
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerEvent;
@@ -147,18 +146,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     int totalAsked = 3 * GB; // 3 AMs
 
     for (int i = 0; i < 3; i++) {
-      RMApp rmApp = MockRMAppSubmitter.submit(rm,
-          MockRMAppSubmissionData.Builder.createWithMemory(1024, rm)
-              .withAppName("app")
-              .withUser("user")
-              .withAcls(null)
-              .withUnmanagedAM(false)
-              .withQueue(Character.toString((char) (i % 34 + 97)))
-              .withMaxAppAttempts(1)
-              .withCredentials(null)
-              .withAppType(null)
-              .withWaitForAppAcceptedState(false)
-              .build());
+      RMApp rmApp = rm.submitApp(1024, "app", "user", null, false,
+          Character.toString((char) (i % 34 + 97)), 1, null, null, false);
       MockAM am = MockRM.launchAMWhenAsyncSchedulingEnabled(rmApp, rm);
       am.registerAppAttempt();
       ams.add(am);
@@ -231,20 +220,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn2 = scheduler.getSchedulerNode(nm2.getNodeId());
 
     // launch app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-        .withAppName("app")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(200, "app", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     FiCaSchedulerApp schedulerApp =
         scheduler.getApplicationAttempt(am.getApplicationAttemptId());
@@ -336,26 +313,10 @@ public class TestCapacitySchedulerAsyncScheduling {
         ((CapacityScheduler) scheduler).getSchedulerNode(nm2.getNodeId());
 
     // submit app1, am1 is running on nm1
-    MockRMAppSubmissionData data1 =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("default")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data1);
+    RMApp app = rm.submitApp(200, "app", "user", null, "default");
     final MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     // submit app2, am2 is running on nm1
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("default")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app2 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app2 = rm.submitApp(200, "app", "user", null, "default");
     final MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm1);
 
     // allocate and launch 2 containers for app1
@@ -489,20 +450,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn1 = scheduler.getSchedulerNode(nm1.getNodeId());
 
     // launch app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(200, rm)
-        .withAppName("app")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(200, "app", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     FiCaSchedulerApp schedulerApp =
         scheduler.getApplicationAttempt(am.getApplicationAttemptId());
@@ -583,18 +532,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     keepNMHeartbeat(nms, heartbeatInterval);
 
     for (int i = 0; i < 3; i++) {
-      RMApp rmApp = MockRMAppSubmitter.submit(rm,
-          MockRMAppSubmissionData.Builder.createWithMemory(1024, rm)
-              .withAppName("app")
-              .withUser("user")
-              .withAcls(null)
-              .withUnmanagedAM(false)
-              .withQueue(Character.toString((char) (i % 34 + 97)))
-              .withMaxAppAttempts(1)
-              .withCredentials(null)
-              .withAppType(null)
-              .withWaitForAppAcceptedState(false)
-              .build());
+      RMApp rmApp = rm.submitApp(1024, "app", "user", null, false,
+          Character.toString((char) (i % 34 + 97)), 1, null, null, false);
       MockAM am = MockRM.launchAMWhenAsyncSchedulingEnabled(rmApp, rm);
       am.registerAppAttempt();
       ams.add(am);
@@ -693,20 +632,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn1 = cs.getSchedulerNode(nm1.getNodeId());
 
     // launch app
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-        .withAppName("app")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app = MockRMAppSubmitter.submit(rm, data);
+    RMApp app = rm.submitApp(1 * GB, "app", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am = MockRM.launchAndRegisterAM(app, rm, nm1);
     FiCaSchedulerApp schedulerApp =
         cs.getApplicationAttempt(am.getApplicationAttemptId());
@@ -793,15 +720,7 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn3 = cs.getSchedulerNode(nm3.getNodeId());
 
     // launch another app to queue, AM container should be launched in nm1
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(4 * GB, rm1)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("default")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm1, data);
+    RMApp app1 = rm1.submitApp(4 * GB, "app", "user", null, "default");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nm1);
     Resource allocateResource = Resources.createResource(5 * GB);
     am1.allocate("*", (int) allocateResource.getMemorySize(), 3, 0,
@@ -852,37 +771,13 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn1 = cs.getSchedulerNode(nm1.getNodeId());
 
     // launch app1-am on nm1
-    MockRMAppSubmissionData data1 =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-        .withAppName("app1")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data1);
+    RMApp app1 = rm.submitApp(1 * GB, "app1", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
 
     // launch app2-am on nm2
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-        .withAppName("app2")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app2 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app2 = rm.submitApp(1 * GB, "app2", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm2);
 
     // app2 asks 1 * 8G container
@@ -970,20 +865,8 @@ public class TestCapacitySchedulerAsyncScheduling {
     SchedulerNode sn2 = cs.getSchedulerNode(nm2.getNodeId());
 
     // launch app1-am on nm1
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-        .withAppName("app1")
-        .withUser("user")
-        .withAcls(null)
-        .withUnmanagedAM(false)
-        .withQueue("default")
-        .withMaxAppAttempts(YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS)
-        .withCredentials(null)
-        .withAppType(null)
-        .withWaitForAppAcceptedState(true)
-        .withKeepContainers(true)
-        .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app1 = rm.submitApp(1 * GB, "app1", "user", null, false, "default",
+        YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS, null, null, true, true);
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
 
     // app2 asks 1 * 1G container

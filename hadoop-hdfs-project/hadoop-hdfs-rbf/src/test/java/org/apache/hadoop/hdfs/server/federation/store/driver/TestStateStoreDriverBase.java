@@ -127,9 +127,8 @@ public class TestStateStoreDriverBase {
           generateRandomString(), generateRandomString(),
           generateRandomString(), generateRandomString(),
           generateRandomString(), generateRandomString(),
-          generateRandomString(), "http", generateRandomString(),
-          generateRandomEnum(FederationNamenodeServiceState.class),
-          false);
+          generateRandomString(), generateRandomString(),
+          generateRandomEnum(FederationNamenodeServiceState.class), false);
     } else if (recordClass == MountTable.class) {
       String src = "/" + generateRandomString();
       Map<String, String> destMap = Collections.singletonMap(

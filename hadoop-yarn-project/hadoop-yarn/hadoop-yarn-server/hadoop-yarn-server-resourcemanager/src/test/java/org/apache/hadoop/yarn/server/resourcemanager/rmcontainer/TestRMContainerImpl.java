@@ -53,7 +53,6 @@ import org.apache.hadoop.yarn.server.api.protocolrecords.NMContainerStatus;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.ahs.RMApplicationHistoryWriter;
 import org.apache.hadoop.yarn.server.resourcemanager.metrics.SystemMetricsPublisher;
@@ -285,7 +284,7 @@ public class TestRMContainerImpl {
     MockRM rm1 = new MockRM(conf);
     rm1.start();
     MockNM nm1 = rm1.registerNode("unknownhost:1234", 8000);
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(1024, rm1);
+    RMApp app1 = rm1.submitApp(1024);
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nm1);
     ResourceScheduler scheduler = rm1.getResourceScheduler();
 
@@ -325,7 +324,7 @@ public class TestRMContainerImpl {
 
     rm1.start();
     MockNM nm1 = rm1.registerNode("unknownhost:1234", 8000);
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(1024, rm1);
+    RMApp app1 = rm1.submitApp(1024);
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nm1);
     nm1.nodeHeartbeat(am1.getApplicationAttemptId(), 1, ContainerState.RUNNING);
 
@@ -365,7 +364,7 @@ public class TestRMContainerImpl {
 
     rm1.start();
     MockNM nm1 = rm1.registerNode("unknownhost:1234", 8000);
-    RMApp app1 = MockRMAppSubmitter.submitWithMemory(1024, rm1);
+    RMApp app1 = rm1.submitApp(1024);
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm1, nm1);
     nm1.nodeHeartbeat(am1.getApplicationAttemptId(), 1, ContainerState.RUNNING);
 

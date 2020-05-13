@@ -44,7 +44,6 @@ import org.apache.hadoop.yarn.server.nodemanager.amrmproxy.RequestInterceptor;
 import org.apache.hadoop.yarn.server.nodemanager.security.NMContainerTokenSecretManager;
 import org.apache.hadoop.yarn.server.nodemanager.security.NMTokenSecretManagerInNM;
 
-import org.apache.hadoop.yarn.server.scheduler.DistributedOpportunisticContainerAllocator;
 import org.apache.hadoop.yarn.server.scheduler.OpportunisticContainerAllocator;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -233,8 +232,7 @@ public class TestDistributedScheduler {
     };
     nmContainerTokenSecretManager.setMasterKey(mKey);
     OpportunisticContainerAllocator containerAllocator =
-        new DistributedOpportunisticContainerAllocator(
-            nmContainerTokenSecretManager);
+        new OpportunisticContainerAllocator(nmContainerTokenSecretManager);
 
     NMTokenSecretManagerInNM nmTokenSecretManagerInNM =
         new NMTokenSecretManagerInNM();

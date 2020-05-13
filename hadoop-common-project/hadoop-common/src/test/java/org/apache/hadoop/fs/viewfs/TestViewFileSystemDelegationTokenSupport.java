@@ -18,7 +18,6 @@
 package org.apache.hadoop.fs.viewfs;
 
 import static org.junit.Assert.*;
-import static org.apache.hadoop.fs.viewfs.TestChRootedFileSystem.getChildFileSystem;
 
 import java.io.IOException;
 import java.net.URI;
@@ -55,16 +54,12 @@ public class TestViewFileSystemDelegationTokenSupport {
   @BeforeClass
   public static void setup() throws Exception {
     conf = ViewFileSystemTestSetup.createConfig();
-    setupFileSystem(new URI("fs1:///"), FakeFileSystem.class);
-    setupFileSystem(new URI("fs2:///"), FakeFileSystem.class);
+    fs1 = setupFileSystem(new URI("fs1:///"), FakeFileSystem.class);
+    fs2 = setupFileSystem(new URI("fs2:///"), FakeFileSystem.class);
     viewFs = FileSystem.get(FsConstants.VIEWFS_URI, conf);
-    fs1 = (FakeFileSystem) getChildFileSystem((ViewFileSystem) viewFs,
-        new URI("fs1:///"));
-    fs2 = (FakeFileSystem) getChildFileSystem((ViewFileSystem) viewFs,
-        new URI("fs2:///"));
   }
 
-  static void setupFileSystem(URI uri, Class<? extends FileSystem> clazz)
+  static FakeFileSystem setupFileSystem(URI uri, Class<? extends FileSystem> clazz)
       throws Exception {
     String scheme = uri.getScheme();
     conf.set("fs."+scheme+".impl", clazz.getName());
@@ -72,6 +67,7 @@ public class TestViewFileSystemDelegationTokenSupport {
     // mount each fs twice, will later ensure 1 token/fs
     ConfigUtil.addLink(conf, "/mounts/"+scheme+"-one", fs.getUri());
     ConfigUtil.addLink(conf, "/mounts/"+scheme+"-two", fs.getUri());
+    return fs;
   }
 
   /**

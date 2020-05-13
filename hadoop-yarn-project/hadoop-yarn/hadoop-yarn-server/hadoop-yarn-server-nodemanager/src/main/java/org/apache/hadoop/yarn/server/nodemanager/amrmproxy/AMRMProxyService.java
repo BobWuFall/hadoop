@@ -75,9 +75,7 @@ import org.apache.hadoop.yarn.server.nodemanager.security.authorize
 import org.apache.hadoop.yarn.server.security.MasterKeyData;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.utils.YarnServerSecurityUtils;
-import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.MonotonicClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +97,6 @@ public class AMRMProxyService extends CompositeService implements
   private static final String NMSS_USER_KEY = "user";
   private static final String NMSS_AMRMTOKEN_KEY = "amrmtoken";
 
-  private final Clock clock = new MonotonicClock();
   private Server server;
   private final Context nmContext;
   private final AsyncDispatcher dispatcher;
@@ -107,7 +104,6 @@ public class AMRMProxyService extends CompositeService implements
   private AMRMProxyTokenSecretManager secretManager;
   private Map<ApplicationId, RequestInterceptorChainWrapper> applPipelineMap;
   private RegistryOperations registry;
-  private AMRMProxyMetrics metrics;
 
   /**
    * Creates an instance of the service.
@@ -126,8 +122,6 @@ public class AMRMProxyService extends CompositeService implements
 
     this.dispatcher.register(ApplicationEventType.class,
         new ApplicationEventHandler());
-
-    metrics = AMRMProxyMetrics.getMetrics();
   }
 
   @Override
@@ -278,7 +272,6 @@ public class AMRMProxyService extends CompositeService implements
       } catch (Throwable e) {
         LOG.error("Exception when recovering " + attemptId
             + ", removing it from NMStateStore and move on", e);
-        this.metrics.incrFailedAppRecoveryCount();
         this.nmContext.getNMStateStore().removeAMRMProxyAppContext(attemptId);
       }
     }
@@ -293,26 +286,13 @@ public class AMRMProxyService extends CompositeService implements
   public RegisterApplicationMasterResponse registerApplicationMaster(
       RegisterApplicationMasterRequest request) throws YarnException,
       IOException {
-    long startTime = clock.getTime();
-    try {
-      RequestInterceptorChainWrapper pipeline =
-          authorizeAndGetInterceptorChain();
-      LOG.info("Registering application master." + " Host:" + request.getHost()
-          + " Port:" + request.getRpcPort() + " Tracking Url:" + request
-          .getTrackingUrl() + " for application " + pipeline
-          .getApplicationAttemptId());
-      RegisterApplicationMasterResponse response =
-          pipeline.getRootInterceptor().registerApplicationMaster(request);
-
-      long endTime = clock.getTime();
-      this.metrics.succeededRegisterAMRequests(endTime - startTime);
-      LOG.info("RegisterAM processing finished in {} ms for application {}",
-          endTime - startTime, pipeline.getApplicationAttemptId());
-      return response;
-    } catch (Throwable t) {
-      this.metrics.incrFailedRegisterAMRequests();
-      throw t;
-    }
+    LOG.info("Registering application master." + " Host:"
+        + request.getHost() + " Port:" + request.getRpcPort()
+        + " Tracking Url:" + request.getTrackingUrl());
+    RequestInterceptorChainWrapper pipeline =
+        authorizeAndGetInterceptorChain();
+    return pipeline.getRootInterceptor()
+        .registerApplicationMaster(request);
   }
 
   /**
@@ -324,25 +304,11 @@ public class AMRMProxyService extends CompositeService implements
   public FinishApplicationMasterResponse finishApplicationMaster(
       FinishApplicationMasterRequest request) throws YarnException,
       IOException {
-    long startTime = clock.getTime();
-    try {
-      RequestInterceptorChainWrapper pipeline =
-          authorizeAndGetInterceptorChain();
-      LOG.info("Finishing application master for {}. Tracking Url: {}",
-          pipeline.getApplicationAttemptId(), request.getTrackingUrl());
-      FinishApplicationMasterResponse response =
-          pipeline.getRootInterceptor().finishApplicationMaster(request);
-
-      long endTime = clock.getTime();
-      this.metrics.succeededFinishAMRequests(endTime - startTime);
-      LOG.info("FinishAM finished with isUnregistered = {} in {} ms for {}",
-          response.getIsUnregistered(), endTime - startTime,
-          pipeline.getApplicationAttemptId());
-      return response;
-    } catch (Throwable t) {
-      this.metrics.incrFailedFinishAMRequests();
-      throw t;
-    }
+    LOG.info("Finishing application master. Tracking Url:"
+        + request.getTrackingUrl());
+    RequestInterceptorChainWrapper pipeline =
+        authorizeAndGetInterceptorChain();
+    return pipeline.getRootInterceptor().finishApplicationMaster(request);
   }
 
   /**
@@ -355,26 +321,16 @@ public class AMRMProxyService extends CompositeService implements
   @Override
   public AllocateResponse allocate(AllocateRequest request)
       throws YarnException, IOException {
-    long startTime = clock.getTime();
-    try {
-      AMRMTokenIdentifier amrmTokenIdentifier =
-          YarnServerSecurityUtils.authorizeRequest();
-      RequestInterceptorChainWrapper pipeline =
-          getInterceptorChain(amrmTokenIdentifier);
-      AllocateResponse allocateResponse =
-          pipeline.getRootInterceptor().allocate(request);
+    AMRMTokenIdentifier amrmTokenIdentifier =
+        YarnServerSecurityUtils.authorizeRequest();
+    RequestInterceptorChainWrapper pipeline =
+        getInterceptorChain(amrmTokenIdentifier);
+    AllocateResponse allocateResponse =
+        pipeline.getRootInterceptor().allocate(request);
 
-      updateAMRMTokens(amrmTokenIdentifier, pipeline, allocateResponse);
+    updateAMRMTokens(amrmTokenIdentifier, pipeline, allocateResponse);
 
-      long endTime = clock.getTime();
-      this.metrics.succeededAllocateRequests(endTime - startTime);
-      LOG.info("Allocate processing finished in {} ms for application {}",
-          endTime - startTime, pipeline.getApplicationAttemptId());
-      return allocateResponse;
-    } catch (Throwable t) {
-      this.metrics.incrFailedAllocateRequests();
-      throw t;
-    }
+    return allocateResponse;
   }
 
   /**
@@ -387,47 +343,40 @@ public class AMRMProxyService extends CompositeService implements
    */
   public void processApplicationStartRequest(StartContainerRequest request)
       throws IOException, YarnException {
-    long startTime = clock.getTime();
-    try {
-      LOG.info("Callback received for initializing request "
-          + "processing pipeline for an AM");
-      ContainerTokenIdentifier containerTokenIdentifierForKey =
-          BuilderUtils.newContainerTokenIdentifier(request.getContainerToken());
-      ApplicationAttemptId appAttemptId =
-          containerTokenIdentifierForKey.getContainerID()
-              .getApplicationAttemptId();
-      Credentials credentials = YarnServerSecurityUtils
-          .parseCredentials(request.getContainerLaunchContext());
+    LOG.info("Callback received for initializing request "
+        + "processing pipeline for an AM");
+    ContainerTokenIdentifier containerTokenIdentifierForKey =
+        BuilderUtils.newContainerTokenIdentifier(request
+            .getContainerToken());
+    ApplicationAttemptId appAttemptId =
+        containerTokenIdentifierForKey.getContainerID()
+            .getApplicationAttemptId();
+    Credentials credentials =
+        YarnServerSecurityUtils.parseCredentials(request
+            .getContainerLaunchContext());
 
-      Token<AMRMTokenIdentifier> amrmToken =
-          getFirstAMRMToken(credentials.getAllTokens());
-      if (amrmToken == null) {
-        throw new YarnRuntimeException(
-            "AMRMToken not found in the start container request for "
-                + "application:" + appAttemptId.toString());
-      }
-
-      // Substitute the existing AMRM Token with a local one. Keep the rest of
-      // the tokens in the credentials intact.
-      Token<AMRMTokenIdentifier> localToken =
-          this.secretManager.createAndGetAMRMToken(appAttemptId);
-      credentials.addToken(localToken.getService(), localToken);
-
-      DataOutputBuffer dob = new DataOutputBuffer();
-      credentials.writeTokenStorageToStream(dob);
-      request.getContainerLaunchContext()
-          .setTokens(ByteBuffer.wrap(dob.getData(), 0, dob.getLength()));
-
-      initializePipeline(appAttemptId,
-          containerTokenIdentifierForKey.getApplicationSubmitter(), amrmToken,
-          localToken, null, false, credentials);
-
-      long endTime = clock.getTime();
-      this.metrics.succeededAppStartRequests(endTime - startTime);
-    } catch (Throwable t) {
-      this.metrics.incrFailedAppStartRequests();
-      throw t;
+    Token<AMRMTokenIdentifier> amrmToken =
+        getFirstAMRMToken(credentials.getAllTokens());
+    if (amrmToken == null) {
+      throw new YarnRuntimeException(
+          "AMRMToken not found in the start container request for application:"
+              + appAttemptId.toString());
     }
+
+    // Substitute the existing AMRM Token with a local one. Keep the rest of the
+    // tokens in the credentials intact.
+    Token<AMRMTokenIdentifier> localToken =
+        this.secretManager.createAndGetAMRMToken(appAttemptId);
+    credentials.addToken(localToken.getService(), localToken);
+
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    request.getContainerLaunchContext().setTokens(
+        ByteBuffer.wrap(dob.getData(), 0, dob.getLength()));
+
+    initializePipeline(appAttemptId,
+        containerTokenIdentifierForKey.getApplicationSubmitter(), amrmToken,
+        localToken, null, false, credentials);
   }
 
   /**

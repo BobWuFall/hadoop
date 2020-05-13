@@ -123,9 +123,13 @@ public class TestReservationSystem extends
     } catch (YarnException e) {
       Assert.fail(e.getMessage());
     }
-    ReservationSystemTestUtil.validateReservationQueue(
-        reservationSystem,
-        "root." + newQ);
+    if (getSchedulerType().equals(SchedulerType.CAPACITY)) {
+      ReservationSystemTestUtil.validateReservationQueue(reservationSystem,
+          newQ);
+    } else {
+      ReservationSystemTestUtil.validateReservationQueue(reservationSystem,
+          "root." + newQ);
+    }
   }
 
   @SuppressWarnings("rawtypes")

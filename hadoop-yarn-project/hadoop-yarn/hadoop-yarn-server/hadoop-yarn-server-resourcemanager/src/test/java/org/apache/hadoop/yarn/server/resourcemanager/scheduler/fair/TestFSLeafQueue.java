@@ -24,7 +24,9 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,8 +49,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeAddedSchedulerEvent;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.NodeUpdateSchedulerEvent;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.allocationfile.AllocationFileQueue;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.allocationfile.AllocationFileWriter;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.junit.After;
 import org.junit.Before;
@@ -110,14 +110,17 @@ public class TestFSLeafQueue extends FairSchedulerTestBase {
   }
 
   @Test (timeout = 5000)
-  public void test() {
+  public void test() throws Exception {
     conf.set(FairSchedulerConfiguration.ALLOCATION_FILE, ALLOC_FILE);
-
-    AllocationFileWriter.create()
-        .queueMaxAMShareDefault(MAX_AM_SHARE)
-        .addQueue(new AllocationFileQueue.Builder("queueA").build())
-        .addQueue(new AllocationFileQueue.Builder("queueB").build())
-        .writeToFile(ALLOC_FILE);
+    PrintWriter out = new PrintWriter(new FileWriter(ALLOC_FILE));
+    out.println("<?xml version=\"1.0\"?>");
+    out.println("<allocations>");
+    out.println("<queueMaxAMShareDefault>" + MAX_AM_SHARE +
+        "</queueMaxAMShareDefault>");
+    out.println("<queue name=\"queueA\"></queue>");
+    out.println("<queue name=\"queueB\"></queue>");
+    out.println("</allocations>");
+    out.close();
 
     resourceManager = new MockRM(conf);
     resourceManager.start();

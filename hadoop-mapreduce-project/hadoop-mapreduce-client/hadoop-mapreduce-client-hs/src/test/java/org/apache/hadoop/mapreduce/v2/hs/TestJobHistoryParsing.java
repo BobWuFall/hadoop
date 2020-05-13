@@ -20,7 +20,6 @@ package org.apache.hadoop.mapreduce.v2.hs;
 
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic
     .NET_TOPOLOGY_NODE_SWITCH_MAPPING_IMPL_KEY;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -450,8 +449,8 @@ public class TestJobHistoryParsing {
           TaskAttemptInfo taskAttemptInfo = taskInfo.getAllTaskAttempts().get(
               TypeConverter.fromYarn((taskAttempt.getID())));
           // Verify rack-name for all task attempts
-          assertThat(taskAttemptInfo.getRackname())
-              .withFailMessage("rack-name is incorrect").isEqualTo(RACK_NAME);
+          Assert.assertEquals("rack-name is incorrect",
+              taskAttemptInfo.getRackname(), RACK_NAME);
           if (taskAttemptInfo.getTaskStatus().equals("FAILED")) {
             noOffailedAttempts++;
           }

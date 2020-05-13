@@ -29,7 +29,6 @@ import org.apache.hadoop.util.DataChecksum;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -111,12 +110,6 @@ public abstract class MappableBlockLoader {
    * Check whether this is a native pmem cache loader.
    */
   abstract boolean isNativeLoader();
-
-  /**
-   * Get mappableBlock recovered from persistent memory.
-   */
-  abstract MappableBlock getRecoveredMappableBlock(
-      File cacheFile, String bpid, byte volumeIndex) throws IOException;
 
   /**
    * Clean up cache, can be used during DataNode shutdown.

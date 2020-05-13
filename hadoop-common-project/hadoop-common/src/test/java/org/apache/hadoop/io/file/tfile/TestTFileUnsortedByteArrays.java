@@ -20,6 +20,7 @@ package org.apache.hadoop.io.file.tfile;
 import java.io.IOException;
 
 import org.junit.After;
+import org.junit.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -31,9 +32,6 @@ import org.apache.hadoop.io.file.tfile.TFile.Reader.Scanner;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 public class TestTFileUnsortedByteArrays {
   private static String ROOT = GenericTestUtils.getTestDir().getAbsolutePath();
@@ -86,118 +84,151 @@ public class TestTFileUnsortedByteArrays {
   // we still can scan records in an unsorted TFile
   @Test
   public void testFailureScannerWithKeys() throws IOException {
-    try (Reader reader =
-        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf)) {
-      assertThat(reader.isSorted()).isFalse();
-      assertThat(reader.getEntryCount()).isEqualTo(4);
-      try {
-        reader.createScannerByKey("aaa".getBytes(), "zzz".getBytes());
-        fail("Failed to catch creating scanner with keys on unsorted file.");
-      } catch (RuntimeException expected) {
-      }
+    Reader reader =
+        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Assert.assertFalse(reader.isSorted());
+    Assert.assertEquals((int) reader.getEntryCount(), 4);
+
+    try {
+      Scanner scanner =
+          reader.createScannerByKey("aaa".getBytes(), "zzz".getBytes());
+      Assert
+          .fail("Failed to catch creating scanner with keys on unsorted file.");
+    }
+    catch (RuntimeException e) {
+    }
+    finally {
+      reader.close();
     }
   }
 
   // we still can scan records in an unsorted TFile
   @Test
   public void testScan() throws IOException {
-    try (Reader reader =
-        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf)) {
-      assertThat(reader.isSorted()).isFalse();
-      assertThat(reader.getEntryCount()).isEqualTo(4);
-      try (Scanner scanner = reader.createScanner()) {
-        // read key and value
-        byte[] kbuf = new byte[BUF_SIZE];
-        int klen = scanner.entry().getKeyLength();
-        scanner.entry().getKey(kbuf);
-        assertThat(new String(kbuf, 0, klen)).isEqualTo("keyZ");
+    Reader reader =
+        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Assert.assertFalse(reader.isSorted());
+    Assert.assertEquals((int) reader.getEntryCount(), 4);
 
-        byte[] vbuf = new byte[BUF_SIZE];
-        int vlen = scanner.entry().getValueLength();
-        scanner.entry().getValue(vbuf);
-        assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueZ");
+    Scanner scanner = reader.createScanner();
 
-        scanner.advance();
+    try {
 
-        // now try get value first
-        vbuf = new byte[BUF_SIZE];
-        vlen = scanner.entry().getValueLength();
-        scanner.entry().getValue(vbuf);
-        assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueM");
+      // read key and value
+      byte[] kbuf = new byte[BUF_SIZE];
+      int klen = scanner.entry().getKeyLength();
+      scanner.entry().getKey(kbuf);
+      Assert.assertEquals(new String(kbuf, 0, klen), "keyZ");
 
-        kbuf = new byte[BUF_SIZE];
-        klen = scanner.entry().getKeyLength();
-        scanner.entry().getKey(kbuf);
-        assertThat(new String(kbuf, 0, klen)).isEqualTo("keyM");
-      }
+      byte[] vbuf = new byte[BUF_SIZE];
+      int vlen = scanner.entry().getValueLength();
+      scanner.entry().getValue(vbuf);
+      Assert.assertEquals(new String(vbuf, 0, vlen), "valueZ");
+
+      scanner.advance();
+
+      // now try get value first
+      vbuf = new byte[BUF_SIZE];
+      vlen = scanner.entry().getValueLength();
+      scanner.entry().getValue(vbuf);
+      Assert.assertEquals(new String(vbuf, 0, vlen), "valueM");
+
+      kbuf = new byte[BUF_SIZE];
+      klen = scanner.entry().getKeyLength();
+      scanner.entry().getKey(kbuf);
+      Assert.assertEquals(new String(kbuf, 0, klen), "keyM");
+    }
+    finally {
+      scanner.close();
+      reader.close();
     }
   }
 
   // we still can scan records in an unsorted TFile
   @Test
   public void testScanRange() throws IOException {
-    try (Reader reader =
-        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf)) {
-      assertThat(reader.isSorted()).isFalse();
-      assertThat(reader.getEntryCount()).isEqualTo(4);
+    Reader reader =
+        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Assert.assertFalse(reader.isSorted());
+    Assert.assertEquals((int) reader.getEntryCount(), 4);
 
-      try (Scanner scanner = reader.createScanner()) {
+    Scanner scanner = reader.createScanner();
 
-        // read key and value
-        byte[] kbuf = new byte[BUF_SIZE];
-        int klen = scanner.entry().getKeyLength();
-        scanner.entry().getKey(kbuf);
-        assertThat(new String(kbuf, 0, klen)).isEqualTo("keyZ");
+    try {
 
-        byte[] vbuf = new byte[BUF_SIZE];
-        int vlen = scanner.entry().getValueLength();
-        scanner.entry().getValue(vbuf);
-        assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueZ");
+      // read key and value
+      byte[] kbuf = new byte[BUF_SIZE];
+      int klen = scanner.entry().getKeyLength();
+      scanner.entry().getKey(kbuf);
+      Assert.assertEquals(new String(kbuf, 0, klen), "keyZ");
 
-        scanner.advance();
+      byte[] vbuf = new byte[BUF_SIZE];
+      int vlen = scanner.entry().getValueLength();
+      scanner.entry().getValue(vbuf);
+      Assert.assertEquals(new String(vbuf, 0, vlen), "valueZ");
 
-        // now try get value first
-        vbuf = new byte[BUF_SIZE];
-        vlen = scanner.entry().getValueLength();
-        scanner.entry().getValue(vbuf);
-        assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueM");
+      scanner.advance();
 
-        kbuf = new byte[BUF_SIZE];
-        klen = scanner.entry().getKeyLength();
-        scanner.entry().getKey(kbuf);
-        assertThat(new String(kbuf, 0, klen)).isEqualTo("keyM");
-      }
+      // now try get value first
+      vbuf = new byte[BUF_SIZE];
+      vlen = scanner.entry().getValueLength();
+      scanner.entry().getValue(vbuf);
+      Assert.assertEquals(new String(vbuf, 0, vlen), "valueM");
+
+      kbuf = new byte[BUF_SIZE];
+      klen = scanner.entry().getKeyLength();
+      scanner.entry().getKey(kbuf);
+      Assert.assertEquals(new String(kbuf, 0, klen), "keyM");
+    }
+    finally {
+      scanner.close();
+      reader.close();
     }
   }
 
   @Test
   public void testFailureSeek() throws IOException {
-    try (Reader reader = new Reader(fs.open(path),
-        fs.getFileStatus(path).getLen(), conf);
-        Scanner scanner = reader.createScanner()) {
+    Reader reader =
+        new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Scanner scanner = reader.createScanner();
+
+    try {
       // can't find ceil
       try {
         scanner.lowerBound("keyN".getBytes());
-        fail("Cannot search in a unsorted TFile!");
+        Assert.fail("Cannot search in a unsorted TFile!");
       }
-      catch (Exception expected) {
+      catch (Exception e) {
+        // noop, expecting excetions
+      }
+      finally {
       }
 
       // can't find higher
       try {
         scanner.upperBound("keyA".getBytes());
-        fail("Cannot search higher in a unsorted TFile!");
+        Assert.fail("Cannot search higher in a unsorted TFile!");
       }
-      catch (Exception expected) {
+      catch (Exception e) {
+        // noop, expecting excetions
+      }
+      finally {
       }
 
       // can't seek
       try {
         scanner.seekTo("keyM".getBytes());
-        fail("Cannot search a unsorted TFile!");
+        Assert.fail("Cannot search a unsorted TFile!");
       }
-      catch (Exception expected) {
+      catch (Exception e) {
+        // noop, expecting excetions
       }
+      finally {
+      }
+    }
+    finally {
+      scanner.close();
+      reader.close();
     }
   }
 

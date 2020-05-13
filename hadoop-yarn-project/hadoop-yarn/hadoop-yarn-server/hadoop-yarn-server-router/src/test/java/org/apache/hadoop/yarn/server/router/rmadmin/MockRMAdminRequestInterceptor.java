@@ -18,13 +18,8 @@
 
 package org.apache.hadoop.yarn.server.router.rmadmin;
 
-import java.io.IOException;
-
-import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.server.api.protocolrecords.RefreshServiceAclsRequest;
-import org.apache.hadoop.yarn.server.api.protocolrecords.RefreshServiceAclsResponse;
-import org.apache.hadoop.yarn.server.resourcemanager.AdminService;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.MockResourceManagerFacade;
 
 /**
  * This class mocks the RMAmdinRequestInterceptor.
@@ -33,31 +28,9 @@ public class MockRMAdminRequestInterceptor
     extends DefaultRMAdminRequestInterceptor {
 
   public void init(String user) {
-    MockRM mockRM = new MockRM(super.getConf()) {
-      @Override
-      protected AdminService createAdminService() {
-        return new AdminService(this) {
-          @Override
-          protected void startServer() {
-            // override to not start rpc handler
-          }
-
-          @Override
-          public RefreshServiceAclsResponse refreshServiceAcls(
-              RefreshServiceAclsRequest request)
-              throws YarnException, IOException {
-            return RefreshServiceAclsResponse.newInstance();
-          }
-
-          @Override
-          protected void stopServer() {
-            // don't do anything
-          }
-        };
-      }
-    };
-    mockRM.init(super.getConf());
-    mockRM.start();
-    super.setRMAdmin(mockRM.getAdminService());
+    MockResourceManagerFacade mockRM = new MockResourceManagerFacade(
+        new YarnConfiguration(super.getConf()), 0);
+    super.setRMAdmin(mockRM);
   }
+
 }

@@ -17,7 +17,9 @@
  */
 package org.apache.hadoop.security.authorize;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -35,7 +37,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -186,29 +187,29 @@ public class TestAccessControlList {
     AccessControlList acl;
 
     acl = new AccessControlList("*");
-    assertThat(acl.toString()).isEqualTo("All users are allowed");
+    assertEquals("All users are allowed", acl.toString());
     validateGetAclString(acl);
 
     acl = new AccessControlList(" ");
-    assertThat(acl.toString()).isEqualTo("No users are allowed");
+    assertEquals("No users are allowed", acl.toString());
 
     acl = new AccessControlList("user1,user2");
-    assertThat(acl.toString()).isEqualTo("Users [user1, user2] are allowed");
+    assertEquals("Users [user1, user2] are allowed", acl.toString());
     validateGetAclString(acl);
 
     acl = new AccessControlList("user1,user2 ");// with space
-    assertThat(acl.toString()).isEqualTo("Users [user1, user2] are allowed");
+    assertEquals("Users [user1, user2] are allowed", acl.toString());
     validateGetAclString(acl);
 
     acl = new AccessControlList(" group1,group2");
-    assertThat(acl.toString()).isEqualTo(
-        "Members of the groups [group1, group2] are allowed");
+    assertTrue(acl.toString().equals(
+        "Members of the groups [group1, group2] are allowed"));
     validateGetAclString(acl);
 
     acl = new AccessControlList("user1,user2 group1,group2");
-    assertThat(acl.toString()).isEqualTo(
+    assertTrue(acl.toString().equals(
         "Users [user1, user2] and " +
-        "members of the groups [group1, group2] are allowed");
+        "members of the groups [group1, group2] are allowed"));
     validateGetAclString(acl);
   }
 
@@ -227,45 +228,45 @@ public class TestAccessControlList {
     
     acl = new AccessControlList("drwho tardis");
     users = acl.getUsers();
-    assertThat(users.size()).isOne();
-    assertThat(users.iterator().next()).isEqualTo("drwho");
+    assertEquals(users.size(), 1);
+    assertEquals(users.iterator().next(), "drwho");
     groups = acl.getGroups();
-    assertThat(groups.size()).isOne();
-    assertThat(groups.iterator().next()).isEqualTo("tardis");
+    assertEquals(groups.size(), 1);
+    assertEquals(groups.iterator().next(), "tardis");
     
     acl = new AccessControlList("drwho");
     users = acl.getUsers();
-    assertThat(users.size()).isOne();
-    assertThat(users.iterator().next()).isEqualTo("drwho");
+    assertEquals(users.size(), 1);
+    assertEquals(users.iterator().next(), "drwho");
     groups = acl.getGroups();
-    assertThat(groups.size()).isZero();
+    assertEquals(groups.size(), 0);
     
     acl = new AccessControlList("drwho ");
     users = acl.getUsers();
-    assertThat(users.size()).isOne();
-    assertThat(users.iterator().next()).isEqualTo("drwho");
+    assertEquals(users.size(), 1);
+    assertEquals(users.iterator().next(), "drwho");
     groups = acl.getGroups();
-    assertThat(groups.size()).isZero();
+    assertEquals(groups.size(), 0);
     
     acl = new AccessControlList(" tardis");
     users = acl.getUsers();
-    assertThat(users.size()).isZero();
+    assertEquals(users.size(), 0);
     groups = acl.getGroups();
-    assertThat(groups.size()).isOne();
-    assertThat(groups.iterator().next()).isEqualTo("tardis");
+    assertEquals(groups.size(), 1);
+    assertEquals(groups.iterator().next(), "tardis");
 
     Iterator<String> iter;    
     acl = new AccessControlList("drwho,joe tardis, users");
     users = acl.getUsers();
-    assertThat(users.size()).isEqualTo(2);
+    assertEquals(users.size(), 2);
     iter = users.iterator();
-    assertThat(iter.next()).isEqualTo("drwho");
-    assertThat(iter.next()).isEqualTo("joe");
+    assertEquals(iter.next(), "drwho");
+    assertEquals(iter.next(), "joe");
     groups = acl.getGroups();
-    assertThat(groups.size()).isEqualTo(2);
+    assertEquals(groups.size(), 2);
     iter = groups.iterator();
-    assertThat(iter.next()).isEqualTo("tardis");
-    assertThat(iter.next()).isEqualTo("users");
+    assertEquals(iter.next(), "tardis");
+    assertEquals(iter.next(), "users");
   }
 
   /**
@@ -277,58 +278,58 @@ public class TestAccessControlList {
     Collection<String> users;
     Collection<String> groups;
     acl = new AccessControlList(" ");
-    assertThat(acl.getUsers().size()).isZero();
-    assertThat(acl.getGroups().size()).isZero();
-    assertThat(acl.getAclString()).isEqualTo(" ");
+    assertEquals(0, acl.getUsers().size());
+    assertEquals(0, acl.getGroups().size());
+    assertEquals(" ", acl.getAclString());
     
     acl.addUser("drwho");
     users = acl.getUsers();
-    assertThat(users.size()).isOne();
-    assertThat(users.iterator().next()).isEqualTo("drwho");
-    assertThat(acl.getAclString()).isEqualTo("drwho ");
+    assertEquals(users.size(), 1);
+    assertEquals(users.iterator().next(), "drwho");
+    assertEquals("drwho ", acl.getAclString());
     
     acl.addGroup("tardis");
     groups = acl.getGroups();
-    assertThat(groups.size()).isOne();
-    assertThat(groups.iterator().next()).isEqualTo("tardis");
-    assertThat(acl.getAclString()).isEqualTo("drwho tardis");
+    assertEquals(groups.size(), 1);
+    assertEquals(groups.iterator().next(), "tardis");
+    assertEquals("drwho tardis", acl.getAclString());
     
     acl.addUser("joe");
     acl.addGroup("users");
     users = acl.getUsers();
-    assertThat(users.size()).isEqualTo(2);
+    assertEquals(users.size(), 2);
     Iterator<String> iter = users.iterator();
-    assertThat(iter.next()).isEqualTo("drwho");
-    assertThat(iter.next()).isEqualTo("joe");
+    assertEquals(iter.next(), "drwho");
+    assertEquals(iter.next(), "joe");
     groups = acl.getGroups();
-    assertThat(groups.size()).isEqualTo(2);
+    assertEquals(groups.size(), 2);
     iter = groups.iterator();
-    assertThat(iter.next()).isEqualTo("tardis");
-    assertThat(iter.next()).isEqualTo("users");
-    assertThat(acl.getAclString()).isEqualTo("drwho,joe tardis,users");
+    assertEquals(iter.next(), "tardis");
+    assertEquals(iter.next(), "users");
+    assertEquals("drwho,joe tardis,users", acl.getAclString());
 
     acl.removeUser("joe");
     acl.removeGroup("users");
     users = acl.getUsers();
-    assertThat(users.size()).isOne();
+    assertEquals(users.size(), 1);
     assertFalse(users.contains("joe"));
     groups = acl.getGroups();
-    assertThat(groups.size()).isOne();
+    assertEquals(groups.size(), 1);
     assertFalse(groups.contains("users"));
-    assertThat(acl.getAclString()).isEqualTo("drwho tardis");
+    assertEquals("drwho tardis", acl.getAclString());
     
     acl.removeGroup("tardis");
     groups = acl.getGroups();
-    assertThat(groups.size()).isZero();
+    assertEquals(0, groups.size());
     assertFalse(groups.contains("tardis"));
-    assertThat(acl.getAclString()).isEqualTo("drwho ");
+    assertEquals("drwho ", acl.getAclString());
     
     acl.removeUser("drwho");
-    assertThat(users.size()).isZero();
+    assertEquals(0, users.size());
     assertFalse(users.contains("drwho"));
-    assertThat(acl.getGroups().size()).isZero();
-    assertThat(acl.getUsers().size()).isZero();
-    assertThat(acl.getAclString()).isEqualTo(" ");
+    assertEquals(0, acl.getGroups().size());
+    assertEquals(0, acl.getUsers().size());
+    assertEquals(" ", acl.getAclString());
   }
   
   /**
@@ -344,8 +345,8 @@ public class TestAccessControlList {
     } catch (Throwable t) {
       th = t;
     }
-    assertThat(th).isNotNull();
-    assertThat(th).isInstanceOf(IllegalArgumentException.class);
+    assertNotNull(th);
+    assertTrue(th instanceof IllegalArgumentException);
     
     th = null;
     try {
@@ -353,24 +354,24 @@ public class TestAccessControlList {
     } catch (Throwable t) {
       th = t;
     }
-    assertThat(th).isNotNull();
-    assertThat(th).isInstanceOf(IllegalArgumentException.class);
+    assertNotNull(th);
+    assertTrue(th instanceof IllegalArgumentException);
     th = null;
     try {
     acl.removeUser(" * ");
     } catch (Throwable t) {
       th = t;
     }
-    assertThat(th).isNotNull();
-    assertThat(th).isInstanceOf(IllegalArgumentException.class);
+    assertNotNull(th);
+    assertTrue(th instanceof IllegalArgumentException);
     th = null;
     try {
     acl.removeGroup(" * ");
     } catch (Throwable t) {
       th = t;
     }
-    assertThat(th).isNotNull();
-    assertThat(th).isInstanceOf(IllegalArgumentException.class);
+    assertNotNull(th);
+    assertTrue(th instanceof IllegalArgumentException);
   }
   
   /**

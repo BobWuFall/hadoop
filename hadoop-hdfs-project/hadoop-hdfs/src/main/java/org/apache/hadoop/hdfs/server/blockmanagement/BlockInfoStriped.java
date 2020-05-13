@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.hdfs.server.blockmanagement;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.hdfs.protocol.Block;
@@ -155,8 +154,7 @@ public class BlockInfoStriped extends BlockInfo {
     return -1;
   }
 
-  @VisibleForTesting
-  public byte getStorageBlockIndex(DatanodeStorageInfo storage) {
+  byte getStorageBlockIndex(DatanodeStorageInfo storage) {
     int i = this.findStorageInfo(storage);
     return i == -1 ? -1 : indices[i];
   }
@@ -244,15 +242,6 @@ public class BlockInfoStriped extends BlockInfo {
       }
     }
     return true;
-  }
-
-  /**
-   * Striped blocks on Provided Storage is not supported. All blocks on
-   * Provided storage are assumed to be "contiguous".
-   */
-  @Override
-  boolean isProvided() {
-    return false;
   }
 
   /**

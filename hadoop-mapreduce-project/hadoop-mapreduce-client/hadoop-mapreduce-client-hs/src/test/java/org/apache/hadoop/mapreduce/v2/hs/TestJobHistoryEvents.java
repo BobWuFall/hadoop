@@ -45,8 +45,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 public class TestJobHistoryEvents {
   private static final Logger LOG =
       LoggerFactory.getLogger(TestJobHistoryEvents.class);
@@ -181,16 +179,14 @@ public class TestJobHistoryEvents {
     ((JobHistory)context).init(conf);
     ((JobHistory)context).start();
     Assert.assertTrue( context.getStartTime()>0);
-    assertThat(((JobHistory)context).getServiceState())
-        .isEqualTo(Service.STATE.STARTED);
+    Assert.assertEquals(((JobHistory)context).getServiceState(),Service.STATE.STARTED);
 
     // get job before stopping JobHistory
     Job parsedJob = context.getJob(jobId);
 
     // stop JobHistory
     ((JobHistory)context).stop();
-    assertThat(((JobHistory)context).getServiceState())
-        .isEqualTo(Service.STATE.STOPPED);
+    Assert.assertEquals(((JobHistory)context).getServiceState(),Service.STATE.STOPPED);
 
     Assert.assertEquals("QueueName not correct", "assignedQueue",
         parsedJob.getQueueName());

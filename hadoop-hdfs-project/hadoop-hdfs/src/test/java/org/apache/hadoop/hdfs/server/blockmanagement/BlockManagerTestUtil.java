@@ -34,6 +34,7 @@ import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeStorage;
 import org.apache.hadoop.hdfs.server.protocol.StorageReport;
 import org.apache.hadoop.test.Whitebox;
+import org.apache.hadoop.util.Daemon;
 import org.junit.Assert;
 
 import com.google.common.base.Preconditions;
@@ -80,8 +81,7 @@ public class BlockManagerTestUtil {
 
   /**
    * @return a tuple of the replica state (number racks, number live
-   * replicas, number needed replicas and number of UpgradeDomains) for the
-   * given block.
+   * replicas, and number needed replicas) for the given block.
    */
   public static int[] getReplicaInfo(final FSNamesystem namesystem, final Block b) {
     final BlockManager bm = namesystem.getBlockManager();
@@ -90,8 +90,7 @@ public class BlockManagerTestUtil {
       final BlockInfo storedBlock = bm.getStoredBlock(b);
       return new int[]{getNumberOfRacks(bm, b),
           bm.countNodes(storedBlock).liveReplicas(),
-          bm.neededReconstruction.contains(storedBlock) ? 1 : 0,
-          getNumberOfDomains(bm, b)};
+          bm.neededReconstruction.contains(storedBlock) ? 1 : 0};
     } finally {
       namesystem.readUnlock();
     }
@@ -122,27 +121,10 @@ public class BlockManagerTestUtil {
   }
 
   /**
-   * @return the number of UpgradeDomains over which a given block is replicated
-   * decommissioning/decommissioned nodes are not counted. corrupt replicas
-   * are also ignored.
+   * @return redundancy monitor thread instance from block manager.
    */
-  private static int getNumberOfDomains(final BlockManager blockManager,
-                                        final Block b) {
-    final Set<String> domSet = new HashSet<String>(0);
-    final Collection<DatanodeDescriptor> corruptNodes =
-        getCorruptReplicas(blockManager).getNodes(b);
-    for(DatanodeStorageInfo storage : blockManager.blocksMap.getStorages(b)) {
-      final DatanodeDescriptor cur = storage.getDatanodeDescriptor();
-      if (!cur.isDecommissionInProgress() && !cur.isDecommissioned()) {
-        if ((corruptNodes == null) || !corruptNodes.contains(cur)) {
-          String domain = cur.getUpgradeDomain();
-          if (domain != null && !domSet.contains(domain)) {
-            domSet.add(domain);
-          }
-        }
-      }
-    }
-    return domSet.size();
+  public static Daemon getRedundancyThread(final BlockManager blockManager) {
+    return blockManager.getRedundancyThread();
   }
 
   /**
@@ -158,14 +140,6 @@ public class BlockManagerTestUtil {
       throw new IOException(
           "Interrupted while trying to stop RedundancyMonitor");
     }
-  }
-
-  /**
-   * Wakeup the timer thread of PendingReconstructionBlocks.
-   */
-  public static void wakeupPendingReconstructionTimerThread(
-      final BlockManager blockManager) {
-    blockManager.pendingReconstruction.getTimerThread().interrupt();
   }
 
   public static HeartbeatManager getHeartbeatManager(
@@ -393,21 +367,5 @@ public class BlockManagerTestUtil {
       final DatanodeManager dnm =
           nn.getNamesystem().getBlockManager().getDatanodeManager();
       return !dnm.getNetworkTopology().contains(dnm.getDatanode(dnUuid));
-  }
-
-  /**
-   * Remove storage from block.
-   */
-  public static void removeStorage(BlockInfo block,
-      DatanodeStorageInfo storage) {
-    block.removeStorage(storage);
-  }
-
-  /**
-   * Add storage to block.
-   */
-  public static void addStorage(BlockInfo block, DatanodeStorageInfo storage,
-      Block reportedBlock) {
-    block.addStorage(storage, reportedBlock);
   }
 }

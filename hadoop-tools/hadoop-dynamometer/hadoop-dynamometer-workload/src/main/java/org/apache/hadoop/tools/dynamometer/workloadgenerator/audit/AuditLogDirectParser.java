@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Function;
@@ -82,6 +81,8 @@ public class AuditLogDirectParser implements AuditCommandParser {
   public static final String AUDIT_LOG_PARSE_REGEX_DEFAULT =
       "^(?<timestamp>.+?) INFO [^:]+: (?<message>.+)$";
 
+  private static final Splitter.MapSplitter AUDIT_SPLITTER = Splitter.on("\t")
+      .trimResults().omitEmptyStrings().withKeyValueSeparator("=");
   private static final Splitter SPACE_SPLITTER = Splitter.on(" ").trimResults()
       .omitEmptyStrings();
 
@@ -125,28 +126,14 @@ public class AuditLogDirectParser implements AuditCommandParser {
       relativeTimestamp = dateFormat.parse(m.group("timestamp")).getTime()
           - startTimestamp;
     } catch (ParseException p) {
-      throw new IOException(
-          "Exception while parsing timestamp from audit log line: `"
-          + inputLine + "`", p);
+      throw new IOException("Exception while parsing timestamp from audit log",
+          p);
     }
     // Sanitize the = in the rename options field into a : so we can split on =
     String auditMessageSanitized =
         m.group("message").replace("(options=", "(options:");
-
-    Map<String, String> parameterMap = new HashMap<String, String>();
-    String[] auditMessageSanitizedList = auditMessageSanitized.split("\t");
-
-    for (String auditMessage : auditMessageSanitizedList) {
-      String[] splitMessage = auditMessage.split("=", 2);
-      try {
-        parameterMap.put(splitMessage[0], splitMessage[1]);
-      } catch (ArrayIndexOutOfBoundsException e) {
-        throw new IOException(
-            "Exception while parsing a message from audit log line: `"
-            + inputLine + "`", e);
-      }
-    }
-
+    Map<String, String> parameterMap = AUDIT_SPLITTER
+        .split(auditMessageSanitized);
     return new AuditReplayCommand(relativeToAbsolute.apply(relativeTimestamp),
         // Split the UGI on space to remove the auth and proxy portions of it
         SPACE_SPLITTER.split(parameterMap.get("ugi")).iterator().next(),

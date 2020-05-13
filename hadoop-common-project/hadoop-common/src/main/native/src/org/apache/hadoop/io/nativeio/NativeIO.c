@@ -292,13 +292,10 @@ static int loadPmdkLib(JNIEnv *env) {
   if (mid == 0) {
     return 0;
   }
-
   if (strlen(errMsg) > 0) {
-    // Set PMDK support state to 1 which represents PMDK_LIB_NOT_FOUND.
     (*env)->CallStaticVoidMethod(env, clazz, mid, 1);
     return 0;
   }
-  // Set PMDK support state to 0 which represents SUPPORTED.
   (*env)->CallStaticVoidMethod(env, clazz, mid, 0);
   return 1;
 }
@@ -1486,11 +1483,11 @@ JNIEnv *env, jclass thisClass, jlong address, jlong length) {
 
 /*
  * Class:     org_apache_hadoop_io_nativeio_NativeIO_POSIX
- * Method:    pmemMapFile
+ * Method:    pmemCreateMapFile
  * Signature: (Ljava/lang/String;J)Lorg/apache/hadoop/io/nativeio/NativeIO/POSIX/PmemMappedRegion;
  */
-JNIEXPORT jobject JNICALL Java_org_apache_hadoop_io_nativeio_NativeIO_00024POSIX_pmemMapFile(
-JNIEnv *env, jclass thisClass, jstring filePath, jlong fileLength, jboolean isFileExist) {
+JNIEXPORT jobject JNICALL Java_org_apache_hadoop_io_nativeio_NativeIO_00024POSIX_pmemCreateMapFile(
+JNIEnv *env, jclass thisClass, jstring filePath, jlong fileLength) {
   #if (defined UNIX) && (defined HADOOP_PMDK_LIBRARY)
     /* create a pmem file and memory map it */
     const char * path = NULL;
@@ -1505,20 +1502,17 @@ JNIEnv *env, jclass thisClass, jstring filePath, jlong fileLength, jboolean isFi
       return NULL;
     }
 
-    if (isFileExist) {
-      pmemaddr = pmdkLoader->pmem_map_file(path, 0, 0, 0666, &mapped_len, &is_pmem);
-    } else {
-      if (fileLength <= 0) {
-        (*env)->ReleaseStringUTFChars(env, filePath, path);
-        THROW(env, "java/lang/IllegalArgumentException", "File length should be positive");
-        return NULL;
-      }
-      pmemaddr = pmdkLoader->pmem_map_file(path, fileLength, PMEM_FILE_CREATE|PMEM_FILE_EXCL,
-                0666, &mapped_len, &is_pmem);
+    if (fileLength <= 0) {
+      (*env)->ReleaseStringUTFChars(env, filePath, path);
+      THROW(env, "java/lang/IllegalArgumentException", "File length should be positive");
+      return NULL;
     }
 
+    pmemaddr = pmdkLoader->pmem_map_file(path, fileLength, PMEM_FILE_CREATE|PMEM_FILE_EXCL,
+        0666, &mapped_len, &is_pmem);
+
     if (!pmemaddr) {
-      snprintf(msg, sizeof(msg), "Failed to map file on persistent memory.file: %s, length: %x, error msg: %s", path, fileLength, pmem_errormsg());
+      snprintf(msg, sizeof(msg), "Failed to create pmem file. file: %s, length: %x, error msg: %s", path, fileLength, pmem_errormsg());
       THROW(env, "java/io/IOException", msg);
       (*env)->ReleaseStringUTFChars(env, filePath, path);
       return NULL;
@@ -1626,7 +1620,7 @@ JNIEXPORT void JNICALL Java_org_apache_hadoop_io_nativeio_NativeIO_00024POSIX_pm
     char msg[1000];
     succeed = pmdkLoader->pmem_msync(address, length);
     // succeed = -1 failure
-    if (succeed == -1) {
+    if (succeed = -1) {
       snprintf(msg, sizeof(msg), "Failed to msync region. address: %x, length: %x, error msg: %s", address, length, pmem_errormsg());
       THROW(env, "java/io/IOException", msg);
       return;
@@ -1637,15 +1631,6 @@ JNIEXPORT void JNICALL Java_org_apache_hadoop_io_nativeio_NativeIO_00024POSIX_pm
   #endif
   }
 
-JNIEXPORT jstring JNICALL Java_org_apache_hadoop_io_nativeio_NativeIO_00024POSIX_getPmdkLibPath
-  (JNIEnv * env, jclass thisClass) {
-    jstring libpath = NULL;
-
-    #ifdef HADOOP_PMDK_LIBRARY
-      libpath = (*env)->NewStringUTF(env, HADOOP_PMDK_LIBRARY);
-    #endif
-    return libpath;
-  }
 
 #ifdef __cplusplus
 }

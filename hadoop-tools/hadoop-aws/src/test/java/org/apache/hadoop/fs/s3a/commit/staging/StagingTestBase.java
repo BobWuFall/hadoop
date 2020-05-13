@@ -251,12 +251,6 @@ public class StagingTestBase {
     verify(mockS3).getFileStatus(path);
   }
 
-  /**
-   * Verify that mkdirs was invoked once.
-   * @param mockS3 mock
-   * @param path path to check
-   * @throws IOException from the mkdirs signature.
-   */
   public static void verifyMkdirsInvoked(FileSystem mockS3, Path path)
       throws IOException {
     verify(mockS3).mkdirs(path);
@@ -326,7 +320,12 @@ public class StagingTestBase {
 
     @Before
     public void setupJob() throws Exception {
-      this.jobConf = createJobConf();
+      this.jobConf = new JobConf();
+      jobConf.set(InternalCommitterConstants.FS_S3A_COMMITTER_STAGING_UUID,
+          UUID.randomUUID().toString());
+      jobConf.setBoolean(
+          CommitConstants.CREATE_SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
+          false);
 
       this.job = new JobContextImpl(jobConf, JOB_ID);
       this.results = new StagingTestBase.ClientResults();
@@ -337,16 +336,6 @@ public class StagingTestBase {
       this.wrapperFS = lookupWrapperFS(jobConf);
       // and bind the FS
       wrapperFS.setAmazonS3Client(mockClient);
-    }
-
-    protected JobConf createJobConf() {
-      JobConf conf = new JobConf();
-      conf.set(InternalCommitterConstants.FS_S3A_COMMITTER_STAGING_UUID,
-          UUID.randomUUID().toString());
-      conf.setBoolean(
-          CommitConstants.CREATE_SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
-          false);
-      return conf;
     }
 
     public S3AFileSystem getMockS3A() {
@@ -472,11 +461,6 @@ public class StagingTestBase {
       return deletes;
     }
 
-    public List<String> getDeletePaths() {
-      return deletes.stream().map(DeleteObjectRequest::getKey).collect(
-          Collectors.toList());
-    }
-
     public void resetDeletes() {
       deletes.clear();
     }
@@ -492,14 +476,6 @@ public class StagingTestBase {
 
     public void resetRequests() {
       requests.clear();
-    }
-
-    public void addUpload(String id, String key) {
-      activeUploads.put(id, key);
-    }
-
-    public void addUploads(Map<String, String> uploadMap) {
-      activeUploads.putAll(uploadMap);
     }
 
     @Override
@@ -672,9 +648,8 @@ public class StagingTestBase {
             }
             CompleteMultipartUploadRequest req = getArgumentAt(invocation,
                 0, CompleteMultipartUploadRequest.class);
-            String uploadId = req.getUploadId();
-            removeUpload(results, uploadId);
             results.commits.add(req);
+            results.activeUploads.remove(req.getUploadId());
 
             return newResult(req);
           }
@@ -694,7 +669,14 @@ public class StagingTestBase {
         AbortMultipartUploadRequest req = getArgumentAt(invocation,
             0, AbortMultipartUploadRequest.class);
         String id = req.getUploadId();
-        removeUpload(results, id);
+        String p = results.activeUploads.remove(id);
+        if (p == null) {
+          // upload doesn't exist
+          AmazonS3Exception ex = new AmazonS3Exception(
+              "not found " + id);
+          ex.setStatusCode(404);
+          throw ex;
+        }
         results.aborts.add(req);
         return null;
       }
@@ -745,24 +727,6 @@ public class StagingTestBase {
         });
 
     return mockClient;
-  }
-
-  /**
-   * Remove an upload from the upload map.
-   * @param results result set
-   * @param uploadId The upload ID to remove
-   * @throws AmazonS3Exception with error code 404 if the id is unknown.
-   */
-  protected static void removeUpload(final ClientResults results,
-      final String uploadId) {
-    String removed = results.activeUploads.remove(uploadId);
-    if (removed == null) {
-      // upload doesn't exist
-      AmazonS3Exception ex = new AmazonS3Exception(
-          "not found " + uploadId);
-      ex.setStatusCode(404);
-      throw ex;
-    }
   }
 
   private static CompleteMultipartUploadResult newResult(

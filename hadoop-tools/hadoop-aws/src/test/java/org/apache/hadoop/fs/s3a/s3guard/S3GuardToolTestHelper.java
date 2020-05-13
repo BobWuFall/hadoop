@@ -24,8 +24,6 @@ import java.io.PrintStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.util.ExitCodeProvider;
-
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -42,32 +40,15 @@ public final class S3GuardToolTestHelper {
 
   /**
    * Execute a command, returning the buffer if the command actually completes.
-   * If an exception is raised the output is logged before the exception is
-   * rethrown.
+   * If an exception is raised the output is logged instead.
    * @param cmd command
    * @param args argument list
    * @throws Exception on any failure
    */
   public static String exec(S3GuardTool cmd, String... args) throws Exception {
-    return expectExecResult(0, cmd, args);
-  }
-
-  /**
-   * Execute a command, returning the buffer if the command actually completes.
-   * If an exception is raised which doesn't provide the exit code
-   * the output is logged before the exception is rethrown.
-   * @param expectedResult the expected result
-   * @param cmd command
-   * @param args argument list
-   * @throws Exception on any failure
-   */
-  public static String expectExecResult(
-      final int expectedResult,
-      final S3GuardTool cmd,
-      final String... args) throws Exception {
     ByteArrayOutputStream buf = new ByteArrayOutputStream();
     try {
-      exec(expectedResult, "", cmd, buf, args);
+      exec(0, "", cmd, buf, args);
       return buf.toString();
     } catch (AssertionError e) {
       throw e;
@@ -84,8 +65,7 @@ public final class S3GuardToolTestHelper {
    * @param cmd command
    * @param buf buffer to use for tool output (not SLF4J output)
    * @param args argument list
-   * @throws Exception on any failure other than exception which
-   * implements ExitCodeProvider and whose exit code matches that expected
+   * @throws Exception on any failure
    */
   public static void exec(final int expectedResult,
       final String errorText,
@@ -98,16 +78,6 @@ public final class S3GuardToolTestHelper {
     try (PrintStream out = new PrintStream(buf)) {
       r = cmd.run(args, out);
       out.flush();
-    } catch (Exception ex) {
-      if (ex instanceof ExitCodeProvider) {
-        // it returns an exit code
-        final ExitCodeProvider ec = (ExitCodeProvider) ex;
-        if (ec.getExitCode() == expectedResult) {
-          // and the exit code matches what is expected -all is good.
-          return;
-        }
-      }
-      throw ex;
     }
     if (expectedResult != r) {
       String message = errorText.isEmpty() ? "" : (errorText + ": ")

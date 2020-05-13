@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.fs.viewfs;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.apache.hadoop.fs.FileContextTestHelper.checkFileLinkStatus;
 import static org.apache.hadoop.fs.FileContextTestHelper.checkFileStatus;
 import static org.apache.hadoop.fs.FileContextTestHelper.exists;
@@ -460,9 +459,9 @@ abstract public class ViewFsBaseTest {
     Assert.assertEquals(targetBL.length, viewBL.length);
     int i = 0;
     for (BlockLocation vbl : viewBL) {
-      assertThat(vbl.toString()).isEqualTo(targetBL[i].toString());
-      assertThat(vbl.getOffset()).isEqualTo(targetBL[i].getOffset());
-      assertThat(vbl.getLength()).isEqualTo(targetBL[i].getLength());
+      Assert.assertEquals(vbl.toString(), targetBL[i].toString());
+      Assert.assertEquals(targetBL[i].getOffset(), vbl.getOffset());
+      Assert.assertEquals(targetBL[i].getLength(), vbl.getLength());
       i++;     
     } 
   }

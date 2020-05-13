@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.federation.proto.YarnServerFederationProtos.SubClusterHeartbeatResponseProto;
 import org.apache.hadoop.yarn.server.federation.store.records.SubClusterHeartbeatResponse;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 /**
  * Protocol buffer based implementation of {@link SubClusterHeartbeatResponse}.

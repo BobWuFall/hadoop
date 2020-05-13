@@ -105,11 +105,13 @@ public class TestQueueMetrics {
         USER, 5, Resources.createResource(3*GB, 3));
     // Available resources is set externally, as it depends on dynamic
     // configurable cluster/queue resources
-    ResourceMetricsChecker rmChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
-          .gaugeLong(AVAILABLE_MB, 100 * GB).gaugeInt(AVAILABLE_V_CORES, 100)
-          .gaugeLong(PENDING_MB, 15 * GB).gaugeInt(PENDING_V_CORES, 15)
-          .gaugeInt(PENDING_CONTAINERS, 5).checkAgainst(queueSource);
+    ResourceMetricsChecker rmChecker = ResourceMetricsChecker.create()
+        .gaugeLong(AVAILABLE_MB, 100 * GB)
+        .gaugeInt(AVAILABLE_V_CORES, 100)
+        .gaugeLong(PENDING_MB, 15 * GB)
+        .gaugeInt(PENDING_V_CORES, 15)
+        .gaugeInt(PENDING_CONTAINERS, 5)
+        .checkAgainst(queueSource);
 
     metrics.runAppAttempt(app.getApplicationId(), USER);
     appMetricsChecker = AppMetricsChecker.createFromChecker(appMetricsChecker)
@@ -282,7 +284,7 @@ public class TestQueueMetrics {
     // Available resources is set externally, as it depends on dynamic
     // configurable cluster/queue resources
     ResourceMetricsChecker resMetricsQueueSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
+        ResourceMetricsChecker.create()
             .gaugeLong(AVAILABLE_MB, 100 * GB)
             .gaugeInt(AVAILABLE_V_CORES, 100)
             .gaugeLong(PENDING_MB, 15 * GB)
@@ -290,7 +292,7 @@ public class TestQueueMetrics {
             .gaugeInt(PENDING_CONTAINERS, 5)
             .checkAgainst(queueSource);
     ResourceMetricsChecker resMetricsUserSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
+        ResourceMetricsChecker.create()
             .gaugeLong(AVAILABLE_MB, 10 * GB)
             .gaugeInt(AVAILABLE_V_CORES, 10)
             .gaugeLong(PENDING_MB, 15 * GB)
@@ -469,25 +471,37 @@ public class TestQueueMetrics {
         USER, 5, Resources.createResource(3*GB, 3));
 
     ResourceMetricsChecker resMetricsQueueSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
-          .gaugeLong(AVAILABLE_MB, 100 * GB).gaugeInt(AVAILABLE_V_CORES, 100)
-          .gaugeLong(PENDING_MB, 15 * GB).gaugeInt(PENDING_V_CORES, 15)
-          .gaugeInt(PENDING_CONTAINERS, 5).checkAgainst(leaf.queueSource);
+        ResourceMetricsChecker.create()
+        .gaugeLong(AVAILABLE_MB, 100 * GB)
+        .gaugeInt(AVAILABLE_V_CORES, 100)
+        .gaugeLong(PENDING_MB, 15 * GB)
+        .gaugeInt(PENDING_V_CORES, 15)
+        .gaugeInt(PENDING_CONTAINERS, 5)
+        .checkAgainst(leaf.queueSource);
     ResourceMetricsChecker resMetricsParentQueueSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
-          .gaugeLong(AVAILABLE_MB, 100 * GB).gaugeInt(AVAILABLE_V_CORES, 100)
-          .gaugeLong(PENDING_MB, 15 * GB).gaugeInt(PENDING_V_CORES, 15)
-          .gaugeInt(PENDING_CONTAINERS, 5).checkAgainst(root.queueSource);
+        ResourceMetricsChecker.create()
+            .gaugeLong(AVAILABLE_MB, 100 * GB)
+            .gaugeInt(AVAILABLE_V_CORES, 100)
+            .gaugeLong(PENDING_MB, 15 * GB)
+            .gaugeInt(PENDING_V_CORES, 15)
+            .gaugeInt(PENDING_CONTAINERS, 5)
+            .checkAgainst(root.queueSource);
     ResourceMetricsChecker resMetricsUserSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
-          .gaugeLong(AVAILABLE_MB, 10 * GB).gaugeInt(AVAILABLE_V_CORES, 10)
-          .gaugeLong(PENDING_MB, 15 * GB).gaugeInt(PENDING_V_CORES, 15)
-          .gaugeInt(PENDING_CONTAINERS, 5).checkAgainst(leaf.userSource);
+        ResourceMetricsChecker.create()
+            .gaugeLong(AVAILABLE_MB, 10 * GB)
+            .gaugeInt(AVAILABLE_V_CORES, 10)
+            .gaugeLong(PENDING_MB, 15 * GB)
+            .gaugeInt(PENDING_V_CORES, 15)
+            .gaugeInt(PENDING_CONTAINERS, 5)
+            .checkAgainst(leaf.userSource);
     ResourceMetricsChecker resMetricsParentUserSourceChecker =
-      ResourceMetricsChecker.createMandatoryResourceChecker()
-          .gaugeLong(AVAILABLE_MB, 10 * GB).gaugeInt(AVAILABLE_V_CORES, 10)
-          .gaugeLong(PENDING_MB, 15 * GB).gaugeInt(PENDING_V_CORES, 15)
-          .gaugeInt(PENDING_CONTAINERS, 5).checkAgainst(root.userSource);
+        ResourceMetricsChecker.create()
+            .gaugeLong(AVAILABLE_MB, 10 * GB)
+            .gaugeInt(AVAILABLE_V_CORES, 10)
+            .gaugeLong(PENDING_MB, 15 * GB)
+            .gaugeInt(PENDING_V_CORES, 15)
+            .gaugeInt(PENDING_CONTAINERS, 5)
+            .checkAgainst(root.userSource);
 
     leaf.queueMetrics.runAppAttempt(app.getApplicationId(), USER);
     appMetricsQueueSourceChecker =

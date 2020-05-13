@@ -180,8 +180,12 @@ class BlockReportLeaseManager {
   /**
    * Get the next block report lease ID.  Any number is valid except 0.
    */
-  private long getNextId() {
-    return ++nextId == 0L ? ++nextId : nextId;
+  private synchronized long getNextId() {
+    long id;
+    do {
+      id = nextId++;
+    } while (id == 0);
+    return id;
   }
 
   public synchronized void register(DatanodeDescriptor dn) {

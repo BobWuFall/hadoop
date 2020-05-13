@@ -53,7 +53,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY;
 
 /**
@@ -83,15 +82,12 @@ public class TestFrameworkUploader {
     FrameworkUploader uploader = new FrameworkUploader();
     boolean success = uploader.parseArguments(args);
     Assert.assertFalse("Expected to print help", success);
-    assertThat(uploader.input)
-        .withFailMessage("Expected ignore run")
-        .isNull();
-    assertThat(uploader.whitelist)
-        .withFailMessage("Expected ignore run")
-        .isNull();
-    assertThat(uploader.target)
-        .withFailMessage("Expected ignore run")
-        .isNull();
+    Assert.assertEquals("Expected ignore run", null,
+        uploader.input);
+    Assert.assertEquals("Expected ignore run", null,
+        uploader.whitelist);
+    Assert.assertEquals("Expected ignore run", null,
+        uploader.target);
   }
 
   /**

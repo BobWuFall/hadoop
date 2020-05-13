@@ -63,7 +63,6 @@ public class TestTaskHeartbeatHandler {
     // so that TASK_TIMEOUT is not overridden
     conf.setLong(MRJobConfig.TASK_PROGRESS_REPORT_INTERVAL, 5);
     conf.setInt(MRJobConfig.TASK_TIMEOUT_CHECK_INTERVAL_MS, 10); //10 ms
-    conf.setDouble(MRJobConfig.TASK_LOG_PROGRESS_DELTA_THRESHOLD, 0.01);
     
     hb.init(conf);
     hb.start();
@@ -206,7 +205,6 @@ public class TestTaskHeartbeatHandler {
         new TaskHeartbeatHandler(mockHandler, clock, 1);
     Configuration conf = new Configuration();
     conf.setInt(MRJobConfig.TASK_TIMEOUT_CHECK_INTERVAL_MS, 1);
-    conf.setDouble(MRJobConfig.TASK_LOG_PROGRESS_DELTA_THRESHOLD, 0.01);
     hb.init(conf);
     hb.start();
     try {

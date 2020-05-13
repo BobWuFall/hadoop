@@ -32,36 +32,36 @@ import java.util.List;
 public class ActivityNode {
   private String activityNodeName;
   private String parentName;
-  private Integer appPriority;
-  private Integer requestPriority;
+  private String appPriority;
+  private String requestPriority;
   private ActivityState state;
   private String diagnostic;
   private NodeId nodeId;
-  private Long allocationRequestId;
+  private String allocationRequestId;
 
   private List<ActivityNode> childNode;
 
   public ActivityNode(String activityNodeName, String parentName,
-      Integer priority, ActivityState state, String diagnostic,
-      ActivityLevel level, NodeId nodeId, Long allocationRequestId) {
+      String priority, ActivityState state, String diagnostic, String type) {
+    this(activityNodeName, parentName, priority, state, diagnostic, type, null,
+        null);
+  }
+
+  public ActivityNode(String activityNodeName, String parentName,
+      String priority, ActivityState state, String diagnostic, String type,
+      NodeId nodeId, String allocationRequestId) {
     this.activityNodeName = activityNodeName;
     this.parentName = parentName;
-    if (level != null) {
-      switch (level) {
-      case APP:
+    if (type != null) {
+      if (type.equals("app")) {
         this.appPriority = priority;
-        break;
-      case REQUEST:
+      } else if (type.equals("request")) {
         this.requestPriority = priority;
         this.allocationRequestId = allocationRequestId;
-        break;
-      case NODE:
+      } else if (type.equals("container")) {
         this.requestPriority = priority;
         this.allocationRequestId = allocationRequestId;
         this.nodeId = nodeId;
-        break;
-      default:
-        break;
       }
     }
     this.state = state;
@@ -93,11 +93,11 @@ public class ActivityNode {
     return this.diagnostic;
   }
 
-  public Integer getAppPriority() {
+  public String getAppPriority() {
     return appPriority;
   }
 
-  public Integer getRequestPriority() {
+  public String getRequestPriority() {
     return requestPriority;
   }
 
@@ -105,7 +105,7 @@ public class ActivityNode {
     return nodeId;
   }
 
-  public Long getAllocationRequestId() {
+  public String getAllocationRequestId() {
     return allocationRequestId;
   }
 

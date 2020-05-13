@@ -34,7 +34,6 @@ import javax.ws.rs.core.MediaType;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import com.google.inject.util.Providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.http.JettyUtils;
 import org.apache.hadoop.mapreduce.v2.api.records.JobId;
@@ -47,7 +46,6 @@ import org.apache.hadoop.mapreduce.v2.app.job.TaskAttempt;
 import org.apache.hadoop.mapreduce.v2.hs.HistoryContext;
 import org.apache.hadoop.mapreduce.v2.hs.MockHistoryContext;
 import org.apache.hadoop.mapreduce.v2.util.MRApps;
-import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.GuiceServletConfig;
 import org.apache.hadoop.yarn.webapp.JerseyTestBase;
@@ -101,7 +99,6 @@ public class TestHsWebServicesAttempts extends JerseyTestBase {
       bind(AppContext.class).toInstance(appContext);
       bind(HistoryContext.class).toInstance(appContext);
       bind(Configuration.class).toInstance(conf);
-      bind(ApplicationClientProtocol.class).toProvider(Providers.of(null));
 
       serve("/*").with(GuiceContainer.class);
     }

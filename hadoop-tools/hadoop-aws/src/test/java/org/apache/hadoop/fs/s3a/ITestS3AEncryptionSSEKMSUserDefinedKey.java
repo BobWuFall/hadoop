@@ -18,12 +18,10 @@
 
 package org.apache.hadoop.fs.s3a;
 
+import static org.apache.hadoop.fs.contract.ContractTestUtils.skip;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-
-import static org.apache.hadoop.fs.contract.ContractTestUtils.skip;
-import static org.apache.hadoop.fs.s3a.Constants.SERVER_SIDE_ENCRYPTION_KEY;
-import static org.apache.hadoop.fs.s3a.S3AEncryptionMethods.SSE_KMS;
 
 /**
  * Concrete class that extends {@link AbstractTestS3AEncryption}
@@ -35,20 +33,16 @@ public class ITestS3AEncryptionSSEKMSUserDefinedKey
 
   @Override
   protected Configuration createConfiguration() {
-    // get the KMS key for this test.
-    Configuration c = new Configuration();
-    String kmsKey = c.get(SERVER_SIDE_ENCRYPTION_KEY);
-    if (StringUtils.isBlank(kmsKey)){
-      skip(SERVER_SIDE_ENCRYPTION_KEY+ " is not set for " +
-          SSE_KMS.getMethod());
-    }
     Configuration conf = super.createConfiguration();
-    conf.set(SERVER_SIDE_ENCRYPTION_KEY, kmsKey);
+    if(StringUtils.isBlank(conf.get(Constants.SERVER_SIDE_ENCRYPTION_KEY))){
+      skip(Constants.SERVER_SIDE_ENCRYPTION_KEY+ " is not set for " +
+          S3AEncryptionMethods.SSE_KMS.getMethod());
+    }
     return conf;
   }
 
   @Override
   protected S3AEncryptionMethods getSSEAlgorithm() {
-    return SSE_KMS;
+    return S3AEncryptionMethods.SSE_KMS;
   }
 }

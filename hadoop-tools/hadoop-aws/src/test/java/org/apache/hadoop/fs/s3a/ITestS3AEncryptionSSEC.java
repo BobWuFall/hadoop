@@ -68,12 +68,6 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
   }
 
   @Override
-  public void setup() throws Exception {
-    super.setup();
-    assumeEnabled();
-  }
-
-  @Override
   public void teardown() throws Exception {
     super.teardown();
     IOUtils.closeStream(fsKeyB);
@@ -91,6 +85,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
   @Test
   public void testCreateFileAndReadWithDifferentEncryptionKey() throws
       Exception {
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+
     intercept(AccessDeniedException.class,
         SERVICE_AMAZON_S3_STATUS_CODE_403,
         () -> {
@@ -120,7 +117,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testCreateSubdirWithDifferentKey() throws Exception {
-    requireUnguardedFilesystem();
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+    assumeS3GuardState(false, getConfiguration());
 
     intercept(AccessDeniedException.class,
         SERVICE_AMAZON_S3_STATUS_CODE_403,
@@ -146,6 +145,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testCreateFileThenMoveWithDifferentSSECKey() throws Exception {
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+
     intercept(AccessDeniedException.class,
         SERVICE_AMAZON_S3_STATUS_CODE_403,
         () -> {
@@ -167,6 +169,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testRenameFile() throws Exception {
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+
     Path src = path("original-path.txt");
     writeThenReadFile(src, TEST_FILE_LEN);
     Path newPath = path("different-path.txt");
@@ -183,7 +188,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testListEncryptedDir() throws Exception {
-    requireUnguardedFilesystem();
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+    assumeS3GuardState(false, getConfiguration());
 
     Path pathABC = path("testListEncryptedDir/a/b/c/");
     Path pathAB = pathABC.getParent();
@@ -228,7 +235,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testListStatusEncryptedDir() throws Exception {
-    requireUnguardedFilesystem();
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+    assumeS3GuardState(false, getConfiguration());
 
     Path pathABC = path("testListStatusEncryptedDir/a/b/c/");
     Path pathAB = pathABC.getParent();
@@ -273,9 +282,11 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testListStatusEncryptedFile() throws Exception {
-    requireUnguardedFilesystem();
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+    assumeS3GuardState(false, getConfiguration());
     Path pathABC = path("testListStatusEncryptedFile/a/b/c/");
-    assertTrue("mkdirs failed", getFileSystem().mkdirs(pathABC));
+    assertTrue(getFileSystem().mkdirs(pathABC));
 
     Path fileToStat = new Path(pathABC, "fileToStat.txt");
     writeThenReadFile(fileToStat, TEST_FILE_LEN);
@@ -290,15 +301,6 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
         });
   }
 
-  /**
-   * Skip the test case if S3Guard is enabled; generally this is because
-   * list and GetFileStatus calls can succeed even with different keys.
-   */
-  protected void requireUnguardedFilesystem() {
-    assume("Filesystem has a metastore",
-        !getFileSystem().hasMetadataStore());
-  }
-
 
   /**
    * It is possible to delete directories without the proper encryption key and
@@ -308,7 +310,9 @@ public class ITestS3AEncryptionSSEC extends AbstractTestS3AEncryption {
    */
   @Test
   public void testDeleteEncryptedObjectWithDifferentKey() throws Exception {
-    requireUnguardedFilesystem();
+    assumeEnabled();
+    skipIfEncryptionTestsDisabled(getConfiguration());
+    assumeS3GuardState(false, getConfiguration());
     Path pathABC = path("testDeleteEncryptedObjectWithDifferentKey/a/b/c/");
 
     Path pathAB = pathABC.getParent();

@@ -30,7 +30,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -116,7 +115,7 @@ public class TestTeraSort extends HadoopTestCase {
   @Test
   public void testTeraSortWithLessThanTwoArgs() throws Exception {
     String[] args = new String[1];
-    assertThat(new TeraSort().run(args)).isEqualTo(2);
+    assertEquals(new TeraSort().run(args), 2);
   }
 
 }

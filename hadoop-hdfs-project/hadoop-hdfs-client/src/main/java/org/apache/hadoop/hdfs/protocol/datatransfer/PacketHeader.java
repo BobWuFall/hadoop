@@ -30,7 +30,7 @@ import org.apache.hadoop.hdfs.util.ByteBufferOutputStream;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Shorts;
 import com.google.common.primitives.Ints;
-import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Header data for each packet that goes through the read/write pipelines.

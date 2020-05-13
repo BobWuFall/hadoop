@@ -32,37 +32,35 @@ public class TestDefaultNameNodePort {
 
   @Test
   public void testGetAddressFromString() throws Exception {
-    assertEquals(HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT,
-        DFSUtilClient.getNNAddress("foo").getPort());
-    assertEquals(HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT,
-        DFSUtilClient.getNNAddress("hdfs://foo/").getPort());
-    assertEquals(555,
-        DFSUtilClient.getNNAddress("hdfs://foo:555").getPort());
-    assertEquals(555,
-        DFSUtilClient.getNNAddress("foo:555").getPort());
+    assertEquals(DFSUtilClient.getNNAddress("foo").getPort(),
+                 HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT);
+    assertEquals(DFSUtilClient.getNNAddress("hdfs://foo/").getPort(),
+                 HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT);
+    assertEquals(DFSUtilClient.getNNAddress("hdfs://foo:555").getPort(),
+                 555);
+    assertEquals(DFSUtilClient.getNNAddress("foo:555").getPort(),
+                 555);
   }
 
   @Test
   public void testGetAddressFromConf() throws Exception {
     Configuration conf = new HdfsConfiguration();
     FileSystem.setDefaultUri(conf, "hdfs://foo/");
-    assertEquals(HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT,
-        DFSUtilClient.getNNAddress(conf).getPort());
+    assertEquals(DFSUtilClient.getNNAddress(conf).getPort(),
+        HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT);
     FileSystem.setDefaultUri(conf, "hdfs://foo:555/");
-    assertEquals(555, DFSUtilClient.getNNAddress(conf).getPort());
+    assertEquals(DFSUtilClient.getNNAddress(conf).getPort(), 555);
     FileSystem.setDefaultUri(conf, "foo");
-    assertEquals(HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT,
-        DFSUtilClient.getNNAddress(conf).getPort());
-    FileSystem.setDefaultUri(conf, "foo:555");
-    assertEquals(555, DFSUtilClient.getNNAddress(conf).getPort());
+    assertEquals(DFSUtilClient.getNNAddress(conf).getPort(),
+        HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT);
   }
 
   @Test
   public void testGetUri() {
-    assertEquals(URI.create("hdfs://foo:555"),
-        DFSUtilClient.getNNUri(new InetSocketAddress("foo", 555)));
-    assertEquals(URI.create("hdfs://foo"),
-        DFSUtilClient.getNNUri(new InetSocketAddress("foo",
-            HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT)));
+    assertEquals(DFSUtilClient.getNNUri(new InetSocketAddress("foo", 555)),
+                 URI.create("hdfs://foo:555"));
+    assertEquals(DFSUtilClient.getNNUri(new InetSocketAddress("foo",
+            HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT)),
+        URI.create("hdfs://foo"));
   }
 }

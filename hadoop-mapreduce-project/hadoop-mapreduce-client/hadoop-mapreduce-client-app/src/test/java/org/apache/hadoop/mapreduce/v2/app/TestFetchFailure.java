@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.mapreduce.v2.app;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -357,8 +356,8 @@ public class TestFetchFailure {
     Assert.assertEquals("Map TaskAttempt state not correct",
         TaskAttemptState.FAILED, mapAttempt1.getState());
 
-    assertThat(mapAttempt1.getDiagnostics().get(0))
-        .isEqualTo("Too many fetch failures. Failing the attempt. "
+    Assert.assertEquals(mapAttempt1.getDiagnostics().get(0),
+            "Too many fetch failures. Failing the attempt. "
             + "Last failure reported by "
             + reduceAttempt3.getID().toString() + " from host host3");
 

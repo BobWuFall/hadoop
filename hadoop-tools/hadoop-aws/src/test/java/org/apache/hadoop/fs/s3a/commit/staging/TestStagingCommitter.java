@@ -35,7 +35,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.google.common.collect.Sets;
-import org.assertj.core.api.Assertions;
 import org.hamcrest.core.StringStartsWith;
 import org.junit.After;
 import org.junit.Before;
@@ -143,8 +142,6 @@ public class TestStagingCommitter extends StagingTestBase.MiniDFSTest {
         uniqueFilenames);
     jobConf.set(FS_S3A_COMMITTER_STAGING_UUID,
         UUID.randomUUID().toString());
-    jobConf.set(RETRY_INTERVAL, "100ms");
-    jobConf.setInt(RETRY_LIMIT, 1);
 
     this.results = new StagingTestBase.ClientResults();
     this.errors = new StagingTestBase.ClientErrors();
@@ -536,31 +533,33 @@ public class TestStagingCommitter extends StagingTestBase.MiniDFSTest {
           return jobCommitter.toString();
         });
 
+    assertEquals("Should have succeeded to commit some uploads",
+        5, results.getCommits().size());
+
+    assertEquals("Should have deleted the files that succeeded",
+        5, results.getDeletes().size());
 
     Set<String> commits = results.getCommits()
         .stream()
-        .map(commit ->
-            "s3a://" + commit.getBucketName() + "/" + commit.getKey())
+        .map((commit) -> commit.getBucketName() + commit.getKey())
         .collect(Collectors.toSet());
 
     Set<String> deletes = results.getDeletes()
         .stream()
-        .map(delete ->
-            "s3a://" + delete.getBucketName() + "/" + delete.getKey())
+        .map((delete) -> delete.getBucketName() + delete.getKey())
         .collect(Collectors.toSet());
 
-    Assertions.assertThat(commits)
-        .describedAs("Committed objects compared to deleted paths %s", results)
-        .containsExactlyInAnyOrderElementsOf(deletes);
+    assertEquals("Committed and deleted objects should match",
+        commits, deletes);
 
-    Assertions.assertThat(results.getAborts())
-        .describedAs("aborted count in %s", results)
-        .hasSize(7);
+    assertEquals("Mismatch in aborted upload count",
+        7, results.getAborts().size());
+
     Set<String> uploadIds = getCommittedIds(results.getCommits());
     uploadIds.addAll(getAbortedIds(results.getAborts()));
-    Assertions.assertThat(uploadIds)
-        .describedAs("Combined commit/delete and aborted upload IDs")
-        .containsExactlyInAnyOrderElementsOf(uploads);
+
+    assertEquals("Should have committed/deleted or aborted all uploads",
+        uploads, uploadIds);
 
     assertPathDoesNotExist(fs, "jobAttemptPath not deleted", jobAttemptPath);
   }

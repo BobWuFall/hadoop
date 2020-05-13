@@ -33,10 +33,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class NodeAllocationInfo {
-  private String partition;
-  private String updatedContainerId;
-  private String finalAllocationState;
-  private ActivityNodeInfo root = null;
+  protected String allocatedContainerId;
+  protected String finalAllocationState;
+  protected ActivityNodeInfo root = null;
 
   private static final Logger LOG =
       LoggerFactory.getLogger(NodeAllocationInfo.class);
@@ -46,25 +45,10 @@ public class NodeAllocationInfo {
 
   NodeAllocationInfo(NodeAllocation allocation,
       RMWSConsts.ActivitiesGroupBy groupBy) {
-    this.partition = allocation.getPartition();
-    this.updatedContainerId = allocation.getContainerId();
+    this.allocatedContainerId = allocation.getContainerId();
     this.finalAllocationState = allocation.getFinalAllocationState().name();
+
     root = new ActivityNodeInfo(allocation.getRoot(), groupBy);
-  }
 
-  public String getPartition() {
-    return partition;
-  }
-
-  public String getUpdatedContainerId() {
-    return updatedContainerId;
-  }
-
-  public String getFinalAllocationState() {
-    return finalAllocationState;
-  }
-
-  public ActivityNodeInfo getRoot() {
-    return root;
   }
 }

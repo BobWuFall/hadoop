@@ -21,6 +21,9 @@ import org.apache.hadoop.fs.contract.AbstractFSContract;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import static org.apache.hadoop.fs.contract.router.SecurityConfUtil.initSecurity;
+
+
 /**
  * Test secure get file status operations on the Router-based FS.
  */
@@ -29,7 +32,7 @@ public class TestRouterHDFSContractGetFileStatusSecure
 
   @BeforeClass
   public static void createCluster() throws Exception {
-    RouterHDFSContract.createCluster(true);
+    RouterHDFSContract.createCluster(initSecurity());
   }
 
   @AfterClass

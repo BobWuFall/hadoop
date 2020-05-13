@@ -18,12 +18,12 @@
 
 package org.apache.hadoop.io;
 
-import static org.junit.Assert.assertArrayEquals;
+import java.io.*;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-
+import static org.junit.Assert.fail;
+import static org.junit.Assert.assertArrayEquals;
 import org.junit.Test;
 
 
@@ -84,14 +84,23 @@ public class TestArrayWritable {
   /**
    * test {@link ArrayWritable} constructor with null
    */
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNullArgument() {
-    new ArrayWritable((Class<? extends Writable>) null);
+    try {
+      Class<? extends Writable> valueClass = null;
+      new ArrayWritable(valueClass);
+      fail("testNullArgument error !!!");
+    } catch (IllegalArgumentException exp) {
+      //should be for test pass
+    } catch (Exception e) {
+      fail("testNullArgument error !!!");
+    }
   }
 
   /**
    * test {@link ArrayWritable} constructor with {@code String[]} as a parameter
    */
+  @SuppressWarnings("deprecation")
   @Test
   public void testArrayWritableStringConstructor() {
     String[] original = { "test1", "test2", "test3" };

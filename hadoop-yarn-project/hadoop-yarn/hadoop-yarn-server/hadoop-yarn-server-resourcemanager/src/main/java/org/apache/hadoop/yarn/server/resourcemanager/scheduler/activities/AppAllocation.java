@@ -29,18 +29,18 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-/**
+/*
  * It contains allocation information for one application within a period of
  * time.
  * Each application allocation may have several allocation attempts.
  */
 public class AppAllocation {
-  private Priority priority;
+  private Priority priority = null;
   private NodeId nodeId;
-  private ContainerId containerId;
-  private ActivityState activityState;
-  private String diagnostic;
-  private String queueName;
+  private ContainerId containerId = null;
+  private ActivityState appState = null;
+  private String diagnostic = null;
+  private String queueName = null;
   private List<ActivityNode> allocationAttempts;
   private long timestamp;
 
@@ -51,24 +51,24 @@ public class AppAllocation {
     this.queueName = queueName;
   }
 
-  public void updateAppContainerStateAndTime(ContainerId cId,
+  public void updateAppContainerStateAndTime(ContainerId containerId,
       ActivityState appState, long ts, String diagnostic) {
     this.timestamp = ts;
-    this.containerId = cId;
-    this.activityState = appState;
+    this.containerId = containerId;
+    this.appState = appState;
     this.diagnostic = diagnostic;
   }
 
-  public void addAppAllocationActivity(String cId, Integer reqPriority,
-      ActivityState state, String diagnose, ActivityLevel level, NodeId nId,
-      Long allocationRequestId) {
-    ActivityNode container = new ActivityNode(cId, null, reqPriority,
-        state, diagnose, level, nId, allocationRequestId);
+  public void addAppAllocationActivity(String containerId, String priority,
+      ActivityState state, String diagnose, String type, NodeId nId,
+      String allocationRequestId) {
+    ActivityNode container = new ActivityNode(containerId, null, priority,
+        state, diagnose, type, nId, allocationRequestId);
     this.allocationAttempts.add(container);
     if (state == ActivityState.REJECTED) {
-      this.activityState = ActivityState.SKIPPED;
+      this.appState = ActivityState.SKIPPED;
     } else {
-      this.activityState = state;
+      this.appState = state;
     }
   }
 
@@ -80,8 +80,8 @@ public class AppAllocation {
     return queueName;
   }
 
-  public ActivityState getActivityState() {
-    return activityState;
+  public ActivityState getAppState() {
+    return appState;
   }
 
   public Priority getPriority() {
@@ -107,11 +107,11 @@ public class AppAllocation {
     return allocationAttempts;
   }
 
-  public AppAllocation filterAllocationAttempts(Set<Integer> requestPriorities,
-      Set<Long> allocationRequestIds) {
+  public AppAllocation filterAllocationAttempts(Set<String> requestPriorities,
+      Set<String> allocationRequestIds) {
     AppAllocation appAllocation =
         new AppAllocation(this.priority, this.nodeId, this.queueName);
-    appAllocation.activityState = this.activityState;
+    appAllocation.appState = this.appState;
     appAllocation.containerId = this.containerId;
     appAllocation.timestamp = this.timestamp;
     appAllocation.diagnostic = this.diagnostic;

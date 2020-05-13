@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.security;
 
-import org.apache.hadoop.thirdparty.protobuf.ByteString;
+import com.google.protobuf.ByteString;
 
 import java.io.BufferedInputStream;
 import java.io.DataInput;
@@ -46,7 +46,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.ipc.ProtobufHelper;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.security.proto.SecurityProtos.CredentialsKVProto;
@@ -369,7 +368,7 @@ public class Credentials implements Writable {
       CredentialsKVProto.Builder kv = CredentialsKVProto.newBuilder().
           setAliasBytes(ByteString.copyFrom(
               e.getKey().getBytes(), 0, e.getKey().getLength())).
-          setToken(ProtobufHelper.protoFromToken(e.getValue()));
+          setToken(e.getValue().toTokenProto());
       storage.addTokens(kv.build());
     }
 
@@ -391,7 +390,7 @@ public class Credentials implements Writable {
     CredentialsProto storage = CredentialsProto.parseDelimitedFrom((DataInputStream)in);
     for (CredentialsKVProto kv : storage.getTokensList()) {
       addToken(new Text(kv.getAliasBytes().toByteArray()),
-               ProtobufHelper.tokenFromProto(kv.getToken()));
+               (Token<? extends TokenIdentifier>) new Token(kv.getToken()));
     }
     for (CredentialsKVProto kv : storage.getSecretsList()) {
       addSecretKey(new Text(kv.getAliasBytes().toByteArray()),

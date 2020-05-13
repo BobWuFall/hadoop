@@ -96,8 +96,8 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Records;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,7 +167,6 @@ public class Client extends Configured implements Tool {
   public static final String WORKLOAD_REPLAY_ENABLE_ARG =
       "workload_replay_enable";
   public static final String WORKLOAD_INPUT_PATH_ARG = "workload_input_path";
-  public static final String WORKLOAD_OUTPUT_PATH_ARG = "workload_output_path";
   public static final String WORKLOAD_THREADS_PER_MAPPER_ARG =
       "workload_threads_per_mapper";
   public static final String WORKLOAD_START_DELAY_ARG = "workload_start_delay";
@@ -233,8 +232,6 @@ public class Client extends Configured implements Tool {
   private volatile Job workloadJob;
   // The input path for the workload job.
   private String workloadInputPath = "";
-  // The output path for the workload job metric results.
-  private String workloadOutputPath = "";
   // The number of threads to use per mapper for the workload job.
   private int workloadThreadsPerMapper;
   // The startup delay for the workload job.
@@ -256,7 +253,10 @@ public class Client extends Configured implements Tool {
    */
   public static void main(String[] args) throws Exception {
     Client client = new Client(
-        ClassUtil.findContainingJar(ApplicationMaster.class));
+        ClassUtil.findContainingJar(ApplicationMaster.class),
+        // JUnit is required by MiniDFSCluster at runtime, but is not included
+        // in standard Hadoop dependencies, so it must explicitly included here
+        ClassUtil.findContainingJar(Assert.class));
     System.exit(ToolRunner.run(new YarnConfiguration(), client, args));
   }
 
@@ -351,8 +351,6 @@ public class Client extends Configured implements Tool {
         + "audit logs against the HDFS cluster which is started.");
     opts.addOption(WORKLOAD_INPUT_PATH_ARG, true,
         "Location of the audit traces to replay (Required for workload)");
-    opts.addOption(WORKLOAD_OUTPUT_PATH_ARG, true,
-        "Location of the metrics output (Required for workload)");
     opts.addOption(WORKLOAD_THREADS_PER_MAPPER_ARG, true, "Number of threads "
         + "per mapper to use to replay the workload. (default "
         + AuditReplayMapper.NUM_THREADS_DEFAULT + ")");
@@ -393,14 +391,15 @@ public class Client extends Configured implements Tool {
    */
   public boolean init(String[] args) throws ParseException, IOException {
 
-    List<String> list = Arrays.asList(args);
-    if (list.contains("-h") || list.contains("--help")) {
+    CommandLineParser parser = new GnuParser();
+    if (parser.parse(
+        new Options().addOption("h", "help", false, "Shows this message."),
+        args, true).hasOption("h")) {
       printUsage();
       return false;
     }
 
-    CommandLineParser parser = new GnuParser();
-    CommandLine commandLine = parser.parse(opts, args);
+    CommandLine cliParser = parser.parse(opts, args);
 
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(getConf());
@@ -408,13 +407,12 @@ public class Client extends Configured implements Tool {
     LOG.info("Starting with arguments: [\"{}\"]",
         Joiner.on("\" \"").join(args));
 
-    Path fsImageDir = new Path(commandLine.getOptionValue(FS_IMAGE_DIR_ARG,
-        ""));
+    Path fsImageDir = new Path(cliParser.getOptionValue(FS_IMAGE_DIR_ARG, ""));
     versionFilePath = new Path(fsImageDir, "VERSION").toString();
-    if (commandLine.hasOption(NAMENODE_SERVICERPC_ADDR_ARG)) {
+    if (cliParser.hasOption(NAMENODE_SERVICERPC_ADDR_ARG)) {
       launchNameNode = false;
       remoteNameNodeRpcAddress =
-          commandLine.getOptionValue(NAMENODE_SERVICERPC_ADDR_ARG);
+          cliParser.getOptionValue(NAMENODE_SERVICERPC_ADDR_ARG);
     } else {
       launchNameNode = true;
       FileSystem localFS = FileSystem.getLocal(getConf());
@@ -440,27 +438,26 @@ public class Client extends Configured implements Tool {
           + "application master, exiting. Specified virtual cores=" + amVCores);
     }
 
-    this.appName = commandLine.getOptionValue(APPNAME_ARG, APPNAME_DEFAULT);
-    this.amQueue = commandLine.getOptionValue(QUEUE_ARG, QUEUE_DEFAULT);
-    this.amMemory = Integer.parseInt(commandLine
+    this.appName = cliParser.getOptionValue(APPNAME_ARG, APPNAME_DEFAULT);
+    this.amQueue = cliParser.getOptionValue(QUEUE_ARG, QUEUE_DEFAULT);
+    this.amMemory = Integer.parseInt(cliParser
         .getOptionValue(MASTER_MEMORY_MB_ARG, MASTER_MEMORY_MB_DEFAULT));
     this.amVCores = Integer.parseInt(
-        commandLine.getOptionValue(MASTER_VCORES_ARG, MASTER_VCORES_DEFAULT));
-    this.confPath = commandLine.getOptionValue(CONF_PATH_ARG);
-    this.blockListPath = commandLine.getOptionValue(BLOCK_LIST_PATH_ARG);
-    if (commandLine.hasOption(HADOOP_BINARY_PATH_ARG)) {
-      this.hadoopBinary = commandLine.getOptionValue(HADOOP_BINARY_PATH_ARG);
+        cliParser.getOptionValue(MASTER_VCORES_ARG, MASTER_VCORES_DEFAULT));
+    this.confPath = cliParser.getOptionValue(CONF_PATH_ARG);
+    this.blockListPath = cliParser.getOptionValue(BLOCK_LIST_PATH_ARG);
+    if (cliParser.hasOption(HADOOP_BINARY_PATH_ARG)) {
+      this.hadoopBinary = cliParser.getOptionValue(HADOOP_BINARY_PATH_ARG);
     } else {
       this.hadoopBinary = DynoInfraUtils.fetchHadoopTarball(
           new File(".").getAbsoluteFile(),
-          commandLine.getOptionValue(HADOOP_VERSION_ARG), getConf(), LOG)
+          cliParser.getOptionValue(HADOOP_VERSION_ARG), getConf(), LOG)
           .toString();
     }
-    this.amOptions = AMOptions.initFromParser(commandLine);
+    this.amOptions = AMOptions.initFromParser(cliParser);
     this.clientTimeout = Integer
-        .parseInt(commandLine.getOptionValue(TIMEOUT_ARG, TIMEOUT_DEFAULT));
-    this.tokenFileLocation = commandLine.
-        getOptionValue(TOKEN_FILE_LOCATION_ARG);
+        .parseInt(cliParser.getOptionValue(TIMEOUT_ARG, TIMEOUT_DEFAULT));
+    this.tokenFileLocation = cliParser.getOptionValue(TOKEN_FILE_LOCATION_ARG);
 
     amOptions.verify();
 
@@ -474,29 +471,28 @@ public class Client extends Configured implements Tool {
     numTotalDataNodes = blockListFS.listStatus(blockPath,
         DynoConstants.BLOCK_LIST_FILE_FILTER).length;
 
-    if (commandLine.hasOption(WORKLOAD_REPLAY_ENABLE_ARG)) {
-      if (!commandLine.hasOption(WORKLOAD_INPUT_PATH_ARG)
-          || !commandLine.hasOption(WORKLOAD_START_DELAY_ARG)) {
+    if (cliParser.hasOption(WORKLOAD_REPLAY_ENABLE_ARG)) {
+      if (!cliParser.hasOption(WORKLOAD_INPUT_PATH_ARG)
+          || !cliParser.hasOption(WORKLOAD_START_DELAY_ARG)) {
         throw new IllegalArgumentException("workload_replay_enable was "
             + "specified; must include all required workload_ parameters.");
       }
       launchWorkloadJob = true;
-      workloadInputPath = commandLine.getOptionValue(WORKLOAD_INPUT_PATH_ARG);
-      workloadOutputPath = commandLine.getOptionValue(WORKLOAD_OUTPUT_PATH_ARG);
+      workloadInputPath = cliParser.getOptionValue(WORKLOAD_INPUT_PATH_ARG);
       workloadThreadsPerMapper = Integer
-          .parseInt(commandLine.getOptionValue(WORKLOAD_THREADS_PER_MAPPER_ARG,
+          .parseInt(cliParser.getOptionValue(WORKLOAD_THREADS_PER_MAPPER_ARG,
               String.valueOf(AuditReplayMapper.NUM_THREADS_DEFAULT)));
-      workloadRateFactor = Double.parseDouble(commandLine.getOptionValue(
+      workloadRateFactor = Double.parseDouble(cliParser.getOptionValue(
           WORKLOAD_RATE_FACTOR_ARG, WORKLOAD_RATE_FACTOR_DEFAULT));
       workloadExtraConfigs = new HashMap<>();
-      if (commandLine.getOptionValues(WORKLOAD_CONFIG_ARG) != null) {
-        for (String opt : commandLine.getOptionValues(WORKLOAD_CONFIG_ARG)) {
+      if (cliParser.getOptionValues(WORKLOAD_CONFIG_ARG) != null) {
+        for (String opt : cliParser.getOptionValues(WORKLOAD_CONFIG_ARG)) {
           Iterator<String> kvPair =
               Splitter.on("=").trimResults().split(opt).iterator();
           workloadExtraConfigs.put(kvPair.next(), kvPair.next());
         }
       }
-      String delayString = commandLine.getOptionValue(WORKLOAD_START_DELAY_ARG,
+      String delayString = cliParser.getOptionValue(WORKLOAD_START_DELAY_ARG,
           WorkloadDriver.START_TIME_OFFSET_DEFAULT);
       // Store a temporary config to leverage Configuration's time duration
       // parsing.
@@ -892,8 +888,7 @@ public class Client extends Configured implements Tool {
     boolean success = false;
 
     Thread namenodeMonitoringThread = new Thread(() -> {
-      Supplier<Boolean> exitCritera = () ->
-          Apps.isApplicationFinalState(infraAppState);
+      Supplier<Boolean> exitCritera = () -> isCompleted(infraAppState);
       Optional<Properties> namenodeProperties = Optional.empty();
       while (!exitCritera.get()) {
         try {
@@ -927,7 +922,7 @@ public class Client extends Configured implements Tool {
           return;
         }
       }
-      if (!Apps.isApplicationFinalState(infraAppState) && launchWorkloadJob) {
+      if (!isCompleted(infraAppState) && launchWorkloadJob) {
         launchAndMonitorWorkloadDriver(namenodeProperties.get());
       }
     });
@@ -1040,7 +1035,6 @@ public class Client extends Configured implements Tool {
           + workloadStartDelayMs;
       Configuration workloadConf = new Configuration(getConf());
       workloadConf.set(AuditReplayMapper.INPUT_PATH_KEY, workloadInputPath);
-      workloadConf.set(AuditReplayMapper.OUTPUT_PATH_KEY, workloadOutputPath);
       workloadConf.setInt(AuditReplayMapper.NUM_THREADS_KEY,
           workloadThreadsPerMapper);
       workloadConf.setDouble(AuditReplayMapper.RATE_FACTOR_KEY,
@@ -1052,8 +1046,7 @@ public class Client extends Configured implements Tool {
       workloadJob = WorkloadDriver.getJobForSubmission(workloadConf,
           nameNodeURI.toString(), workloadStartTime, AuditReplayMapper.class);
       workloadJob.submit();
-      while (!Apps.isApplicationFinalState(infraAppState) &&
-          !isCompleted(workloadAppState)) {
+      while (!isCompleted(infraAppState) && !isCompleted(workloadAppState)) {
         workloadJob.monitorAndPrintJob();
         Thread.sleep(5000);
         workloadAppState = workloadJob.getJobState();
@@ -1096,7 +1089,7 @@ public class Client extends Configured implements Tool {
         }
       }
     }
-    if (infraAppId != null && !Apps.isApplicationFinalState(infraAppState)) {
+    if (infraAppId != null && !isCompleted(infraAppState)) {
       try {
         LOG.info("Attempting to kill infrastructure app: " + infraAppId);
         forceKillApplication(infraAppId);
@@ -1113,6 +1106,15 @@ public class Client extends Configured implements Tool {
   private static boolean isCompleted(JobStatus.State state) {
     return state == JobStatus.State.SUCCEEDED || state == JobStatus.State.FAILED
         || state == JobStatus.State.KILLED;
+  }
+
+  /**
+   * Check if the input state represents completion.
+   */
+  private static boolean isCompleted(YarnApplicationState state) {
+    return state == YarnApplicationState.FINISHED
+        || state == YarnApplicationState.FAILED
+        || state == YarnApplicationState.KILLED;
   }
 
   /**

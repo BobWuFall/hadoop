@@ -25,7 +25,7 @@ import org.apache.hadoop.yarn.proto.YarnProtos.ContainerReportProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetContainerReportResponseProto;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.GetContainerReportResponseProtoOrBuilder;
 
-import org.apache.hadoop.thirdparty.protobuf.TextFormat;
+import com.google.protobuf.TextFormat;
 
 public class GetContainerReportResponsePBImpl extends
     GetContainerReportResponse {

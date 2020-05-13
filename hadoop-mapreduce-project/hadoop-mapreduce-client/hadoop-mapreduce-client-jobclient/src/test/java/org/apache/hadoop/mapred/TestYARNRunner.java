@@ -19,7 +19,6 @@
 package org.apache.hadoop.mapred;
 
 import static org.apache.hadoop.test.PlatformAssumptions.assumeNotWindows;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -618,9 +617,9 @@ public class TestYARNRunner {
     ApplicationSubmissionContext appSubCtx =
         buildSubmitContext(yarnRunner, jobConf);
 
-    assertThat(appSubCtx.getNodeLabelExpression()).isEqualTo("GPU");
-    assertThat(appSubCtx.getAMContainerResourceRequests().get(0)
-        .getNodeLabelExpression()).isEqualTo("highMem");
+    assertEquals(appSubCtx.getNodeLabelExpression(), "GPU");
+    assertEquals(appSubCtx.getAMContainerResourceRequests().get(0)
+        .getNodeLabelExpression(), "highMem");
   }
 
   @Test

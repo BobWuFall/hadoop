@@ -30,10 +30,9 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.JobStatus.State;
+import org.junit.Assert;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  * test class JobInfo
@@ -70,9 +69,9 @@ public class TestJobInfo {
         new org.apache.hadoop.mapred.TaskReport(tid1, 0.0f,
           State.FAILED.toString(), null, TIPStatus.FAILED, 100, 100,
           new org.apache.hadoop.mapred.Counters());
-    assertThat(treport.getTaskId()).isEqualTo(
-        "task_1014873536921_0006_m_000000");
-    assertThat(treport.getTaskID().toString()).isEqualTo(
-        "task_1014873536921_0006_m_000000");
+    Assert
+      .assertEquals(treport.getTaskId(), "task_1014873536921_0006_m_000000");
+    Assert.assertEquals(treport.getTaskID().toString(),
+      "task_1014873536921_0006_m_000000");
   }
 }

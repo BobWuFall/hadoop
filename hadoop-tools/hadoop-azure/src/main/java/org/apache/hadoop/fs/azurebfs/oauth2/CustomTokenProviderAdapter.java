@@ -30,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.azurebfs.extensions.BoundDTExtension;
 import org.apache.hadoop.fs.azurebfs.extensions.CustomTokenProviderAdaptee;
 import org.apache.hadoop.fs.azurebfs.extensions.ExtensionHelper;
-import org.apache.hadoop.fs.azurebfs.oauth2.AzureADAuthenticator.HttpException;
 
 /**
  * Provides tokens based on custom implementation, following the Adapter Design
@@ -39,7 +38,6 @@ import org.apache.hadoop.fs.azurebfs.oauth2.AzureADAuthenticator.HttpException;
 public final class CustomTokenProviderAdapter extends AccessTokenProvider
   implements BoundDTExtension {
 
-  private final int fetchTokenRetryCount;
   private CustomTokenProviderAdaptee adaptee;
   private static final Logger LOG = LoggerFactory.getLogger(AccessTokenProvider.class);
 
@@ -47,57 +45,17 @@ public final class CustomTokenProviderAdapter extends AccessTokenProvider
    * Constructs a token provider based on the custom token provider.
    *
    * @param adaptee the custom token provider
-   * @param customTokenFetchRetryCount max retry count for customTokenFetch
    */
-  public CustomTokenProviderAdapter(CustomTokenProviderAdaptee adaptee, int customTokenFetchRetryCount) {
+  public CustomTokenProviderAdapter(CustomTokenProviderAdaptee adaptee) {
     Preconditions.checkNotNull(adaptee, "adaptee");
     this.adaptee = adaptee;
-    fetchTokenRetryCount = customTokenFetchRetryCount;
   }
 
   protected AzureADToken refreshToken() throws IOException {
     LOG.debug("AADToken: refreshing custom based token");
 
     AzureADToken azureADToken = new AzureADToken();
-
-    String accessToken = null;
-
-    Exception ex;
-    boolean succeeded = false;
-    // Custom token providers should have their own retry policies,
-    // Providing a linear retry option for the the retry count
-    // mentioned in config "fs.azure.custom.token.fetch.retry.count"
-    int retryCount = fetchTokenRetryCount;
-    do {
-      ex = null;
-      try {
-        accessToken = adaptee.getAccessToken();
-        LOG.trace("CustomTokenProvider Access token fetch was successful with retry count {}",
-            (fetchTokenRetryCount - retryCount));
-      } catch (Exception e) {
-        LOG.debug("CustomTokenProvider Access token fetch failed with retry count {}",
-            (fetchTokenRetryCount - retryCount));
-        ex = e;
-      }
-
-      succeeded = (ex == null);
-      retryCount--;
-    } while (!succeeded && (retryCount) >= 0);
-
-    if (!succeeded) {
-      HttpException httpEx = new HttpException(
-          -1,
-          "",
-          String.format("CustomTokenProvider getAccessToken threw %s : %s",
-              ex.getClass().getTypeName(), ex.getMessage()),
-          "",
-          "",
-          ""
-      );
-      throw httpEx;
-    }
-
-    azureADToken.setAccessToken(accessToken);
+    azureADToken.setAccessToken(adaptee.getAccessToken());
     azureADToken.setExpiry(adaptee.getExpiryTime());
 
     return azureADToken;

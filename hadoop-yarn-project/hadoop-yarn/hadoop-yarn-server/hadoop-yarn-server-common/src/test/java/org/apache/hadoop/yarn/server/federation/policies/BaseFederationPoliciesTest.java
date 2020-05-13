@@ -162,8 +162,8 @@ public abstract class BaseFederationPoliciesTest {
     return rand;
   }
 
-  public void setRand(long seed) {
-    this.rand.setSeed(seed);
+  public void setRand(Random rand) {
+    this.rand = rand;
   }
 
   public SubClusterId getHomeSubCluster() {

@@ -34,11 +34,10 @@ import java.util.List;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AppRequestAllocationInfo {
-  private Integer requestPriority;
-  private Long allocationRequestId;
+  private String requestPriority;
+  private String allocationRequestId;
   private String allocationState;
-  private String diagnostic;
-  private List<ActivityNodeInfo> children;
+  private List<ActivityNodeInfo> allocationAttempt;
 
   AppRequestAllocationInfo() {
   }
@@ -49,19 +48,15 @@ public class AppRequestAllocationInfo {
     this.requestPriority = lastActivityNode.getRequestPriority();
     this.allocationRequestId = lastActivityNode.getAllocationRequestId();
     this.allocationState = lastActivityNode.getState().name();
-    if (lastActivityNode.isRequestType()
-        && lastActivityNode.getDiagnostic() != null) {
-      this.diagnostic = lastActivityNode.getDiagnostic();
-    }
-    this.children = ActivitiesUtils
+    this.allocationAttempt = ActivitiesUtils
         .getRequestActivityNodeInfos(activityNodes, groupBy);
   }
 
-  public Integer getRequestPriority() {
+  public String getRequestPriority() {
     return requestPriority;
   }
 
-  public Long getAllocationRequestId() {
+  public String getAllocationRequestId() {
     return allocationRequestId;
   }
 
@@ -69,11 +64,7 @@ public class AppRequestAllocationInfo {
     return allocationState;
   }
 
-  public List<ActivityNodeInfo> getChildren() {
-    return children;
-  }
-
-  public String getDiagnostic() {
-    return diagnostic;
+  public List<ActivityNodeInfo> getAllocationAttempt() {
+    return allocationAttempt;
   }
 }

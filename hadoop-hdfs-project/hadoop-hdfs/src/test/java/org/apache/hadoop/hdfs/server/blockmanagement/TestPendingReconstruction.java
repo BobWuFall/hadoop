@@ -32,8 +32,6 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 import com.google.common.base.Supplier;
-
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -44,12 +42,10 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.server.common.HdfsServerConstants;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.datanode.DataNodeTestUtils;
 import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.namenode.INodeFile;
-import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeRegistration;
 import org.apache.hadoop.hdfs.server.protocol.DatanodeStorage;
@@ -58,11 +54,8 @@ import org.apache.hadoop.hdfs.server.protocol.ReceivedDeletedBlockInfo.BlockStat
 import org.apache.hadoop.hdfs.server.protocol.StorageReceivedDeletedBlocks;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.test.GenericTestUtils;
-import org.apache.hadoop.test.GenericTestUtils.LogCapturer;
-import org.apache.log4j.Level;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class tests the internals of PendingReconstructionBlocks.java, as well
@@ -81,8 +74,6 @@ public class TestPendingReconstruction {
 
   @Test
   public void testPendingReconstruction() {
-    NameNode.initMetrics(new Configuration(),
-        HdfsServerConstants.NamenodeRole.NAMENODE);
     PendingReconstructionBlocks pendingReconstructions;
     pendingReconstructions = new PendingReconstructionBlocks(TIMEOUT * 1000);
     pendingReconstructions.start();
@@ -94,7 +85,8 @@ public class TestPendingReconstruction {
       BlockInfo block = genBlockInfo(i, i, 0);
       DatanodeStorageInfo[] targets = new DatanodeStorageInfo[i];
       System.arraycopy(storages, 0, targets, 0, i);
-      pendingReconstructions.increment(block, targets);
+      pendingReconstructions.increment(block,
+          DatanodeStorageInfo.toDatanodeDescriptors(targets));
     }
     assertEquals("Size of pendingReconstruction ",
                  10, pendingReconstructions.size());
@@ -104,24 +96,25 @@ public class TestPendingReconstruction {
     // remove one item
     //
     BlockInfo blk = genBlockInfo(8, 8, 0);
-    pendingReconstructions.decrement(blk, storages[7]); // removes one replica
+    pendingReconstructions.decrement(blk, storages[7].getDatanodeDescriptor()); // removes one replica
     assertEquals("pendingReconstructions.getNumReplicas ",
                  7, pendingReconstructions.getNumReplicas(blk));
 
     //
     // insert the same item twice should be counted as once
     //
-    pendingReconstructions.increment(blk, storages[0]);
+    pendingReconstructions.increment(blk, storages[0].getDatanodeDescriptor());
     assertEquals("pendingReconstructions.getNumReplicas ",
         7, pendingReconstructions.getNumReplicas(blk));
 
     for (int i = 0; i < 7; i++) {
       // removes all replicas
-      pendingReconstructions.decrement(blk, storages[i]);
+      pendingReconstructions.decrement(blk, storages[i].getDatanodeDescriptor());
     }
     assertTrue(pendingReconstructions.size() == 9);
     pendingReconstructions.increment(blk,
-        DFSTestUtil.createDatanodeStorageInfos(8));
+        DatanodeStorageInfo.toDatanodeDescriptors(
+            DFSTestUtil.createDatanodeStorageInfos(8)));
     assertTrue(pendingReconstructions.size() == 10);
 
     //
@@ -151,7 +144,8 @@ public class TestPendingReconstruction {
     for (int i = 10; i < 15; i++) {
       BlockInfo block = genBlockInfo(i, i, 0);
       pendingReconstructions.increment(block,
-          DFSTestUtil.createDatanodeStorageInfos(i));
+          DatanodeStorageInfo.toDatanodeDescriptors(
+              DFSTestUtil.createDatanodeStorageInfos(i)));
     }
     assertEquals(15, pendingReconstructions.size());
     assertEquals(0L, pendingReconstructions.getNumTimedOuts());
@@ -219,7 +213,8 @@ public class TestPendingReconstruction {
       blockInfo = new BlockInfoContiguous(block, (short) 3);
 
       pendingReconstruction.increment(blockInfo,
-          DFSTestUtil.createDatanodeStorageInfos(1));
+          DatanodeStorageInfo.toDatanodeDescriptors(
+              DFSTestUtil.createDatanodeStorageInfos(1)));
       BlockCollection bc = Mockito.mock(BlockCollection.class);
       // Place into blocksmap with GenerationStamp = 1
       blockInfo.setGenerationStamp(1);
@@ -235,7 +230,8 @@ public class TestPendingReconstruction {
       block = new Block(2, 2, 0);
       blockInfo = new BlockInfoContiguous(block, (short) 3);
       pendingReconstruction.increment(blockInfo,
-          DFSTestUtil.createDatanodeStorageInfos(1));
+          DatanodeStorageInfo.toDatanodeDescriptors(
+              DFSTestUtil.createDatanodeStorageInfos(1)));
 
       // verify 2 blocks in pendingReconstructions
       assertEquals("Size of pendingReconstructions ", 2,
@@ -281,8 +277,7 @@ public class TestPendingReconstruction {
           getDatanodes().iterator().next() };
 
       // Add a stored block to the pendingReconstruction.
-      pendingReconstruction.increment(blockInfo,
-          DFSTestUtil.createDatanodeStorageInfos(1));
+      pendingReconstruction.increment(storedBlock, desc);
       assertEquals("Size of pendingReconstructions ", 1,
           pendingReconstruction.size());
 
@@ -311,8 +306,6 @@ public class TestPendingReconstruction {
         fsn.writeUnlock();
       }
 
-      GenericTestUtils.waitFor(() -> pendingReconstruction.size() == 0, 500,
-          10000);
       // The pending queue should be empty.
       assertEquals("Size of pendingReconstructions ", 0,
           pendingReconstruction.size());
@@ -564,56 +557,6 @@ public class TestPendingReconstruction {
     } finally {
       tmpCluster.shutdown();
       fsn.writeUnlock();
-    }
-  }
-
-  @Test
-  public void testPendingReConstructionBlocksForSameDN() throws Exception {
-    final Configuration conf = new HdfsConfiguration();
-    conf.setInt(DFSConfigKeys.DFS_REPLICATION_KEY, 1);
-    MiniDFSCluster cluster =
-        new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
-    cluster.waitActive();
-    DFSTestUtil.setNameNodeLogLevel(Level.DEBUG);
-    LogCapturer logs = GenericTestUtils.LogCapturer
-        .captureLogs(LoggerFactory.getLogger("BlockStateChange"));
-    BlockManager bm = cluster.getNamesystem().getBlockManager();
-    try {
-      DistributedFileSystem dfs = cluster.getFileSystem();
-      // 1. create a file
-      Path filePath = new Path("/tmp.txt");
-      DFSTestUtil.createFile(dfs, filePath, 1024, (short) 1, 0L);
-
-      // 2. disable the IBR
-      for (DataNode dn : cluster.getDataNodes()) {
-        DataNodeTestUtils.pauseIBR(dn);
-      }
-      DatanodeManager datanodeManager =
-          cluster.getNamesystem().getBlockManager().getDatanodeManager();
-      ArrayList<DatanodeDescriptor> dnList =
-          new ArrayList<DatanodeDescriptor>();
-      datanodeManager.fetchDatanodes(dnList, dnList, false);
-
-      LocatedBlock block = NameNodeAdapter
-          .getBlockLocations(cluster.getNameNode(), filePath.toString(), 0, 1)
-          .get(0);
-
-      // 3. set replication as 3
-      dfs.setReplication(filePath, (short) 3);
-
-      // 4 compute replication work twice to make sure the same DN is not adding
-      // twice
-      BlockManagerTestUtil.computeAllPendingWork(bm);
-      BlockManagerTestUtil.computeAllPendingWork(bm);
-      BlockManagerTestUtil.updateState(bm);
-
-      // 5 capture the logs and verify the reconstruction work for block for
-      // same DN
-      String blockName =
-          "to replicate " + block.getBlock().getLocalBlock().toString();
-      assertEquals(1, StringUtils.countMatches(logs.getOutput(), blockName));
-    } finally {
-      cluster.shutdown();
     }
   }
 }

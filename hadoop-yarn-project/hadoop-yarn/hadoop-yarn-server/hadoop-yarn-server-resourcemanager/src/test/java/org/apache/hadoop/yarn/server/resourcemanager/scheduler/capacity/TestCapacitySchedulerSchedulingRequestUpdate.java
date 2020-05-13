@@ -30,8 +30,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.NullRMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.nodelabels.RMNodeLabelsManager;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
@@ -77,27 +75,11 @@ public class TestCapacitySchedulerSchedulingRequestUpdate
     nm2.registerNode();
 
     // Launch app1 in queue=a1
-    MockRMAppSubmissionData data1 =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("a1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data1);
+    RMApp app1 = rm.submitApp(1 * GB, "app", "user", null, "a1");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm2);
 
     // Launch app2 in queue=b1
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(8 * GB, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("b1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app2 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app2 = rm.submitApp(8 * GB, "app", "user", null, "b1");
     MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm2);
     // am1 asks for 8 * 1GB container for no label
     am1.allocateIntraAppAntiAffinity(
@@ -211,27 +193,11 @@ public class TestCapacitySchedulerSchedulingRequestUpdate
     nm2.registerNode();
 
     // Launch app1 in queue=a1
-    MockRMAppSubmissionData data1 =
-        MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("a1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app1 = MockRMAppSubmitter.submit(rm, data1);
+    RMApp app1 = rm.submitApp(1 * GB, "app", "user", null, "a1");
     MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm2);
 
     // Launch app2 in queue=b1
-    MockRMAppSubmissionData data =
-        MockRMAppSubmissionData.Builder.createWithMemory(8 * GB, rm)
-            .withAppName("app")
-            .withUser("user")
-            .withAcls(null)
-            .withQueue("b1")
-            .withUnmanagedAM(false)
-            .build();
-    RMApp app2 = MockRMAppSubmitter.submit(rm, data);
+    RMApp app2 = rm.submitApp(8 * GB, "app", "user", null, "b1");
     MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm2);
     // am1 asks for 8 * 1GB container for "x"
     am1.allocateIntraAppAntiAffinity("x",

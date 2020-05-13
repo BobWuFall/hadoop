@@ -143,7 +143,6 @@ public class TestApplicationPriorityACLs extends ACLsTestBase {
         .newInstance(appSubmissionContext);
     try {
       submitterClient.submitApplication(submitRequest);
-      Assert.fail();
     } catch (YarnException ex) {
       Assert.assertTrue(ex.getCause() instanceof RemoteException);
     }

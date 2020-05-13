@@ -28,8 +28,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.MockAM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockNM;
 import org.apache.hadoop.yarn.server.resourcemanager.MockRM;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmissionData;
-import org.apache.hadoop.yarn.server.resourcemanager.MockRMAppSubmitter;
 import org.apache.hadoop.yarn.server.resourcemanager.ParameterizedSchedulerTestBase;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMApp;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
@@ -74,7 +72,7 @@ public class TestSchedulingWithAllocationRequestId
 
       MockNM nm1 = rm.registerNode("127.0.0.1:1234", 4 * GB);
       MockNM nm2 = rm.registerNode("127.0.0.2:5678", 4 * GB);
-      RMApp app1 = MockRMAppSubmitter.submitWithMemory(2048, rm);
+      RMApp app1 = rm.submitApp(2048);
       // kick the scheduling
       nm1.nodeHeartbeat(true);
       RMAppAttempt attempt1 = app1.getCurrentAppAttempt();
@@ -116,7 +114,7 @@ public class TestSchedulingWithAllocationRequestId
 
       MockNM nm1 = rm.registerNode("127.0.0.1:1234", 4 * GB);
       MockNM nm2 = rm.registerNode("127.0.0.2:5678", 4 * GB);
-      RMApp app1 = MockRMAppSubmitter.submitWithMemory(2048, rm);
+      RMApp app1 = rm.submitApp(2048);
       // kick the scheduling
       nm1.nodeHeartbeat(true);
       RMAppAttempt attempt1 = app1.getCurrentAppAttempt();
@@ -177,12 +175,7 @@ public class TestSchedulingWithAllocationRequestId
       nm2.registerNode();
 
       // submit 1st app
-      MockRMAppSubmissionData data1 =
-          MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-              .withAppName("user_0")
-              .withUser("a1")
-              .build();
-      RMApp app1 = MockRMAppSubmitter.submit(rm, data1);
+      RMApp app1 = rm.submitApp(1 * GB, "user_0", "a1");
       MockAM am1 = MockRM.launchAndRegisterAM(app1, rm, nm1);
 
       // Submit app1 RR with allocationReqId = 5
@@ -197,12 +190,7 @@ public class TestSchedulingWithAllocationRequestId
       checkAllocatedContainer(allocated.get(0), 1 * GB, nm1.getNodeId(), 5L);
 
       // Submit another application
-      MockRMAppSubmissionData data =
-          MockRMAppSubmissionData.Builder.createWithMemory(1 * GB, rm)
-              .withAppName("user_1")
-              .withUser("a2")
-              .build();
-      RMApp app2 = MockRMAppSubmitter.submit(rm, data);
+      RMApp app2 = rm.submitApp(1 * GB, "user_1", "a2");
       MockAM am2 = MockRM.launchAndRegisterAM(app2, rm, nm2);
 
       // Submit app2 RR with allocationReqId = 5

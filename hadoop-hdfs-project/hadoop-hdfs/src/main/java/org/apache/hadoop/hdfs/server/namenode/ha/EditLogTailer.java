@@ -134,17 +134,10 @@ public class EditLogTailer {
   private final ExecutorService rollEditsRpcExecutor;
 
   /**
-   * How often the tailer should check if there are new edit log entries
-   * ready to be consumed. This is the initial delay before any backoff.
+   * How often the Standby should check if there are new finalized segment(s)
+   * available to be read from.
    */
   private final long sleepTimeMs;
-  /**
-   * The maximum time the tailer should wait between checking for new edit log
-   * entries. Exponential backoff will be applied when an edit log tail is
-   * performed but no edits are available to be read. If this is less than or
-   * equal to 0, backoff is disabled.
-   */
-  private final long maxSleepTimeMs;
 
   private final int nnCount;
   private NamenodeProtocol cachedActiveProxy = null;
@@ -213,19 +206,6 @@ public class EditLogTailer {
         DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_KEY,
         DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_DEFAULT,
         TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
-    long maxSleepTimeMsTemp = conf.getTimeDuration(
-        DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_BACKOFF_MAX_KEY,
-        DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_BACKOFF_MAX_DEFAULT,
-        TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
-    if (maxSleepTimeMsTemp > 0 && maxSleepTimeMsTemp < sleepTimeMs) {
-      LOG.warn("{} was configured to be {} ms, but this is less than {}."
-              + "Disabling backoff when tailing edit logs.",
-          DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_BACKOFF_MAX_KEY,
-          maxSleepTimeMsTemp, DFSConfigKeys.DFS_HA_TAILEDITS_PERIOD_KEY);
-      maxSleepTimeMs = 0;
-    } else {
-      maxSleepTimeMs = maxSleepTimeMsTemp;
-    }
 
     rollEditsTimeoutMs = conf.getTimeDuration(
         DFSConfigKeys.DFS_HA_TAILEDITS_ROLLEDITS_TIMEOUT_KEY,
@@ -298,30 +278,20 @@ public class EditLogTailer {
     SecurityUtil.doAsLoginUser(new PrivilegedExceptionAction<Void>() {
       @Override
       public Void run() throws Exception {
-        long editsTailed = 0;
-        // Fully tail the journal to the end
-        do {
-          long startTime = Time.monotonicNow();
-          try {
-            NameNode.getNameNodeMetrics().addEditLogTailInterval(
-                startTime - lastLoadTimeMs);
-            // It is already under the name system lock and the checkpointer
-            // thread is already stopped. No need to acquire any other lock.
-            editsTailed = doTailEdits();
-          } catch (InterruptedException e) {
-            throw new IOException(e);
-          } finally {
-            NameNode.getNameNodeMetrics().addEditLogTailTime(
-                Time.monotonicNow() - startTime);
-          }
-        } while(editsTailed > 0);
+        try {
+          // It is already under the full name system lock and the checkpointer
+          // thread is already stopped. No need to acqure any other lock.
+          doTailEdits();
+        } catch (InterruptedException e) {
+          throw new IOException(e);
+        }
         return null;
       }
     });
   }
   
   @VisibleForTesting
-  public long doTailEdits() throws IOException, InterruptedException {
+  public void doTailEdits() throws IOException, InterruptedException {
     // Write lock needs to be interruptible here because the 
     // transitionToActive RPC takes the write lock before calling
     // tailer.stop() -- so if we're not interruptible, it will
@@ -346,7 +316,7 @@ public class EditLogTailer {
         // edits file hasn't been started yet.
         LOG.warn("Edits tailer failed to find any streams. Will try again " +
             "later.", ioe);
-        return 0;
+        return;
       } finally {
         NameNode.getNameNodeMetrics().addEditLogFetchTime(
             Time.monotonicNow() - startTime);
@@ -377,7 +347,6 @@ public class EditLogTailer {
         lastLoadTimeMs = monotonicNow();
       }
       lastLoadedTxnId = image.getLastAppliedTxId();
-      return editsLoaded;
     } finally {
       namesystem.writeUnlock();
     }
@@ -438,11 +407,6 @@ public class EditLogTailer {
     }
   }
 
-  @VisibleForTesting
-  void sleep(long sleepTimeMillis) throws InterruptedException {
-    Thread.sleep(sleepTimeMillis);
-  }
-
   /**
    * The thread which does the actual work of tailing edits journals and
    * applying the transactions to the FSNS.
@@ -471,18 +435,14 @@ public class EditLogTailer {
     }
     
     private void doWork() {
-      long currentSleepTimeMs = sleepTimeMs;
       while (shouldRun) {
-        long editsTailed  = 0;
         try {
           // There's no point in triggering a log roll if the Standby hasn't
           // read any more transactions since the last time a roll was
-          // triggered.
-          boolean triggeredLogRoll = false;
+          // triggered. 
           if (tooLongSinceLastLoad() &&
               lastRollTriggerTxId < lastLoadedTxnId) {
             triggerActiveLogRoll();
-            triggeredLogRoll = true;
           }
           /**
            * Check again in case someone calls {@link EditLogTailer#stop} while
@@ -501,16 +461,14 @@ public class EditLogTailer {
           try {
             NameNode.getNameNodeMetrics().addEditLogTailInterval(
                 startTime - lastLoadTimeMs);
-            editsTailed = doTailEdits();
+            doTailEdits();
           } finally {
             namesystem.cpUnlock();
             NameNode.getNameNodeMetrics().addEditLogTailTime(
                 Time.monotonicNow() - startTime);
           }
           //Update NameDirSize Metric
-          if (triggeredLogRoll) {
-            namesystem.getFSImage().getStorage().updateNameDirSize();
-          }
+          namesystem.getFSImage().getStorage().updateNameDirSize();
         } catch (EditLogInputException elie) {
           LOG.warn("Error while reading edits from disk. Will try again.", elie);
         } catch (InterruptedException ie) {
@@ -523,17 +481,7 @@ public class EditLogTailer {
         }
 
         try {
-          if (editsTailed == 0 && maxSleepTimeMs > 0) {
-            // If no edits were tailed, apply exponential backoff
-            // before tailing again. Double the current sleep time on each
-            // empty response, but don't exceed the max. If the sleep time
-            // was configured as 0, start the backoff at 1 ms.
-            currentSleepTimeMs = Math.min(maxSleepTimeMs,
-                (currentSleepTimeMs == 0 ? 1 : currentSleepTimeMs) * 2);
-          } else {
-            currentSleepTimeMs = sleepTimeMs; // reset to initial sleep time
-          }
-          EditLogTailer.this.sleep(currentSleepTimeMs);
+          Thread.sleep(sleepTimeMs);
         } catch (InterruptedException e) {
           LOG.warn("Edit log tailer interrupted: {}", e.getMessage());
         }

@@ -145,7 +145,7 @@ Similar to get command, except that the destination is restricted to a local fil
 count
 -----
 
-Usage: `hadoop fs -count [-q] [-h] [-v] [-x] [-t [<storage type>]] [-u] [-e] [-s] <paths> `
+Usage: `hadoop fs -count [-q] [-h] [-v] [-x] [-t [<storage type>]] [-u] [-e] <paths> `
 
 Count the number of directories, files and bytes under the paths that match the specified file pattern. Get the quota and the usage. The output columns with -count are: DIR\_COUNT, FILE\_COUNT, CONTENT\_SIZE, PATHNAME
 
@@ -169,8 +169,6 @@ The output columns with -count -e are: DIR\_COUNT, FILE\_COUNT, CONTENT_SIZE, ER
 
 The ERASURECODING\_POLICY is name of the policy for the file. If a erasure coding policy is setted on that file, it will return name of the policy. If no erasure coding policy is setted, it will return \"Replicated\" which means it use replication storage strategy.
 
-The -s option shows the snapshot counts for each directory.
-
 Example:
 
 * `hadoop fs -count hdfs://nn1.example.com/file1 hdfs://nn2.example.com/file2`
@@ -181,7 +179,6 @@ Example:
 * `hadoop fs -count -u -h hdfs://nn1.example.com/file1`
 * `hadoop fs -count -u -h -v hdfs://nn1.example.com/file1`
 * `hadoop fs -count -e hdfs://nn1.example.com/file1`
-* `hadoop fs -count -s hdfs://nn1.example.com/file1`
 
 Exit Code:
 
@@ -641,7 +638,7 @@ Options:
 * -R: Apply operations to all files and directories recursively.
 * -m: Modify ACL. New entries are added to the ACL, and existing entries are retained.
 * -x: Remove specified ACL entries. Other ACL entries are retained.
-* ``--set``: Fully replace the ACL, discarding all existing entries. The *acl\_spec* must include entries for user, group, and others for compatibility with permission bits. If the ACL spec contains only access entries, then the existing default entries are retained. If the ACL spec contains only default entries, then the existing access entries are retained. If the ACL spec contains both access and default entries, then both are replaced.
+* ``--set``: Fully replace the ACL, discarding all existing entries. The *acl\_spec* must include entries for user, group, and others for compatibility with permission bits.
 * *acl\_spec*: Comma separated list of ACL entries.
 * *path*: File or directory to modify.
 
@@ -736,7 +733,7 @@ Exit Code: Returns 0 on success and -1 on error.
 test
 ----
 
-Usage: `hadoop fs -test -[defswrz] URI`
+Usage: `hadoop fs -test -[defsz] URI`
 
 Options:
 
@@ -744,8 +741,8 @@ Options:
 * -e: if the path exists, return 0.
 * -f: if the path is a file, return 0.
 * -s: if the path is not empty, return 0.
-* -w: if the path exists and write permission is granted, return 0.
 * -r: if the path exists and read permission is granted, return 0.
+* -w: if the path exists and write permission is granted, return 0.
 * -z: if the file is zero length, return 0.
 
 

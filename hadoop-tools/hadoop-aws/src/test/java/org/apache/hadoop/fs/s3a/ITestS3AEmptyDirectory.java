@@ -20,8 +20,6 @@ package org.apache.hadoop.fs.s3a;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.contract.ContractTestUtils;
-import org.apache.hadoop.fs.s3a.impl.StatusProbeEnum;
-
 import org.junit.Test;
 
 import java.io.IOException;
@@ -79,8 +77,7 @@ public class ITestS3AEmptyDirectory extends AbstractS3ATestBase {
 
   private S3AFileStatus getS3AFileStatus(S3AFileSystem fs, Path p) throws
       IOException {
-    return fs.innerGetFileStatus(p, true,
-        StatusProbeEnum.ALL);
+    return fs.innerGetFileStatus(p, true /* want isEmptyDirectory value */);
   }
 
 }

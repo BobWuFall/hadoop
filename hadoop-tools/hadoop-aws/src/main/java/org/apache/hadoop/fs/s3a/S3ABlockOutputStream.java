@@ -53,7 +53,6 @@ import org.apache.hadoop.util.Progressable;
 
 import static org.apache.hadoop.fs.s3a.S3AUtils.*;
 import static org.apache.hadoop.fs.s3a.Statistic.*;
-import static org.apache.hadoop.io.IOUtils.cleanupWithLogger;
 
 /**
  * Upload files/parts directly via different buffering mechanisms:
@@ -397,9 +396,9 @@ class S3ABlockOutputStream extends OutputStream implements
       writeOperationHelper.writeFailed(ioe);
       throw ioe;
     } finally {
-      cleanupWithLogger(LOG, block, blockFactory);
+      closeAll(LOG, block, blockFactory);
       LOG.debug("Statistics: {}", statistics);
-      cleanupWithLogger(LOG, statistics);
+      closeAll(LOG, statistics);
       clearActiveBlock();
     }
     // Note end of write. This does not change the state of the remote FS.
@@ -438,7 +437,7 @@ class S3ABlockOutputStream extends OutputStream implements
             // stream afterwards.
             return writeOperationHelper.putObject(putObjectRequest);
           } finally {
-            cleanupWithLogger(LOG, uploadData, block);
+            closeAll(LOG, uploadData, block);
           }
         });
     clearActiveBlock();
@@ -498,19 +497,17 @@ class S3ABlockOutputStream extends OutputStream implements
    * @param capability string to query the stream support for.
    * @return true if the capability is supported by this instance.
    */
-  @SuppressWarnings("deprecation")
   @Override
   public boolean hasCapability(String capability) {
     switch (capability.toLowerCase(Locale.ENGLISH)) {
 
       // does the output stream have delayed visibility
     case CommitConstants.STREAM_CAPABILITY_MAGIC_OUTPUT:
-    case CommitConstants.STREAM_CAPABILITY_MAGIC_OUTPUT_OLD:
       return !putTracker.outputImmediatelyVisible();
 
       // The flush/sync options are absolutely not supported
-    case StreamCapabilities.HFLUSH:
-    case StreamCapabilities.HSYNC:
+    case "hflush":
+    case "hsync":
       return false;
 
     default:
@@ -615,7 +612,7 @@ class S3ABlockOutputStream extends OutputStream implements
               return partETag;
             } finally {
               // close the stream and block
-              cleanupWithLogger(LOG, uploadData, block);
+              closeAll(LOG, uploadData, block);
             }
           });
       partETagsFutures.add(partETagFuture);

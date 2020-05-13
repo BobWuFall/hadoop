@@ -18,13 +18,10 @@
 
 package org.apache.hadoop.yarn.server.resourcemanager.placement;
 
-import static org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacitySchedulerConfiguration.DOT;
-
 public class QueueMappingEntity {
   private String source;
   private String queue;
   private String parentQueue;
-  private String fullPath;
 
   public final static String DELIMITER = ":";
 
@@ -32,20 +29,11 @@ public class QueueMappingEntity {
     this.source = source;
     this.queue = queue;
     this.parentQueue = null;
-    this.fullPath = queue;
   }
   public QueueMappingEntity(String source, String queue, String parentQueue) {
     this.source = source;
     this.queue = queue;
     this.parentQueue = parentQueue;
-    this.fullPath = parentQueue + DOT + queue;
-  }
-
-  public QueueMappingEntity(String source, QueuePath path) {
-    this.source = source;
-    this.queue = path.getLeafQueue();
-    this.parentQueue = path.getParentQueue();
-    this.fullPath = parentQueue + DOT + queue;
   }
 
   public String getQueue() {
@@ -56,22 +44,8 @@ public class QueueMappingEntity {
     return parentQueue;
   }
 
-  public String getFullPath() {
-    return fullPath;
-  }
-
   public String getSource() {
     return source;
-  }
-
-  public boolean hasParentQueue() {
-    return parentQueue != null;
-  }
-
-  public QueuePath getQueuePath() {
-    //This is to make sure the parsing is the same everywhere, but the
-    //whole parsing part should be moved to QueuePathConstructor
-    return QueuePlacementRuleUtils.extractQueuePath(getFullPath());
   }
 
   @Override
@@ -92,7 +66,7 @@ public class QueueMappingEntity {
 
   public String toString() {
     return source + DELIMITER + (parentQueue != null ?
-        parentQueue + DOT + queue :
+        parentQueue + "." + queue :
         queue);
   }
 }

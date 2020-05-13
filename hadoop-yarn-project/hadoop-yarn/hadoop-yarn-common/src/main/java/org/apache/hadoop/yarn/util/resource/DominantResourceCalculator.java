@@ -106,7 +106,7 @@ public class DominantResourceCalculator extends ResourceCalculator {
       return 0;
     }
 
-    if (isAllInvalidDivisor(clusterResource)) {
+    if (isInvalidDivisor(clusterResource)) {
       return this.compare(lhs, rhs);
     }
 
@@ -283,11 +283,6 @@ public class DominantResourceCalculator extends ResourceCalculator {
       firstShares[i] = calculateShare(clusterRes[i], firstRes[i]);
       secondShares[i] = calculateShare(clusterRes[i], secondRes[i]);
 
-      if (firstShares[i] == Float.POSITIVE_INFINITY ||
-              secondShares[i] == Float.POSITIVE_INFINITY) {
-        continue;
-      }
-
       if (firstShares[i] > max[0]) {
         max[0] = firstShares[i];
       }
@@ -306,9 +301,6 @@ public class DominantResourceCalculator extends ResourceCalculator {
    */
   private double calculateShare(ResourceInformation clusterRes,
       ResourceInformation res) {
-    if(clusterRes.getValue() == 0) {
-      return Float.POSITIVE_INFINITY;
-    }
     return (double) res.getValue() / clusterRes.getValue();
   }
 
@@ -328,10 +320,6 @@ public class DominantResourceCalculator extends ResourceCalculator {
     // lhsShares and rhsShares must necessarily have the same length, because
     // everyone uses the same master resource list.
     for (int i = lhsShares.length - 1; i >= 0; i--) {
-      if (lhsShares[i] == Float.POSITIVE_INFINITY ||
-              rhsShares[i] == Float.POSITIVE_INFINITY) {
-        continue;
-      }
       diff = lhsShares[i] - rhsShares[i];
 
       if (diff != 0.0) {
@@ -388,18 +376,6 @@ public class DominantResourceCalculator extends ResourceCalculator {
     return false;
   }
 
-  public boolean isAllInvalidDivisor(Resource r) {
-    boolean flag = true;
-    for (ResourceInformation res : r.getResources()) {
-      if (flag == true && res.getValue() == 0L) {
-        flag = true;
-        continue;
-      }
-      flag = false;
-    }
-    return flag;
-  }
-
   @Override
   public float ratio(Resource a, Resource b) {
     float ratio = 0.0f;
@@ -432,14 +408,10 @@ public class DominantResourceCalculator extends ResourceCalculator {
 
   @Override
   public Resource divideAndCeil(Resource numerator, float denominator) {
-    Resource ret = Resource.newInstance(numerator);
-    int maxLength = ResourceUtils.getNumberOfCountableResourceTypes();
-    for (int i = 0; i < maxLength; i++) {
-      ResourceInformation resourceInformation = ret.getResourceInformation(i);
-      resourceInformation
-          .setValue(divideAndCeil(resourceInformation.getValue(), denominator));
-    }
-    return ret;
+    return Resources.createResource(
+        divideAndCeil(numerator.getMemorySize(), denominator),
+        divideAndCeil(numerator.getVirtualCores(), denominator)
+        );
   }
 
   @Override

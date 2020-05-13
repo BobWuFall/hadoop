@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.ipc;
 
-import org.apache.hadoop.thirdparty.protobuf.Message;
+import com.google.protobuf.Message;
 
 public interface ProtobufRpcEngineCallback {
 

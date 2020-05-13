@@ -28,8 +28,6 @@ import java.util.Map;
 public class QueueMetricsForCustomResources {
   private final QueueMetricsCustomResource aggregatePreemptedSeconds =
       new QueueMetricsCustomResource();
-  private final QueueMetricsCustomResource aggregatePreempted =
-    new QueueMetricsCustomResource();
   private final QueueMetricsCustomResource allocated =
       new QueueMetricsCustomResource();
   private final QueueMetricsCustomResource available =
@@ -82,10 +80,6 @@ public class QueueMetricsForCustomResources {
 
   public void increaseAggregatedPreemptedSeconds(Resource res, long seconds) {
     aggregatePreemptedSeconds.increaseWithMultiplier(res, seconds);
-  }
-
-  public void increaseAggregatedPreempted(Resource res) {
-    aggregatePreempted.increase(res);
   }
 
   Map<String, Long> getAllocatedValues() {
