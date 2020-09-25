@@ -540,7 +540,7 @@ public class TestReconstructStripedFile {
     writeFile(fs, "/ec-xmits-weight", fileLen);
 
     DataNode dn = cluster.getDataNodes().get(0);
-    int corruptBlocks = dn.getFSDataset().getFinalizedBlocks(
+    int corruptBlocks = dn.getFSDataset().getSortedFinalizedBlocks(
         cluster.getNameNode().getNamesystem().getBlockPoolId()).size();
     int expectedXmits = corruptBlocks * expectedWeight;
 
@@ -571,7 +571,8 @@ public class TestReconstructStripedFile {
       DataNodeFaultInjector.set(oldInjector);
       for (final DataNode curDn : cluster.getDataNodes()) {
         GenericTestUtils.waitFor(() -> curDn.getXceiverCount() <= 1, 10, 60000);
-        assertEquals(0, curDn.getXmitsInProgress());
+        GenericTestUtils.waitFor(() -> curDn.getXmitsInProgress() == 0, 10,
+            2500);
       }
     }
   }

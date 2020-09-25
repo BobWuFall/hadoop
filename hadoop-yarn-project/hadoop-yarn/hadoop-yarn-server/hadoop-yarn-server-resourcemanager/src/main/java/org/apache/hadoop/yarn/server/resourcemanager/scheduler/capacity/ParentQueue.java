@@ -93,6 +93,8 @@ public class ParentQueue extends AbstractCSQueue {
 
   private long lastSkipQueueDebugLoggingTimestamp = -1;
 
+  private int runnableApps;
+
   public ParentQueue(CapacitySchedulerContext cs,
       String queueName, CSQueue parent, CSQueue old) throws IOException {
     super(cs, queueName, parent, old);
@@ -1121,8 +1123,18 @@ public class ParentQueue extends AbstractCSQueue {
     if (childQueue instanceof LeafQueue) {
       LeafQueue leafQueue = (LeafQueue) childQueue;
       CapacitySchedulerConfiguration conf = csContext.getConfiguration();
-      int maxApplications = (int) (conf.getMaximumSystemApplications()
-          * childQueue.getQueueCapacities().getAbsoluteCapacity(label));
+      int maxApplications =
+              conf.getMaximumApplicationsPerQueue(childQueue.getQueuePath());
+      if (maxApplications < 0) {
+        int maxGlobalPerQueueApps = conf.getGlobalMaximumApplicationsPerQueue();
+        if (maxGlobalPerQueueApps > 0) {
+          maxApplications = (int) (maxGlobalPerQueueApps *
+                  childQueue.getQueueCapacities().getAbsoluteCapacity(label));
+        } else {
+          maxApplications = (int) (conf.getMaximumSystemApplications()
+                  * childQueue.getQueueCapacities().getAbsoluteCapacity(label));
+        }
+      }
       leafQueue.setMaxApplications(maxApplications);
 
       int maxApplicationsPerUser = Math.min(maxApplications,
@@ -1382,5 +1394,33 @@ public class ParentQueue extends AbstractCSQueue {
 
   public QueueOrderingPolicy getQueueOrderingPolicy() {
     return queueOrderingPolicy;
+  }
+
+  @Override
+  int getNumRunnableApps() {
+    readLock.lock();
+    try {
+      return runnableApps;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  void incrementRunnableApps() {
+    writeLock.lock();
+    try {
+      runnableApps++;
+    } finally {
+      writeLock.unlock();
+    }
+  }
+
+  void decrementRunnableApps() {
+    writeLock.lock();
+    try {
+      runnableApps--;
+    } finally {
+      writeLock.unlock();
+    }
   }
 }

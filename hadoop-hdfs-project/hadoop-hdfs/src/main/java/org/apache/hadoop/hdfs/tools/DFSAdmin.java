@@ -87,7 +87,7 @@ import org.apache.hadoop.hdfs.protocol.SnapshotException;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.TransferFsImage;
 import org.apache.hadoop.io.MultipleIOException;
-import org.apache.hadoop.ipc.ProtobufRpcEngine;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RefreshCallQueueProtocol;
 import org.apache.hadoop.ipc.RefreshResponse;
@@ -130,11 +130,7 @@ public class DFSAdmin extends FsShell {
     @Override
     public void run(PathData pathData) throws IOException {
       FileSystem fs = pathData.fs;
-      if (!(fs instanceof DistributedFileSystem)) {
-        throw new IllegalArgumentException("FileSystem " + fs.getUri()
-            + " is not an HDFS file system");
-      }
-      this.dfs = (DistributedFileSystem) fs;
+      this.dfs = AdminHelper.checkAndGetDFS(fs, getConf());
       run(pathData.path);
     }
   }
@@ -243,7 +239,8 @@ public class DFSAdmin extends FsShell {
         "\t\t- DISK\n" +
         "\t\t- SSD\n" +
         "\t\t- ARCHIVE\n" +
-        "\t\t- PROVIDED";
+        "\t\t- PROVIDED\n" +
+        "\t\t- NVDIMM";
 
 
     private StorageType type;
@@ -307,7 +304,8 @@ public class DFSAdmin extends FsShell {
         "\t\t- DISK\n" +
         "\t\t- SSD\n" +
         "\t\t- ARCHIVE\n" +
-        "\t\t- PROVIDED";
+        "\t\t- PROVIDED\n" +
+        "\t\t- NVDIMM";
 
     private long quota; // the quota to be set
     private StorageType type;
@@ -483,14 +481,9 @@ public class DFSAdmin extends FsShell {
   public DFSAdmin(Configuration conf) {
     super(conf);
   }
-  
+
   protected DistributedFileSystem getDFS() throws IOException {
-    FileSystem fs = getFS();
-    if (!(fs instanceof DistributedFileSystem)) {
-      throw new IllegalArgumentException("FileSystem " + fs.getUri() + 
-      " is not an HDFS file system");
-    }
-    return (DistributedFileSystem)fs;
+    return AdminHelper.checkAndGetDFS(getFS(), getConf());
   }
   
   /**
@@ -1045,14 +1038,7 @@ public class DFSAdmin extends FsShell {
       System.err.println("Bandwidth should be a non-negative integer");
       return exitCode;
     }
-
-    FileSystem fs = getFS();
-    if (!(fs instanceof DistributedFileSystem)) {
-      System.err.println("FileSystem is " + fs.getUri());
-      return exitCode;
-    }
-
-    DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    DistributedFileSystem dfs = getDFS();
     try{
       dfs.setBalancerBandwidth(bandwidth);
       System.out.println("Balancer bandwidth is set to " + bandwidth);
@@ -2045,7 +2031,7 @@ public class DFSAdmin extends FsShell {
     InetSocketAddress address = NetUtils.createSocketAddr(hostport);
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
 
-    RPC.setProtocolEngine(conf, xface, ProtobufRpcEngine.class);
+    RPC.setProtocolEngine(conf, xface, ProtobufRpcEngine2.class);
     GenericRefreshProtocolPB proxy = (GenericRefreshProtocolPB)
       RPC.getProxy(xface, RPC.getProtocolVersion(xface), address,
         ugi, conf, NetUtils.getDefaultSocketFactory(conf), 0);
@@ -2200,7 +2186,6 @@ public class DFSAdmin extends FsShell {
 
   /**
    * @param argv The parameters passed to this program.
-   * @exception Exception if the filesystem does not exist.
    * @return 0 on success, non zero on error.
    */
   @Override

@@ -79,6 +79,10 @@ public class RBFConfigKeys extends CommonConfigurationKeysPublic {
   public static final Class<? extends RouterRpcMonitor>
       DFS_ROUTER_METRICS_CLASS_DEFAULT =
       FederationRPCPerformanceMonitor.class;
+  public static final String DFS_ROUTER_METRICS_TOP_NUM_TOKEN_OWNERS_KEY =
+      FEDERATION_ROUTER_PREFIX + "top.num.token.realowners";
+  public static final int
+      DFS_ROUTER_METRICS_TOP_NUM_TOKEN_OWNERS_KEY_DEFAULT = 10;
 
   // HDFS Router heartbeat
   public static final String DFS_ROUTER_HEARTBEAT_ENABLE =
@@ -270,6 +274,13 @@ public class RBFConfigKeys extends CommonConfigurationKeysPublic {
   public static final String DFS_ROUTER_ADMIN_ENABLE =
       FEDERATION_ROUTER_PREFIX + "admin.enable";
   public static final boolean DFS_ROUTER_ADMIN_ENABLE_DEFAULT = true;
+  public static final String DFS_ROUTER_ADMIN_MAX_COMPONENT_LENGTH_KEY =
+      FEDERATION_ROUTER_PREFIX + "fs-limits.max-component-length";
+  public static final int DFS_ROUTER_ADMIN_MAX_COMPONENT_LENGTH_DEFAULT = 0;
+  public static final String DFS_ROUTER_ADMIN_MOUNT_CHECK_ENABLE =
+      FEDERATION_ROUTER_PREFIX + "admin.mount.check.enable";
+  public static final boolean DFS_ROUTER_ADMIN_MOUNT_CHECK_ENABLE_DEFAULT =
+      false;
 
   // HDFS Router-based federation web
   public static final String DFS_ROUTER_HTTP_ENABLE =

@@ -1084,10 +1084,12 @@ public class TestWebHDFS {
     webHdfs.setQuotaByStorageType(path, StorageType.DISK, spaceQuota);
     webHdfs.setQuotaByStorageType(path, StorageType.ARCHIVE, spaceQuota);
     webHdfs.setQuotaByStorageType(path, StorageType.SSD, spaceQuota);
+    webHdfs.setQuotaByStorageType(path, StorageType.NVDIMM, spaceQuota);
     quotaUsage = dfs.getQuotaUsage(path);
     assertEquals(spaceQuota, quotaUsage.getTypeQuota(StorageType.DISK));
     assertEquals(spaceQuota, quotaUsage.getTypeQuota(StorageType.ARCHIVE));
     assertEquals(spaceQuota, quotaUsage.getTypeQuota(StorageType.SSD));
+    assertEquals(spaceQuota, quotaUsage.getTypeQuota(StorageType.NVDIMM));
 
     // Test invalid parameters
 
@@ -1103,6 +1105,8 @@ public class TestWebHDFS {
         () -> webHdfs.setQuotaByStorageType(path, StorageType.SSD, -100));
     LambdaTestUtils.intercept(IllegalArgumentException.class,
         () -> webHdfs.setQuotaByStorageType(path, StorageType.RAM_DISK, 100));
+    LambdaTestUtils.intercept(IllegalArgumentException.class,
+        () -> webHdfs.setQuotaByStorageType(path, StorageType.NVDIMM, -100));
   }
 
 
@@ -1567,6 +1571,34 @@ public class TestWebHDFS {
     Path expectedPath = new Path(FileSystem.USER_HOME_PREFIX,
         new Path(currentUser, FileSystem.TRASH_PREFIX));
     assertEquals(expectedPath.toUri().getPath(), trashPath.toUri().getPath());
+  }
+
+  @Test
+  public void testGetSnapshotTrashRoot() throws Exception {
+    final Configuration conf = WebHdfsTestUtil.createConf();
+    conf.setBoolean("dfs.namenode.snapshot.trashroot.enabled", true);
+    final String currentUser =
+        UserGroupInformation.getCurrentUser().getShortUserName();
+    cluster = new MiniDFSCluster.Builder(conf).numDataNodes(0).build();
+    final WebHdfsFileSystem webFS = WebHdfsTestUtil.getWebHdfsFileSystem(conf,
+        WebHdfsConstants.WEBHDFS_SCHEME);
+    Path ssDir1 = new Path("/ssDir1");
+    assertTrue(webFS.mkdirs(ssDir1));
+
+    Path trashPath = webFS.getTrashRoot(ssDir1);
+    Path expectedPath = new Path(FileSystem.USER_HOME_PREFIX,
+        new Path(currentUser, FileSystem.TRASH_PREFIX));
+    assertEquals(expectedPath.toUri().getPath(), trashPath.toUri().getPath());
+    // Enable snapshot
+    webFS.allowSnapshot(ssDir1);
+    Path trashPathAfter = webFS.getTrashRoot(ssDir1);
+    Path expectedPathAfter = new Path(ssDir1,
+        new Path(FileSystem.TRASH_PREFIX, currentUser));
+    assertEquals(expectedPathAfter.toUri().getPath(),
+        trashPathAfter.toUri().getPath());
+    // Cleanup
+    webFS.disallowSnapshot(ssDir1);
+    webFS.delete(ssDir1, true);
   }
 
   @Test

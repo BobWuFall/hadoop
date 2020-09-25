@@ -129,6 +129,7 @@ public class DfsClientConf {
   private final int blockWriteLocateFollowingMaxDelayMs;
   private final long defaultBlockSize;
   private final long prefetchSize;
+  private final boolean uriCacheEnabled;
   private final short defaultReplication;
   private final String taskId;
   private final FsPermission uMask;
@@ -142,6 +143,7 @@ public class DfsClientConf {
   private final long refreshReadBlockLocationsMS;
 
   private final ShortCircuitConf shortCircuitConf;
+  private final int clientShortCircuitNum;
 
   private final long hedgedReadThresholdMillis;
   private final int hedgedReadThreadpoolSize;
@@ -210,24 +212,7 @@ public class DfsClientConf {
         Write.MAX_PACKETS_IN_FLIGHT_KEY,
         Write.MAX_PACKETS_IN_FLIGHT_DEFAULT);
 
-    final boolean byteArrayManagerEnabled = conf.getBoolean(
-        Write.ByteArrayManager.ENABLED_KEY,
-        Write.ByteArrayManager.ENABLED_DEFAULT);
-    if (!byteArrayManagerEnabled) {
-      writeByteArrayManagerConf = null;
-    } else {
-      final int countThreshold = conf.getInt(
-          Write.ByteArrayManager.COUNT_THRESHOLD_KEY,
-          Write.ByteArrayManager.COUNT_THRESHOLD_DEFAULT);
-      final int countLimit = conf.getInt(
-          Write.ByteArrayManager.COUNT_LIMIT_KEY,
-          Write.ByteArrayManager.COUNT_LIMIT_DEFAULT);
-      final long countResetTimePeriodMs = conf.getLong(
-          Write.ByteArrayManager.COUNT_RESET_TIME_PERIOD_MS_KEY,
-          Write.ByteArrayManager.COUNT_RESET_TIME_PERIOD_MS_DEFAULT);
-      writeByteArrayManagerConf = new ByteArrayManager.Conf(
-          countThreshold, countLimit, countResetTimePeriodMs);
-    }
+    writeByteArrayManagerConf = loadWriteByteArrayManagerConf(conf);
 
     defaultBlockSize = conf.getLongBytes(DFS_BLOCK_SIZE_KEY,
         DFS_BLOCK_SIZE_DEFAULT);
@@ -239,6 +224,10 @@ public class DfsClientConf {
         Write.EXCLUDE_NODES_CACHE_EXPIRY_INTERVAL_DEFAULT);
     prefetchSize = conf.getLong(Read.PREFETCH_SIZE_KEY,
         10 * defaultBlockSize);
+
+    uriCacheEnabled = conf.getBoolean(Read.URI_CACHE_KEY,
+        Read.URI_CACHE_DEFAULT);
+
     numCachedConnRetry = conf.getInt(DFS_CLIENT_CACHED_CONN_RETRY_KEY,
         DFS_CLIENT_CACHED_CONN_RETRY_DEFAULT);
     numBlockWriteRetry = conf.getInt(
@@ -272,8 +261,6 @@ public class DfsClientConf {
         HdfsClientConfigKeys.
             DFS_CLIENT_REFRESH_READ_BLOCK_LOCATIONS_MS_DEFAULT);
 
-    shortCircuitConf = new ShortCircuitConf(conf);
-
     hedgedReadThresholdMillis = conf.getLong(
         HedgedRead.THRESHOLD_MILLIS_KEY,
         HedgedRead.THRESHOLD_MILLIS_DEFAULT);
@@ -296,6 +283,38 @@ public class DfsClientConf {
     leaseHardLimitPeriod =
         conf.getLong(HdfsClientConfigKeys.DFS_LEASE_HARDLIMIT_KEY,
             HdfsClientConfigKeys.DFS_LEASE_HARDLIMIT_DEFAULT) * 1000;
+
+    shortCircuitConf = new ShortCircuitConf(conf);
+    clientShortCircuitNum = conf.getInt(
+            HdfsClientConfigKeys.DFS_CLIENT_SHORT_CIRCUIT_NUM,
+            HdfsClientConfigKeys.DFS_CLIENT_SHORT_CIRCUIT_NUM_DEFAULT);
+    Preconditions.checkArgument(clientShortCircuitNum >= 1,
+            HdfsClientConfigKeys.DFS_CLIENT_SHORT_CIRCUIT_NUM +
+                    "can't be less then 1.");
+    Preconditions.checkArgument(clientShortCircuitNum <= 5,
+            HdfsClientConfigKeys.DFS_CLIENT_SHORT_CIRCUIT_NUM +
+                    "can't be more then 5.");
+  }
+
+  private ByteArrayManager.Conf loadWriteByteArrayManagerConf(
+      Configuration conf) {
+    final boolean byteArrayManagerEnabled = conf.getBoolean(
+        Write.ByteArrayManager.ENABLED_KEY,
+        Write.ByteArrayManager.ENABLED_DEFAULT);
+    if (!byteArrayManagerEnabled) {
+      return null;
+    }
+    final int countThreshold = conf.getInt(
+        Write.ByteArrayManager.COUNT_THRESHOLD_KEY,
+        Write.ByteArrayManager.COUNT_THRESHOLD_DEFAULT);
+    final int countLimit = conf.getInt(
+        Write.ByteArrayManager.COUNT_LIMIT_KEY,
+        Write.ByteArrayManager.COUNT_LIMIT_DEFAULT);
+    final long countResetTimePeriodMs = conf.getLong(
+        Write.ByteArrayManager.COUNT_RESET_TIME_PERIOD_MS_KEY,
+        Write.ByteArrayManager.COUNT_RESET_TIME_PERIOD_MS_DEFAULT);
+    return new ByteArrayManager.Conf(
+        countThreshold, countLimit, countResetTimePeriodMs);
   }
 
   @SuppressWarnings("unchecked")
@@ -546,6 +565,13 @@ public class DfsClientConf {
   }
 
   /**
+   * @return the uriCacheEnable
+   */
+  public boolean isUriCacheEnabled() {
+    return uriCacheEnabled;
+  }
+
+  /**
    * @return the defaultReplication
    */
   public short getDefaultReplication() {
@@ -599,6 +625,13 @@ public class DfsClientConf {
    */
   public long getSlowIoWarningThresholdMs() {
     return slowIoWarningThresholdMs;
+  }
+
+  /*
+   * @return the clientShortCircuitNum
+   */
+  public int getClientShortCircuitNum() {
+    return clientShortCircuitNum;
   }
 
   /**

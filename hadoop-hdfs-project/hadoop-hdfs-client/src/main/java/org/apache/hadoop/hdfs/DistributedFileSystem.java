@@ -52,6 +52,7 @@ import org.apache.hadoop.fs.GlobalStorageStatistics;
 import org.apache.hadoop.fs.GlobalStorageStatistics.StorageStatisticsProvider;
 import org.apache.hadoop.fs.InvalidPathHandleException;
 import org.apache.hadoop.fs.PartialListing;
+import org.apache.hadoop.fs.MultipartUploaderBuilder;
 import org.apache.hadoop.fs.PathHandle;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Options;
@@ -66,6 +67,7 @@ import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.fs.UnsupportedFileSystemException;
 import org.apache.hadoop.fs.XAttrSetFlag;
+import org.apache.hadoop.fs.impl.FileSystemMultipartUploaderBuilder;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
@@ -107,6 +109,7 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReportListing;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReportListing.DiffReportListingEntry;
 import org.apache.hadoop.hdfs.client.impl.SnapshotDiffReportGenerator;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
+import org.apache.hadoop.hdfs.protocol.SnapshotStatus;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.net.NetUtils;
@@ -126,10 +129,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.apache.hadoop.fs.impl.PathCapabilitiesSupport.validatePathCapabilityArgs;
 
@@ -181,7 +186,7 @@ public class DistributedFileSystem extends FileSystem
       throw new IOException("Incomplete HDFS URI, no host: "+ uri);
     }
 
-    this.dfs = new DFSClient(uri, conf, statistics);
+    initDFSClient(uri, conf);
     this.uri = URI.create(uri.getScheme()+"://"+uri.getAuthority());
     this.workingDir = getHomeDirectory();
 
@@ -193,6 +198,10 @@ public class DistributedFileSystem extends FileSystem
               return new DFSOpsCountStatistics();
             }
           });
+  }
+
+  void initDFSClient(URI theUri, Configuration conf) throws IOException {
+    this.dfs =  new DFSClient(theUri, conf, statistics);
   }
 
   @Override
@@ -1143,10 +1152,21 @@ public class DistributedFileSystem extends FileSystem
   /**
    * List all the entries of a directory
    *
-   * Note that this operation is not atomic for a large directory.
-   * The entries of a directory may be fetched from NameNode multiple times.
-   * It only guarantees that  each name occurs once if a directory
-   * undergoes changes between the calls.
+   * Note that this operation is not atomic for a large directory. The entries
+   * of a directory may be fetched from NameNode multiple times. It only
+   * guarantees that each name occurs once if a directory undergoes changes
+   * between the calls.
+   *
+   * If any of the the immediate children of the given path f is a symlink, the
+   * returned FileStatus object of that children would be represented as a
+   * symlink. It will not be resolved to the target path and will not get the
+   * target path FileStatus object. The target path will be available via
+   * getSymlink on that children's FileStatus object. Since it represents as
+   * symlink, isDirectory on that children's FileStatus will return false.
+   *
+   * If you want to get the FileStatus of target path for that children, you may
+   * want to use GetFileStatus API with that children's symlink path. Please see
+   * {@link DistributedFileSystem#getFileStatus(Path f)}
    */
   @Override
   public FileStatus[] listStatus(Path p) throws IOException {
@@ -1494,10 +1514,14 @@ public class DistributedFileSystem extends FileSystem
   @Override
   public void close() throws IOException {
     try {
-      dfs.closeOutputStreams(false);
+      if (dfs != null) {
+        dfs.closeOutputStreams(false);
+      }
       super.close();
     } finally {
-      dfs.close();
+      if (dfs != null) {
+        dfs.close();
+      }
     }
   }
 
@@ -1712,6 +1736,12 @@ public class DistributedFileSystem extends FileSystem
 
   /**
    * Returns the stat information about the file.
+   *
+   * If the given path is a symlink, the path will be resolved to a target path
+   * and it will get the resolved path's FileStatus object. It will not be
+   * represented as a symlink and isDirectory API returns true if the resolved
+   * path is a directory, false otherwise.
+   *
    * @throws FileNotFoundException if the file does not exist.
    */
   @Override
@@ -2038,6 +2068,12 @@ public class DistributedFileSystem extends FileSystem
     new FileSystemLinkResolver<Void>() {
       @Override
       public Void doCall(final Path p) throws IOException {
+        String ssTrashRoot =
+            new Path(p, FileSystem.TRASH_PREFIX).toUri().getPath();
+        if (dfs.exists(ssTrashRoot)) {
+          throw new IOException("Found trash root under path " + p + ". "
+              + "Please remove or move the trash root and then try again.");
+        }
         dfs.disallowSnapshot(getPathName(p));
         return null;
       }
@@ -2127,6 +2163,19 @@ public class DistributedFileSystem extends FileSystem
     storageStatistics
         .incrementOpCounter(OpType.GET_SNAPSHOTTABLE_DIRECTORY_LIST);
     return dfs.getSnapshottableDirListing();
+  }
+
+  /**
+   * @return all the snapshots for a snapshottable directory
+   * @throws IOException
+   */
+  public SnapshotStatus[] getSnapshotListing(Path snapshotRoot)
+      throws IOException {
+    Path absF = fixRelativePart(snapshotRoot);
+    statistics.incrementReadOps(1);
+    storageStatistics
+        .incrementOpCounter(OpType.GET_SNAPSHOT_LIST);
+    return dfs.getSnapshotListing(getPathName(absF));
   }
 
   @Override
@@ -3240,8 +3289,11 @@ public class DistributedFileSystem extends FileSystem
   /**
    * Get the root directory of Trash for a path in HDFS.
    * 1. File in encryption zone returns /ez1/.Trash/username
-   * 2. File not in encryption zone, or encountered exception when checking
-   *    the encryption zone of the path, returns /users/username/.Trash
+   * 2. File in snapshottable directory returns /snapdir1/.Trash/username
+   *    if dfs.namenode.snapshot.trashroot.enabled is set to true.
+   * 3. In other cases, or encountered exception when checking the encryption
+   *    zone or when checking snapshot root of the path, returns
+   *    /users/username/.Trash
    * Caller appends either Current or checkpoint timestamp for trash destination
    * @param path the trash root of the path to be determined.
    * @return trash root
@@ -3250,41 +3302,89 @@ public class DistributedFileSystem extends FileSystem
   public Path getTrashRoot(Path path) {
     statistics.incrementReadOps(1);
     storageStatistics.incrementOpCounter(OpType.GET_TRASH_ROOT);
+    if (path == null) {
+      return super.getTrashRoot(null);
+    }
+
+    // Snapshottable directory trash root, not null if path is inside a
+    // snapshottable directory and isSnapshotTrashRootEnabled is true from NN.
+    String ssTrashRoot = null;
     try {
-      if ((path == null) || !dfs.isHDFSEncryptionEnabled()) {
-        return super.getTrashRoot(path);
+      if (dfs.isSnapshotTrashRootEnabled()) {
+        String ssRoot = dfs.getSnapshotRoot(path);
+        if (ssRoot != null) {
+          ssTrashRoot = DFSUtilClient.getSnapshotTrashRoot(ssRoot, dfs.ugi);
+        }
+      }
+    } catch (IOException ioe) {
+      DFSClient.LOG.warn("Exception while checking whether the path is in a "
+          + "snapshottable directory", ioe);
+    }
+
+    try {
+      if (!dfs.isHDFSEncryptionEnabled()) {
+        if (ssTrashRoot == null) {
+          // the path is not in a snapshottable directory and EZ is not enabled
+          return super.getTrashRoot(path);
+        } else {
+          return this.makeQualified(new Path(ssTrashRoot));
+        }
       }
     } catch (IOException ioe) {
       DFSClient.LOG.warn("Exception while checking whether encryption zone is "
           + "supported", ioe);
     }
 
-    String parentSrc = path.isRoot()?
-        path.toUri().getPath():path.getParent().toUri().getPath();
+    // HDFS encryption is enabled on the cluster at this point, does not
+    // necessary mean the given path is in an EZ hence the check.
+    String parentSrc = path.isRoot() ?
+        path.toUri().getPath() : path.getParent().toUri().getPath();
+    String ezTrashRoot = null;
     try {
       EncryptionZone ez = dfs.getEZForPath(parentSrc);
       if ((ez != null)) {
-        return this.makeQualified(
-            new Path(DFSUtilClient.getEZTrashRoot(ez, dfs.ugi)));
+        ezTrashRoot = DFSUtilClient.getEZTrashRoot(ez, dfs.ugi);
       }
     } catch (IOException e) {
       DFSClient.LOG.warn("Exception in checking the encryption zone for the " +
           "path " + parentSrc + ". " + e.getMessage());
     }
-    return super.getTrashRoot(path);
+
+    if (ssTrashRoot == null) {
+      if (ezTrashRoot == null) {
+        // The path is neither in a snapshottable directory nor in an EZ
+        return super.getTrashRoot(path);
+      } else {
+        return this.makeQualified(new Path(ezTrashRoot));
+      }
+    } else {
+      if (ezTrashRoot == null) {
+        return this.makeQualified(new Path(ssTrashRoot));
+      } else {
+        // The path is in EZ and in a snapshottable directory
+        return this.makeQualified(new Path(
+            ssTrashRoot.length() > ezTrashRoot.length() ?
+                ssTrashRoot : ezTrashRoot));
+      }
+    }
   }
 
   /**
    * Get all the trash roots of HDFS for current user or for all the users.
-   * 1. File deleted from non-encryption zone /user/username/.Trash
-   * 2. File deleted from encryption zones
+   * 1. File deleted from encryption zones
    *    e.g., ez1 rooted at /ez1 has its trash root at /ez1/.Trash/$USER
+   * 2. File deleted from snapshottable directories
+   *    if dfs.namenode.snapshot.trashroot.enabled is set to true.
+   *    e.g., snapshottable directory /snapdir1 has its trash root
+   *    at /snapdir1/.Trash/$USER
+   * 3. File deleted from other directories
+   *    /user/username/.Trash
    * @param allUsers return trashRoots of all users if true, used by emptier
    * @return trash roots of HDFS
    */
   @Override
   public Collection<FileStatus> getTrashRoots(boolean allUsers) {
-    List<FileStatus> ret = new ArrayList<>();
+    Set<FileStatus> ret = new HashSet<>();
     // Get normal trash roots
     ret.addAll(super.getTrashRoots(allUsers));
 
@@ -3315,6 +3415,39 @@ public class DistributedFileSystem extends FileSystem
     } catch (IOException e){
       DFSClient.LOG.warn("Cannot get all encrypted trash roots", e);
     }
+
+    try {
+      // Get snapshottable directory trash roots
+      if (dfs.isSnapshotTrashRootEnabled()) {
+        SnapshottableDirectoryStatus[] lst = dfs.getSnapshottableDirListing();
+        if (lst != null) {
+          for (SnapshottableDirectoryStatus dirStatus : lst) {
+            String ssDir = dirStatus.getFullPath().toString();
+            Path ssTrashRoot = new Path(ssDir, FileSystem.TRASH_PREFIX);
+            if (!exists(ssTrashRoot)) {
+              continue;
+            }
+            if (allUsers) {
+              for (FileStatus candidate : listStatus(ssTrashRoot)) {
+                if (exists(candidate.getPath())) {
+                  ret.add(candidate);
+                }
+              }
+            } else {
+              Path userTrash = new Path(DFSUtilClient.getSnapshotTrashRoot(
+                  ssDir, dfs.ugi));
+              try {
+                ret.add(getFileStatus(userTrash));
+              } catch (FileNotFoundException ignored) {
+              }
+            }
+          }
+        }
+      }
+    } catch (IOException e) {
+      DFSClient.LOG.warn("Cannot get snapshot trash roots", e);
+    }
+
     return ret;
   }
 
@@ -3597,5 +3730,11 @@ public class DistributedFileSystem extends FileSystem
     }
 
     return super.hasPathCapability(p, capability);
+  }
+
+  @Override
+  public MultipartUploaderBuilder createMultipartUploader(final Path basePath)
+      throws IOException {
+    return new FileSystemMultipartUploaderBuilder(this, basePath);
   }
 }

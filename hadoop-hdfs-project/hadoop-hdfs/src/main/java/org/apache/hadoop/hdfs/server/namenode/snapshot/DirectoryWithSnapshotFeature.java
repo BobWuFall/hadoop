@@ -166,7 +166,7 @@ public class DirectoryWithSnapshotFeature implements INode.Feature {
       this.isSnapshotRoot = true;
     }
     
-    boolean isSnapshotRoot() {
+    public boolean isSnapshotRoot() {
       return isSnapshotRoot;
     }
 
@@ -175,6 +175,8 @@ public class DirectoryWithSnapshotFeature implements INode.Feature {
         final INode.ReclaimContext reclaimContext,
         final INodeDirectory currentDir,
         final DirectoryDiff posterior) {
+      // DeletionOrdered: must not combine posterior
+      assert !SnapshotManager.isDeletionOrdered();
       diff.combinePosterior(posterior.diff, new Diff.Processor<INode>() {
         /** Collect blocks for deleted files. */
         @Override

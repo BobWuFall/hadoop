@@ -224,7 +224,8 @@ public class CapacityScheduler extends
   private boolean usePortForNodeName;
 
   private boolean scheduleAsynchronously;
-  private List<AsyncScheduleThread> asyncSchedulerThreads;
+  @VisibleForTesting
+  protected List<AsyncScheduleThread> asyncSchedulerThreads;
   private ResourceCommitterService resourceCommitterService;
   private RMNodeLabelsManager labelManager;
   private AppPriorityACLsManager appPriorityACLManager;
@@ -242,8 +243,11 @@ public class CapacityScheduler extends
   private static final long DEFAULT_ASYNC_SCHEDULER_INTERVAL = 5;
   private long asyncMaxPendingBacklogs;
 
+  private CSMaxRunningAppsEnforcer maxRunningEnforcer;
+
   public CapacityScheduler() {
     super(CapacityScheduler.class.getName());
+    this.maxRunningEnforcer = new CSMaxRunningAppsEnforcer(this);
   }
 
   @Override
@@ -483,6 +487,7 @@ public class CapacityScheduler extends
 
         super.reinitialize(newConf, rmContext);
       }
+      maxRunningEnforcer.updateRunnabilityOnReload();
     } finally {
       writeLock.unlock();
     }
@@ -992,12 +997,14 @@ public class CapacityScheduler extends
           // not auto-created above, then its parent queue should match
           // the parent queue specified in queue mapping
         } else if (!queue.getParent().getQueueShortName().equals(
-            placementContext.getParentQueue())) {
+                placementContext.getParentQueue())
+            && !queue.getParent().getQueuePath().equals(
+                placementContext.getParentQueue())) {
           String message =
               "Auto created Leaf queue " + placementContext.getQueue() + " "
                   + "already exists under queue : " + queue
                   .getParent().getQueueShortName()
-                  + ".But Queue mapping configuration " +
+                  + ". But Queue mapping configuration " +
                    CapacitySchedulerConfiguration.QUEUE_MAPPING + " has been "
                   + "updated to a different parent queue : "
                   + placementContext.getParentQueue()
@@ -1080,6 +1087,9 @@ public class CapacityScheduler extends
       // 3. ScheduelerApplcationAttempt is set in
       // SchedulerApplication#setCurrentAppAttempt.
       attempt.setPriority(application.getPriority());
+
+      maxRunningEnforcer.checkRunnabilityWithUpdate(attempt);
+      maxRunningEnforcer.trackApp(attempt);
 
       queue.submitApplicationAttempt(attempt, application.getUser());
       LOG.info("Added Application Attempt " + applicationAttemptId
@@ -1174,8 +1184,13 @@ public class CapacityScheduler extends
         LOG.error(
             "Cannot finish application " + "from non-leaf queue: "
             + csQueue.getQueuePath());
-      } else{
+      } else {
         csQueue.finishApplicationAttempt(attempt, csQueue.getQueuePath());
+
+        maxRunningEnforcer.untrackApp(attempt);
+        if (attempt.isRunnable()) {
+          maxRunningEnforcer.updateRunnabilityOnAppRemoval(attempt);
+        }
       }
     } finally {
       writeLock.unlock();
@@ -1719,31 +1734,13 @@ public class CapacityScheduler extends
    */
   private CSAssignment allocateContainersOnMultiNodes(
       CandidateNodeSet<FiCaSchedulerNode> candidates) {
-    // When this time look at multiple nodes, try schedule if the
-    // partition has any available resource or killable resource
-    if (getRootQueue().getQueueCapacities().getUsedCapacity(
-        candidates.getPartition()) >= 1.0f
-        && preemptionManager.getKillableResource(
-        CapacitySchedulerConfiguration.ROOT, candidates.getPartition())
-        == Resources.none()) {
-      // Try to allocate from reserved containers
-      for (FiCaSchedulerNode node : candidates.getAllNodes().values()) {
-        RMContainer reservedContainer = node.getReservedContainer();
-        if (reservedContainer != null) {
-          allocateFromReservedContainer(node, false, reservedContainer);
-        }
+    // Try to allocate from reserved containers
+    for (FiCaSchedulerNode node : candidates.getAllNodes().values()) {
+      RMContainer reservedContainer = node.getReservedContainer();
+      if (reservedContainer != null) {
+        allocateFromReservedContainer(node, false, reservedContainer);
       }
-      LOG.debug("This partition '{}' doesn't have available or "
-          + "killable resource", candidates.getPartition());
-      ActivitiesLogger.QUEUE.recordQueueActivity(activitiesManager, null,
-          "", getRootQueue().getQueuePath(), ActivityState.REJECTED,
-          ActivityDiagnosticConstant.
-              INIT_CHECK_PARTITION_RESOURCE_INSUFFICIENT);
-      ActivitiesLogger.NODE
-          .finishSkippedNodeAllocation(activitiesManager, null);
-      return null;
     }
-
     return allocateOrReserveNewContainers(candidates, false);
   }
 
@@ -1832,6 +1829,7 @@ public class CapacityScheduler extends
     case NODE_UPDATE:
     {
       NodeUpdateSchedulerEvent nodeUpdatedEvent = (NodeUpdateSchedulerEvent)event;
+      updateSchedulerNodeHBIntervalMetrics(nodeUpdatedEvent);
       nodeUpdate(nodeUpdatedEvent.getRMNode());
     }
     break;
@@ -2115,6 +2113,19 @@ public class CapacityScheduler extends
               + getClusterResource());
     } finally {
       writeLock.unlock();
+    }
+  }
+
+  private void updateSchedulerNodeHBIntervalMetrics(
+      NodeUpdateSchedulerEvent nodeUpdatedEvent) {
+    // Add metrics for evaluating the time difference between heartbeats.
+    SchedulerNode node =
+        nodeTracker.getNode(nodeUpdatedEvent.getRMNode().getNodeID());
+    if (node != null) {
+      long lastInterval =
+          Time.monotonicNow() - node.getLastHeartbeatMonotonicTime();
+      CapacitySchedulerMetrics.getMetrics()
+          .addSchedulerNodeHBInterval(lastInterval);
     }
   }
 
@@ -3268,5 +3279,18 @@ public class CapacityScheduler extends
 
   public int getNumAsyncSchedulerThreads() {
     return asyncSchedulerThreads == null ? 0 : asyncSchedulerThreads.size();
+  }
+
+  @VisibleForTesting
+  public void setMaxRunningAppsEnforcer(CSMaxRunningAppsEnforcer enforcer) {
+    this.maxRunningEnforcer = enforcer;
+  }
+
+  /**
+   * Returning true as capacity scheduler supports placement constraints.
+   */
+  @Override
+  public boolean placementConstraintEnabled() {
+    return true;
   }
 }
